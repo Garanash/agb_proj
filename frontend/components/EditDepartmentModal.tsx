@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface Department {
   id: number
@@ -33,6 +34,8 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('EditDepartmentModal rendered:', { isOpen, department: !!department })
 
   // Заполняем форму данными отдела при открытии
   useEffect(() => {
@@ -71,7 +74,7 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({
       
       onDepartmentUpdated()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при обновлении отдела')
+      setError(formatApiError(error, 'Произошла ошибка при обновлении отдела'))
     } finally {
       setIsLoading(false)
     }

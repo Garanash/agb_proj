@@ -7,6 +7,7 @@ import CreateUserModal from '@/components/CreateUserModal'
 import EditUserModal from '@/components/EditUserModal'
 import { useAuth } from '@/components/AuthContext'
 import axios from 'axios'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface User {
   id: number
@@ -66,8 +67,8 @@ export default function Users() {
     try {
       await axios.delete(`http://localhost:8000/api/users/${userId}`)
       fetchUsers() // Перезагружаем список
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка при удалении пользователя')
+          } catch (error: any) {
+        alert(formatApiError(error, 'Ошибка при удалении пользователя'))
     }
   }
 

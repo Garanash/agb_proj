@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface User {
   id: number
@@ -45,6 +46,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('EditUserModal rendered:', { isOpen, user: !!user })
 
   // Заполняем форму данными пользователя при открытии
   useEffect(() => {
@@ -107,7 +110,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       onUserUpdated()
       onClose()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при обновлении пользователя')
+      setError(formatApiError(error, 'Произошла ошибка при обновлении пользователя'))
     } finally {
       setIsLoading(false)
     }

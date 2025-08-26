@@ -17,6 +17,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
+  token: string | null
   login: (username: string, password: string) => Promise<boolean>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -36,13 +37,15 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
+  const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    const storedToken = localStorage.getItem('access_token')
+    if (storedToken) {
+      setToken(storedToken)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       // Проверяем валидность токена при загрузке
       checkTokenValidity()
     } else {
@@ -54,9 +57,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await axios.get('http://localhost:8000/api/auth/me')
       setUser(response.data)
+      console.log('User loaded:', response.data)
     } catch (error) {
+      console.error('Token validation error:', error)
       // Токен невалиден, удаляем его
       localStorage.removeItem('access_token')
+      setToken(null)
       delete axios.defaults.headers.common['Authorization']
     } finally {
       setIsLoading(false)
@@ -74,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Сохраняем токен
       localStorage.setItem('access_token', access_token)
+      setToken(access_token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
       setUser(userData)
@@ -92,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       // Удаляем токен и пользователя в любом случае
       localStorage.removeItem('access_token')
+      setToken(null)
       delete axios.defaults.headers.common['Authorization']
       setUser(null)
     }
@@ -108,12 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user,
+    token,
     login,
     logout,
     refreshUser,
     isLoading,
     isAuthenticated: !!user
   }
+
+  console.log('AuthContext value:', { user: !!user, token: !!token, isLoading, isAuthenticated: !!user })
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

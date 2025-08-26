@@ -11,6 +11,8 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const pathname = usePathname()
   
+  console.log('AppLayout rendered:', { pathname })
+  
   // Если находимся на странице входа, не показываем сайдбар
   if (pathname === '/login') {
     return <>{children}</>

@@ -12,7 +12,8 @@ import {
   UserGroupIcon,
   DocumentTextIcon,
   ChartBarIcon,
-  BriefcaseIcon
+  BriefcaseIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from './AuthContext'
@@ -62,6 +63,18 @@ const navigation: NavigationItem[] = [
     roles: ['admin', 'manager'] 
   },
   { 
+    name: 'Рабочий чат', 
+    href: '/chat', 
+    icon: ChatBubbleLeftRightIcon, 
+    roles: ['admin', 'manager', 'employee'] 
+  },
+  { 
+    name: 'Управление ботами', 
+    href: '/admin/bots', 
+    icon: ChatBubbleLeftRightIcon, 
+    roles: ['admin'] 
+  },
+  { 
     name: 'Настройки', 
     href: '/settings', 
     icon: Cog6ToothIcon, 
@@ -72,6 +85,8 @@ const navigation: NavigationItem[] = [
 export default function Sidebar() {
   const pathname = usePathname()
   const { user } = useAuth()
+
+  console.log('Sidebar rendered:', { pathname, user: !!user })
 
   // Фильтруем навигацию по ролям пользователя
   const filteredNavigation = navigation.filter(item => 

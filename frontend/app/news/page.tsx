@@ -7,6 +7,7 @@ import EditNewsModal from '../../components/EditNewsModal'
 import { useAuth } from '../../components/AuthContext'
 import axios from 'axios'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { formatApiError } from '../../utils/errorHandler'
 
 interface News {
   id: number
@@ -84,7 +85,7 @@ export default function NewsPage() {
         fetchPublicNews()
       }
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка при удалении новости')
+      alert(formatApiError(error, 'Ошибка при удалении новости'))
     }
   }
 

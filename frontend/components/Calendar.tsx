@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import moment from 'moment'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
 import { useAuth } from './AuthContext'
@@ -11,6 +12,22 @@ import 'moment/locale/ru'
 
 // Настройка moment для русского языка
 moment.locale('ru')
+
+interface User {
+  id: number
+  username: string
+  first_name: string
+  last_name: string
+  department_id: number | null
+}
+
+interface EventParticipant {
+  id: number
+  event_id: number
+  user_id: number
+  created_at: string
+  user: User
+}
 
 interface Event {
   id: string
@@ -22,6 +39,7 @@ interface Event {
   creator_id: number
   is_active: boolean
   created_at: string
+  participants: EventParticipant[]
 }
 
 const Calendar: React.FC = () => {
@@ -34,6 +52,8 @@ const Calendar: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [addEventType, setAddEventType] = useState<'meeting' | 'call' | 'briefing' | 'conference' | 'other'>('meeting')
+
+  console.log('Calendar rendered:', { user: !!user, eventsCount: events.length })
 
   // Загрузка событий с backend
   const fetchEvents = async () => {
@@ -61,7 +81,8 @@ const Calendar: React.FC = () => {
           event_type: 'meeting',
           creator_id: 1,
           is_active: true,
-          created_at: moment().toISOString()
+          created_at: moment().toISOString(),
+          participants: []
         },
         {
           id: '2',
@@ -72,7 +93,8 @@ const Calendar: React.FC = () => {
           event_type: 'call',
           creator_id: 1,
           is_active: true,
-          created_at: moment().toISOString()
+          created_at: moment().toISOString(),
+          participants: []
         },
         {
           id: '3',
@@ -83,7 +105,8 @@ const Calendar: React.FC = () => {
           event_type: 'conference',
           creator_id: 1,
           is_active: true,
-          created_at: moment().toISOString()
+          created_at: moment().toISOString(),
+          participants: []
         }
       ]
       setEvents(mockEvents)
@@ -156,7 +179,7 @@ const Calendar: React.FC = () => {
       fetchEvents() // Перезагружаем события
       setShowDayModal(false)
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Ошибка при удалении события')
+              alert(formatApiError(error, 'Ошибка при удалении события'))
     }
   }
 
@@ -285,7 +308,7 @@ const Calendar: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`min-h-[120px] p-2 border border-gray-200 transition-colors cursor-pointer ${
+                className={`min-h-[90px] p-2 border border-gray-200 transition-colors cursor-pointer ${
                   isPastDay ? 'bg-gray-100' : 'hover:bg-gray-50'
                 } ${isTodayDay ? 'bg-blue-50 border-blue-300' : ''} ${
                   !isCurrentMonthDay ? 'text-gray-400' : ''
@@ -373,6 +396,21 @@ const Calendar: React.FC = () => {
                             </p>
                             {event.description && (
                               <p className="text-sm text-gray-700 mt-2">{event.description}</p>
+                            )}
+                            {event.participants.length > 0 && (
+                              <div className="mt-2">
+                                <p className="text-sm text-gray-600">Участники:</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {event.participants.map(participant => (
+                                    <span
+                                      key={participant.id}
+                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                                    >
+                                      {participant.user.first_name} {participant.user.last_name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </div>
                           <div className="flex items-center space-x-2 ml-4">

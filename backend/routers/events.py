@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
+from sqlalchemy.orm import selectinload
 from datetime import datetime, date
 from typing import Optional
 
 from database import get_db
-from models import Event, User
+from models import Event, User, EventParticipant
 from schemas import Event as EventSchema, EventCreate, EventUpdate
 from routers.auth import get_current_user
 
@@ -21,7 +22,9 @@ async def get_events(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка событий с фильтрацией"""
-    query = select(Event).where(Event.is_active == True)
+    query = select(Event).where(Event.is_active == True).options(
+        selectinload(Event.participants).selectinload(EventParticipant.user)
+    )
     
     if start_date:
         query = query.where(Event.start_datetime >= datetime.combine(start_date, datetime.min.time()))
@@ -64,6 +67,23 @@ async def create_event(
     )
     
     db.add(db_event)
+    await db.flush()  # Получаем ID события
+
+    # Добавляем участников
+    for user_id in event_data.participants:
+        # Проверяем существование пользователя
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            await db.rollback()
+            raise HTTPException(status_code=404, detail=f"Пользователь с ID {user_id} не найден")
+
+        participant = EventParticipant(
+            event_id=db_event.id,
+            user_id=user_id
+        )
+        db.add(participant)
+
     await db.commit()
     await db.refresh(db_event)
     
@@ -78,7 +98,9 @@ async def get_event(
 ):
     """Получение события по ID"""
     result = await db.execute(
-        select(Event).where(and_(Event.id == event_id, Event.is_active == True))
+        select(Event)
+        .where(and_(Event.id == event_id, Event.is_active == True))
+        .options(selectinload(Event.participants).selectinload(EventParticipant.user))
     )
     event = result.scalar_one_or_none()
     
@@ -97,7 +119,9 @@ async def update_event(
 ):
     """Обновление события"""
     result = await db.execute(
-        select(Event).where(and_(Event.id == event_id, Event.is_active == True))
+        select(Event)
+        .where(and_(Event.id == event_id, Event.is_active == True))
+        .options(selectinload(Event.participants).selectinload(EventParticipant.user))
     )
     event = result.scalar_one_or_none()
     
@@ -121,13 +145,50 @@ async def update_event(
             detail="Дата окончания должна быть позже даты начала"
         )
     
+    # Обновляем участников если они указаны
+    if 'participants' in update_data:
+        # Удаляем старых участников
+        result = await db.execute(
+            select(EventParticipant).where(EventParticipant.event_id == event.id)
+        )
+        old_participants = result.scalars().all()
+        for participant in old_participants:
+            await db.delete(participant)
+
+        # Добавляем новых участников
+        for user_id in update_data['participants']:
+            # Проверяем существование пользователя
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+            if not user:
+                await db.rollback()
+                raise HTTPException(status_code=404, detail=f"Пользователь с ID {user_id} не найден")
+
+            participant = EventParticipant(
+                event_id=event.id,
+                user_id=user_id
+            )
+            db.add(participant)
+
+        # Удаляем participants из update_data, так как мы уже обработали их
+        del update_data['participants']
+    
+    # Обновляем остальные поля
     for field, value in update_data.items():
         setattr(event, field, value)
     
     await db.commit()
     await db.refresh(event)
     
-    return event
+    # Загружаем обновленные данные с участниками
+    result = await db.execute(
+        select(Event)
+        .where(Event.id == event_id)
+        .options(selectinload(Event.participants).selectinload(EventParticipant.user))
+    )
+    updated_event = result.scalar_one_or_none()
+    
+    return updated_event
 
 
 @router.delete("/{event_id}")

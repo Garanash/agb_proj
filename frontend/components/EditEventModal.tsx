@@ -3,6 +3,22 @@
 import React, { useState, useEffect } from 'react'
 import moment from 'moment'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
+
+interface User {
+  id: number
+  username: string
+  first_name: string
+  last_name: string
+  department_id: number | null
+}
+
+interface EventParticipant {
+  id: number
+  event_id: number
+  user_id: number
+  created_at: string
+}
 
 interface Event {
   id: string
@@ -14,6 +30,7 @@ interface Event {
   creator_id: number
   is_active: boolean
   created_at: string
+  participants: EventParticipant[]
 }
 
 interface EditEventModalProps {
@@ -36,11 +53,48 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     start_time: '',
     end_date: '',
     end_time: '',
-    event_type: 'meeting' as 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
+    event_type: 'meeting' as 'meeting' | 'call' | 'briefing' | 'conference' | 'other',
+    participants: [] as number[]
   })
+  
+  const [users, setUsers] = useState<User[]>([])
+  const [departments, setDepartments] = useState<{[key: number]: string}>({})
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('EditEventModal rendered:', { isOpen, event: !!event })
+
+  // Загрузка пользователей и отделов
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoadingUsers(true)
+      try {
+        const [usersResponse, departmentsResponse] = await Promise.all([
+          axios.get('http://localhost:8000/api/users/'),
+          axios.get('http://localhost:8000/api/departments/')
+        ])
+        
+        setUsers(usersResponse.data)
+        
+        // Создаем словарь отделов
+        const deptMap: {[key: number]: string} = {}
+        departmentsResponse.data.forEach((dept: any) => {
+          deptMap[dept.id] = dept.name
+        })
+        setDepartments(deptMap)
+      } catch (error) {
+        console.error('Ошибка загрузки пользователей:', error)
+      } finally {
+        setIsLoadingUsers(false)
+      }
+    }
+
+    if (isOpen) {
+      fetchUsers()
+    }
+  }, [isOpen])
 
   // Заполняем форму данными события при открытии
   useEffect(() => {
@@ -55,7 +109,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         start_time: startMoment.format('HH:mm'),
         end_date: endMoment.format('YYYY-MM-DD'),
         end_time: endMoment.format('HH:mm'),
-        event_type: event.event_type
+        event_type: event.event_type,
+        participants: event.participants.map(p => p.user_id)
       })
       setError('')
     }
@@ -63,10 +118,19 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    if (name === 'participants') {
+      const selectedOptions = Array.from((e.target as HTMLSelectElement).selectedOptions)
+      const selectedIds = selectedOptions.map(option => parseInt(option.value))
+      setFormData(prev => ({
+        ...prev,
+        participants: selectedIds
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,13 +153,20 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       if (startDateTime !== event.start_datetime) updateData.start_datetime = startDateTime
       if (endDateTime !== event.end_datetime) updateData.end_datetime = endDateTime
       if (formData.event_type !== event.event_type) updateData.event_type = formData.event_type
+      
+      // Сравниваем списки участников
+      const currentParticipants = event.participants.map(p => p.user_id).sort()
+      const newParticipants = [...formData.participants].sort()
+      if (JSON.stringify(currentParticipants) !== JSON.stringify(newParticipants)) {
+        updateData.participants = formData.participants
+      }
 
       await axios.put(`http://localhost:8000/api/events/${event.id}`, updateData)
       
       onEventUpdated()
       onClose()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при обновлении события')
+      setError(formatApiError(error, 'Произошла ошибка при обновлении события'))
     } finally {
       setIsLoading(false)
     }
@@ -251,6 +322,49 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 <option value="conference">Совещание</option>
                 <option value="other">Другое</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Участники
+              </label>
+              <select
+                name="participants"
+                multiple
+                value={formData.participants.map(String)}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+              >
+                {Object.entries(departments).map(([deptId, deptName]) => {
+                  const deptUsers = users.filter(user => user.department_id === parseInt(deptId))
+                  if (deptUsers.length === 0) return null
+                  
+                  return (
+                    <optgroup key={deptId} label={deptName}>
+                      {deptUsers.map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name} {user.last_name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )
+                })}
+                {users.filter(user => !user.department_id).length > 0 && (
+                  <optgroup label="Без отдела">
+                    {users
+                      .filter(user => !user.department_id)
+                      .map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name} {user.last_name}
+                        </option>
+                      ))
+                    }
+                  </optgroup>
+                )}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
+              </p>
             </div>
           </div>
 

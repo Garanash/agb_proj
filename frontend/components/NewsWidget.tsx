@@ -25,6 +25,8 @@ const NewsWidget: React.FC = () => {
 
   const canManageNews = user && (user.role === 'admin' || user.role === 'manager')
 
+  console.log('NewsWidget rendered:', { user: !!user, newsCount: news.length })
+
   // Загрузка новостей с backend
   useEffect(() => {
     fetchNews()

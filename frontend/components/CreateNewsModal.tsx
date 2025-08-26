@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface CreateNewsModalProps {
   isOpen: boolean
@@ -23,6 +24,8 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('CreateNewsModal rendered:', { isOpen })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
@@ -59,7 +62,7 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
       
       onNewsCreated()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при создании новости')
+      setError(formatApiError(error, 'Произошла ошибка при создании новости'))
     } finally {
       setIsLoading(false)
     }

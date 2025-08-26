@@ -30,6 +30,17 @@ async def read_users(
     return users
 
 
+@router.get("/chat-users/", response_model=list[UserSchema])
+async def read_chat_users(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение списка всех активных пользователей для чата"""
+    result = await db.execute(select(User).where(User.is_active == True))
+    users = result.scalars().all()
+    return users
+
+
 @router.post("/", response_model=UserSchema)
 async def create_user(
     user_data: UserCreate,

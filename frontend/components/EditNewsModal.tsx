@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface News {
   id: number
@@ -37,6 +38,8 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('EditNewsModal rendered:', { isOpen, news: !!news })
 
   // Заполняем форму данными новости при открытии
   useEffect(() => {
@@ -88,7 +91,7 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
       
       onNewsUpdated()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при обновлении новости')
+      setError(formatApiError(error, 'Произошла ошибка при обновлении новости'))
     } finally {
       setIsLoading(false)
     }

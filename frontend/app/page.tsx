@@ -9,6 +9,8 @@ import { useAuth } from '@/components/AuthContext'
 export default function Home() {
   const { user } = useAuth()
 
+  console.log('Home page rendered:', { user: !!user })
+
   return (
     <PageLayout 
       title={`Добро пожаловать, ${user ? `${user.last_name} ${user.first_name}` : 'Пользователь'}!`}

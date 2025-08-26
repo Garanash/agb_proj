@@ -15,6 +15,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
 
   const { login } = useAuth()
 
+  console.log('LoginForm rendered')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     

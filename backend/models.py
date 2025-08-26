@@ -184,6 +184,7 @@ class Event(Base):
 
     # Связи
     creator = relationship("User", back_populates="events", foreign_keys=[creator_id])
+    participants = relationship("EventParticipant", back_populates="event", cascade="all, delete-orphan")
 
 
 class Role(Base):
@@ -243,3 +244,112 @@ class TeamMember(Base):
 
     # Связи
     user = relationship("User")
+
+
+class ChatFolder(Base):
+    __tablename__ = "chat_folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Название папки
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Владелец папки
+    order_index = Column(Integer, default=0)  # Порядок отображения
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User")
+    rooms = relationship("ChatRoomFolder", back_populates="folder", cascade="all, delete-orphan")
+
+
+class ChatRoom(Base):
+    __tablename__ = "chat_rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Название беседы
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Создатель беседы
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    creator = relationship("User", foreign_keys=[creator_id])
+    participants = relationship("ChatRoomParticipant", back_populates="chat_room", cascade="all, delete-orphan")
+    messages = relationship("ChatMessage", back_populates="chat_room", cascade="all, delete-orphan")
+    folders = relationship("ChatRoomFolder", back_populates="room", cascade="all, delete-orphan")
+
+
+class ChatRoomFolder(Base):
+    __tablename__ = "chat_room_folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=False)
+    room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    folder = relationship("ChatFolder", back_populates="rooms")
+    room = relationship("ChatRoom", back_populates="folders")
+
+
+class ChatRoomParticipant(Base):
+    __tablename__ = "chat_room_participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Может быть NULL для ботов
+    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)  # ID бота, если участник - бот
+    is_admin = Column(Boolean, default=False)  # Администратор беседы
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    chat_room = relationship("ChatRoom", back_populates="participants")
+    user = relationship("User", foreign_keys=[user_id])
+    bot = relationship("ChatBot", back_populates="participants", foreign_keys=[bot_id])
+
+
+class EventParticipant(Base):
+    __tablename__ = "event_participants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    event = relationship("Event", back_populates="participants")
+    user = relationship("User")
+
+
+class ChatBot(Base):
+    __tablename__ = "chat_bots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Имя бота
+    description = Column(Text, nullable=True)  # Описание бота
+    api_key = Column(String, nullable=False)  # API ключ для VseGPT
+    model_id = Column(String, nullable=False)  # ID модели для использования
+    system_prompt = Column(Text, nullable=True)  # Системный промпт для бота
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    participants = relationship("ChatRoomParticipant", back_populates="bot")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chat_room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Может быть NULL для сообщений от бота
+    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)  # ID бота, если сообщение от бота
+    content = Column(Text, nullable=False)  # Содержание сообщения
+    is_edited = Column(Boolean, default=False)  # Было ли сообщение отредактировано
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    chat_room = relationship("ChatRoom", back_populates="messages")
+    sender = relationship("User", foreign_keys=[sender_id])
+    bot = relationship("ChatBot", foreign_keys=[bot_id])

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface ProfileEditModalProps {
   isOpen: boolean
@@ -28,6 +29,8 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [previewAvatar, setPreviewAvatar] = useState(user?.avatar_url || '')
+
+  console.log('ProfileEditModal rendered:', { isOpen, user: !!user })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -67,7 +70,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
       onUpdate() // Обновляем данные пользователя в контексте
       onClose()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при сохранении')
+      setError(formatApiError(error, 'Произошла ошибка при сохранении'))
     } finally {
       setIsLoading(false)
     }

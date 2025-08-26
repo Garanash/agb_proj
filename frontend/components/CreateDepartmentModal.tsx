@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface CreateDepartmentModalProps {
   isOpen: boolean
@@ -21,6 +22,8 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('CreateDepartmentModal rendered:', { isOpen })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -46,7 +49,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
       
       onDepartmentCreated()
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при создании отдела')
+      setError(formatApiError(error, 'Произошла ошибка при создании отдела'))
     } finally {
       setIsLoading(false)
     }

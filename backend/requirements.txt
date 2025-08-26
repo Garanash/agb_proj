@@ -10,3 +10,4 @@ passlib[bcrypt]==1.7.4
 python-dotenv==1.0.0
 fastapi-users==12.1.2
 fastapi-users[sqlalchemy]==12.1.2
+aiohttp==3.9.5

@@ -13,6 +13,8 @@ export default function UserProfile() {
   
   const { user, logout, refreshUser, isLoading, isAuthenticated } = useAuth()
 
+  console.log('UserProfile rendered:', { isAuthenticated, isLoading, user: !!user })
+
   if (isLoading) {
     return (
       <div className="animate-pulse">

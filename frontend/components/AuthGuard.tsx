@@ -9,9 +9,11 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+
+  console.log('AuthGuard state:', { isAuthenticated, isLoading, user: !!user, pathname })
 
   useEffect(() => {
     // Если загрузка завершена и пользователь не авторизован

@@ -4,6 +4,8 @@ import React from 'react'
 import LoginForm from '@/components/LoginForm'
 
 export default function LoginPage() {
+  console.log('Login page rendered')
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">

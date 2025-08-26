@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import axios from 'axios'
+import { formatApiError } from '../utils/errorHandler'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -22,6 +23,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  console.log('CreateUserModal rendered:', { isOpen })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -51,7 +54,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
         prefix: 'АГБ'
       })
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Произошла ошибка при создании пользователя')
+      setError(formatApiError(error, 'Произошла ошибка при создании пользователя'))
     } finally {
       setIsLoading(false)
     }
