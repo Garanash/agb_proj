@@ -9,7 +9,7 @@ interface AddEventModalProps {
   onClose: () => void
   selectedDate: moment.Moment | null
   onEventAdded: () => void
-  initialEventType?: 'event' | 'measurement' | 'installation'
+  initialEventType?: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
 }
 
 const AddEventModal: React.FC<AddEventModalProps> = ({ 
@@ -17,7 +17,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   onClose, 
   selectedDate, 
   onEventAdded,
-  initialEventType = 'event'
+  initialEventType = 'meeting'
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -87,12 +87,16 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
   const getEventTypeLabel = (type: string) => {
     switch (type) {
-      case 'event':
-        return 'Событие'
-      case 'measurement':
-        return 'Заявка на измерение'
-      case 'installation':
-        return 'Заявка на монтаж'
+      case 'meeting':
+        return 'Встреча'
+      case 'call':
+        return 'Созвон'
+      case 'briefing':
+        return 'Планерка'
+      case 'conference':
+        return 'Совещание'
+      case 'other':
+        return 'Другое'
       default:
         return type
     }
@@ -200,9 +204,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="event">Событие</option>
-                <option value="measurement">Заявка на измерение</option>
-                <option value="installation">Заявка на монтаж</option>
+                <option value="meeting">Встреча</option>
+                <option value="call">Созвон</option>
+                <option value="briefing">Планерка</option>
+                <option value="conference">Совещание</option>
+                <option value="other">Другое</option>
               </select>
             </div>
           </div>

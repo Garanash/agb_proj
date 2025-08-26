@@ -10,7 +10,7 @@ interface Event {
   start_datetime: string
   end_datetime: string
   description?: string
-  event_type: 'event' | 'measurement' | 'installation'
+  event_type: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
   creator_id: number
   is_active: boolean
   created_at: string
@@ -36,7 +36,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     start_time: '',
     end_date: '',
     end_time: '',
-    event_type: 'event' as 'event' | 'measurement' | 'installation'
+    event_type: 'meeting' as 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
   })
   
   const [isLoading, setIsLoading] = useState(false)
@@ -103,12 +103,16 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   const getEventTypeLabel = (type: string) => {
     switch (type) {
-      case 'event':
-        return 'Событие'
-      case 'measurement':
-        return 'Заявка на измерение'
-      case 'installation':
-        return 'Заявка на монтаж'
+      case 'meeting':
+        return 'Встреча'
+      case 'call':
+        return 'Созвон'
+      case 'briefing':
+        return 'Планерка'
+      case 'conference':
+        return 'Совещание'
+      case 'other':
+        return 'Другое'
       default:
         return type
     }
@@ -241,9 +245,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="event">Событие</option>
-                <option value="measurement">Заявка на измерение</option>
-                <option value="installation">Заявка на монтаж</option>
+                <option value="meeting">Встреча</option>
+                <option value="call">Созвон</option>
+                <option value="briefing">Планерка</option>
+                <option value="conference">Совещание</option>
+                <option value="other">Другое</option>
               </select>
             </div>
           </div>

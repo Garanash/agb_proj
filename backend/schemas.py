@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, validator
 from datetime import datetime, timezone
 from typing import Optional
-from models import UserRole, NewsCategory, EventType
+from models import UserRole, NewsCategory, EventType, Permission
 
 
 class UserBase(BaseModel):
@@ -173,6 +173,102 @@ class Event(EventBase):
     id: int
     creator_id: int
     is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Схемы для сброса пароля
+class PasswordReset(BaseModel):
+    user_id: int
+    new_password: str
+
+
+# Схемы для ролей
+class RoleBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class RoleCreate(RoleBase):
+    permissions: list[Permission] = []
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    permissions: Optional[list[Permission]] = None
+
+
+class Role(RoleBase):
+    id: int
+    is_system: bool
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    permissions: list[Permission] = []
+
+    class Config:
+        from_attributes = True
+
+
+# Схемы для назначения ролей
+class UserRoleAssignmentCreate(BaseModel):
+    user_id: int
+    role_id: int
+
+
+class UserRoleAssignment(BaseModel):
+    id: int
+    user_id: int
+    role_id: int
+    assigned_by: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Схемы для команды
+class TeamMemberBase(BaseModel):
+    user_id: int
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: int = 0
+    is_visible: bool = True
+
+
+class TeamMemberCreate(TeamMemberBase):
+    pass
+
+
+class TeamMemberUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+    is_visible: Optional[bool] = None
+
+
+class TeamMember(TeamMemberBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Схема для получения информации о команде с данными пользователя
+class TeamMemberWithUser(BaseModel):
+    id: int
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: int
+    is_visible: bool
+    user: User
     created_at: datetime
     updated_at: Optional[datetime] = None
 

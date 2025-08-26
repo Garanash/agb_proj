@@ -1,11 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import PageLayout from '@/components/PageLayout'
 import { useAuth } from '@/components/AuthContext'
+import DevelopmentModal from '@/components/DevelopmentModal'
 import { DocumentArrowDownIcon, ChartBarIcon, DocumentTextIcon, CalendarIcon } from '@heroicons/react/24/outline'
 
 export default function Reports() {
   const { user } = useAuth()
+  const [showDevelopmentModal, setShowDevelopmentModal] = useState(false)
+
+  // Показать модальное окно при загрузке страницы
+  useEffect(() => {
+    setShowDevelopmentModal(true)
+  }, [])
   
   // Проверка доступа - только администраторы и менеджеры
   if (!user || !['admin', 'manager'].includes(user.role)) {
@@ -120,6 +128,13 @@ export default function Reports() {
           </div>
         </div>
       </div>
+
+      {/* Модальное окно "В разработке" */}
+      <DevelopmentModal
+        isOpen={showDevelopmentModal}
+        onClose={() => setShowDevelopmentModal(false)}
+        pageName="Отчеты"
+      />
     </PageLayout>
   )
 }

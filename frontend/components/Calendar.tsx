@@ -18,7 +18,7 @@ interface Event {
   start_datetime: string
   end_datetime: string
   description?: string
-  event_type: 'event' | 'measurement' | 'installation'
+  event_type: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
   creator_id: number
   is_active: boolean
   created_at: string
@@ -33,7 +33,7 @@ const Calendar: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
-  const [addEventType, setAddEventType] = useState<'event' | 'measurement' | 'installation'>('event')
+  const [addEventType, setAddEventType] = useState<'meeting' | 'call' | 'briefing' | 'conference' | 'other'>('meeting')
 
   // Загрузка событий с backend
   const fetchEvents = async () => {
@@ -58,7 +58,7 @@ const Calendar: React.FC = () => {
           start_datetime: moment().add(1, 'day').hour(10).minute(0).toISOString(),
           end_datetime: moment().add(1, 'day').hour(12).minute(0).toISOString(),
           description: 'Обсуждение нового проекта бурения',
-          event_type: 'event',
+          event_type: 'meeting',
           creator_id: 1,
           is_active: true,
           created_at: moment().toISOString()
@@ -69,7 +69,7 @@ const Calendar: React.FC = () => {
           start_datetime: moment().add(3, 'days').hour(9).minute(0).toISOString(),
           end_datetime: moment().add(3, 'days').hour(13).minute(0).toISOString(),
           description: 'Измерение глубины скважины №157',
-          event_type: 'measurement',
+          event_type: 'call',
           creator_id: 1,
           is_active: true,
           created_at: moment().toISOString()
@@ -80,7 +80,7 @@ const Calendar: React.FC = () => {
           start_datetime: moment().add(5, 'days').hour(8).minute(0).toISOString(),
           end_datetime: moment().add(5, 'days').hour(14).minute(0).toISOString(),
           description: 'Монтаж нового бурового станка',
-          event_type: 'installation',
+          event_type: 'conference',
           creator_id: 1,
           is_active: true,
           created_at: moment().toISOString()
@@ -125,7 +125,7 @@ const Calendar: React.FC = () => {
     setSelectedDate(null)
   }
 
-  const handleAddEvent = (eventType: 'event' | 'measurement' | 'installation') => {
+  const handleAddEvent = (eventType: 'meeting' | 'call' | 'briefing' | 'conference' | 'other') => {
     setAddEventType(eventType)
     setShowDayModal(false)
     setShowAddModal(true)
@@ -225,24 +225,41 @@ const Calendar: React.FC = () => {
       </div>
 
       {/* Кнопки быстрого добавления */}
-      <div className="flex space-x-4 mb-6">
+      <div className="flex flex-wrap gap-3 mb-6">
         <button
-          onClick={() => handleAddEvent('event')}
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          onClick={() => handleAddEvent('meeting')}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
         >
-          Добавить событие
+          <span>👥</span>
+          <span>Встреча</span>
         </button>
         <button
-          onClick={() => handleAddEvent('measurement')}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          onClick={() => handleAddEvent('call')}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
         >
-          Заявка на измерение
+          <span>📞</span>
+          <span>Созвон</span>
         </button>
         <button
-          onClick={() => handleAddEvent('installation')}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={() => handleAddEvent('briefing')}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
-          Заявка на монтаж
+          <span>📋</span>
+          <span>Планерка</span>
+        </button>
+        <button
+          onClick={() => handleAddEvent('conference')}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+        >
+          <span>🏢</span>
+          <span>Совещание</span>
+        </button>
+        <button
+          onClick={() => handleAddEvent('other')}
+          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+        >
+          <span>📝</span>
+          <span>Другое</span>
         </button>
       </div>
 
@@ -283,8 +300,10 @@ const Calendar: React.FC = () => {
                     <div
                       key={event.id}
                       className={`text-xs p-1 rounded text-white truncate ${
-                        event.event_type === 'measurement' ? 'bg-green-600' :
-                        event.event_type === 'installation' ? 'bg-blue-600' :
+                        event.event_type === 'call' ? 'bg-green-600' :
+                        event.event_type === 'briefing' ? 'bg-blue-600' :
+                        event.event_type === 'conference' ? 'bg-purple-600' :
+                        event.event_type === 'other' ? 'bg-gray-600' :
                         'bg-purple-600'
                       }`}
                       title={event.title}
@@ -339,8 +358,10 @@ const Calendar: React.FC = () => {
                       <div
                         key={event.id}
                         className={`p-4 rounded-lg border-l-4 ${
-                          event.event_type === 'measurement' ? 'bg-green-50 border-green-500' :
-                          event.event_type === 'installation' ? 'bg-blue-50 border-blue-500' :
+                          event.event_type === 'call' ? 'bg-green-50 border-green-500' :
+                          event.event_type === 'briefing' ? 'bg-blue-50 border-blue-500' :
+                          event.event_type === 'conference' ? 'bg-purple-50 border-purple-500' :
+                          event.event_type === 'other' ? 'bg-gray-50 border-gray-500' :
                           'bg-purple-50 border-purple-500'
                         }`}
                       >
@@ -356,12 +377,16 @@ const Calendar: React.FC = () => {
                           </div>
                           <div className="flex items-center space-x-2 ml-4">
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              event.event_type === 'measurement' ? 'bg-green-100 text-green-800' :
-                              event.event_type === 'installation' ? 'bg-blue-100 text-blue-800' :
+                              event.event_type === 'call' ? 'bg-green-100 text-green-800' :
+                              event.event_type === 'briefing' ? 'bg-blue-100 text-blue-800' :
+                              event.event_type === 'conference' ? 'bg-purple-100 text-purple-800' :
+                              event.event_type === 'other' ? 'bg-gray-100 text-gray-800' :
                               'bg-purple-100 text-purple-800'
                             }`}>
-                              {event.event_type === 'measurement' ? 'Измерение' :
-                               event.event_type === 'installation' ? 'Монтаж' : 'Событие'}
+                              {event.event_type === 'meeting' ? 'Встреча' :
+                               event.event_type === 'call' ? 'Созвон' :
+                               event.event_type === 'briefing' ? 'Планерка' :
+                               event.event_type === 'conference' ? 'Совещание' : 'Другое'}
                             </span>
                             {canEditEvent(event) && (
                               <>
@@ -405,22 +430,28 @@ const Calendar: React.FC = () => {
                   Закрыть
                 </button>
                 <button 
-                  onClick={() => handleAddEvent('event')}
+                  onClick={() => handleAddEvent('meeting')}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
-                  Добавить событие
+                  Встреча
                 </button>
                 <button 
-                  onClick={() => handleAddEvent('measurement')}
+                  onClick={() => handleAddEvent('call')}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  Заявка на измерение
+                  Созвон
                 </button>
                 <button 
-                  onClick={() => handleAddEvent('installation')}
+                  onClick={() => handleAddEvent('briefing')}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Заявка на монтаж
+                  Планерка
+                </button>
+                <button 
+                  onClick={() => handleAddEvent('conference')}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Совещание
                 </button>
               </div>
             </div>

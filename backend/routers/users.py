@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 
 from database import get_db
 from models import User
-from schemas import User as UserSchema, UserCreate, UserUpdate
+from schemas import User as UserSchema, UserCreate, UserUpdate, PasswordReset
 from routers.auth import get_current_user
 
 router = APIRouter()
@@ -149,3 +149,30 @@ async def delete_user(
     await db.commit()
     
     return {"message": "Пользователь успешно удален"}
+
+
+@router.post("/{user_id}/reset-password")
+async def reset_user_password(
+    user_id: int,
+    password_data: PasswordReset,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Сброс пароля пользователя (только для администраторов)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    if password_data.user_id != user_id:
+        raise HTTPException(status_code=400, detail="ID пользователя не совпадает")
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    # Обновляем пароль
+    user.hashed_password = get_password_hash(password_data.new_password)
+    await db.commit()
+    
+    return {"message": f"Пароль пользователя {user.username} успешно сброшен"}

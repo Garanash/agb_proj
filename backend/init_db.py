@@ -129,7 +129,7 @@ async def create_test_data():
                 News(
                     title="Завершен проект 'Северное месторождение'",
                     content="Успешно завершены геологоразведочные работы на Северном месторождении. По результатам работ подтверждены запасы руды категории C1 в объеме 2.5 млн тонн.",
-                    category=NewsCategory.projects,
+                    category=NewsCategory.general,
                     author_id=manager_user.id,
                     author_name=manager_user.full_name,
                     is_published=True,

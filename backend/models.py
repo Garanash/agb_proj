@@ -11,6 +11,46 @@ class UserRole(str, enum.Enum):
     employee = "employee"
 
 
+class Permission(str, enum.Enum):
+    # Основные разрешения
+    VIEW_DASHBOARD = "view_dashboard"
+    VIEW_NEWS = "view_news"
+    CREATE_NEWS = "create_news"
+    EDIT_NEWS = "edit_news"
+    DELETE_NEWS = "delete_news"
+    
+    # Календарь
+    VIEW_CALENDAR = "view_calendar"
+    CREATE_EVENTS = "create_events"
+    EDIT_EVENTS = "edit_events"
+    DELETE_EVENTS = "delete_events"
+    
+    # Пользователи
+    VIEW_USERS = "view_users"
+    CREATE_USERS = "create_users"
+    EDIT_USERS = "edit_users"
+    DELETE_USERS = "delete_users"
+    RESET_PASSWORDS = "reset_passwords"
+    
+    # Отделы
+    VIEW_DEPARTMENTS = "view_departments"
+    CREATE_DEPARTMENTS = "create_departments"
+    EDIT_DEPARTMENTS = "edit_departments"
+    DELETE_DEPARTMENTS = "delete_departments"
+    
+    # Проекты и отчеты
+    VIEW_PROJECTS = "view_projects"
+    VIEW_REPORTS = "view_reports"
+    
+    # О нас
+    VIEW_ABOUT = "view_about"
+    EDIT_ABOUT = "edit_about"
+    
+    # Настройки
+    VIEW_SETTINGS = "view_settings"
+    EDIT_SETTINGS = "edit_settings"
+
+
 class NewsCategory(str, enum.Enum):
     general = "general"
     technical = "technical"
@@ -18,9 +58,11 @@ class NewsCategory(str, enum.Enum):
 
 
 class EventType(str, enum.Enum):
-    event = "event"
-    measurement = "measurement"
-    installation = "installation"
+    meeting = "meeting"        # Встреча
+    call = "call"             # Созвон
+    briefing = "briefing"     # Планерка
+    conference = "conference" # Совещание
+    other = "other"           # Другое
 
 
 class Department(Base):
@@ -134,7 +176,7 @@ class Event(Base):
     description = Column(Text, nullable=True)
     start_datetime = Column(DateTime(timezone=True), nullable=False)
     end_datetime = Column(DateTime(timezone=True), nullable=False)
-    event_type = Column(Enum(EventType), default=EventType.event)
+    event_type = Column(Enum(EventType), default=EventType.meeting)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -142,3 +184,62 @@ class Event(Base):
 
     # Связи
     creator = relationship("User", back_populates="events", foreign_keys=[creator_id])
+
+
+class Role(Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_system = Column(Boolean, default=False)  # Системная роль (нельзя удалить)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
+    users = relationship("UserRoleAssignment", back_populates="role", cascade="all, delete-orphan")
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    permission = Column(Enum(Permission), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    role = relationship("Role", back_populates="permissions")
+
+
+class UserRoleAssignment(Base):
+    __tablename__ = "user_role_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    user = relationship("User", foreign_keys=[user_id])
+    role = relationship("Role", back_populates="users")
+    assigned_by_user = relationship("User", foreign_keys=[assigned_by])
+
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=True)  # Заголовок/должность для отображения
+    description = Column(Text, nullable=True)  # Описание сотрудника
+    order_index = Column(Integer, default=0)  # Порядок отображения
+    is_visible = Column(Boolean, default=True)  # Отображать ли на странице "О нас"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User")

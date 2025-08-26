@@ -1,11 +1,19 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import PageLayout from '@/components/PageLayout'
 import { useAuth } from '@/components/AuthContext'
+import DevelopmentModal from '@/components/DevelopmentModal'
 import { PlusIcon, FolderIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 export default function Projects() {
   const { user } = useAuth()
+  const [showDevelopmentModal, setShowDevelopmentModal] = useState(false)
+
+  // Показать модальное окно при загрузке страницы
+  useEffect(() => {
+    setShowDevelopmentModal(true)
+  }, [])
   
   // Проверка доступа - только администраторы и менеджеры
   if (!user || !['admin', 'manager'].includes(user.role)) {
@@ -134,6 +142,13 @@ export default function Projects() {
           )
         })}
       </div>
+
+      {/* Модальное окно "В разработке" */}
+      <DevelopmentModal
+        isOpen={showDevelopmentModal}
+        onClose={() => setShowDevelopmentModal(false)}
+        pageName="Проекты"
+      />
     </PageLayout>
   )
 }
