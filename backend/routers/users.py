@@ -21,11 +21,11 @@ async def read_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Получение списка всех пользователей (только для администраторов)"""
+    """Получение списка всех активных пользователей (только для администраторов)"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
-    result = await db.execute(select(User))
+    result = await db.execute(select(User).where(User.is_active == True))
     users = result.scalars().all()
     return users
 
@@ -37,6 +37,20 @@ async def read_chat_users(
 ):
     """Получение списка всех активных пользователей для чата"""
     result = await db.execute(select(User).where(User.is_active == True))
+    users = result.scalars().all()
+    return users
+
+
+@router.get("/deactivated/", response_model=list[UserSchema])
+async def read_deactivated_users(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение списка всех деактивированных пользователей (только для администраторов)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    result = await db.execute(select(User).where(User.is_active == False))
     users = result.scalars().all()
     return users
 

@@ -229,6 +229,7 @@ class EventBase(BaseModel):
     start_datetime: datetime
     end_datetime: datetime
     event_type: EventType
+    is_public: bool = False  # Общее событие для всех пользователей
 
 
 class EventCreate(EventBase):
@@ -254,6 +255,7 @@ class EventUpdate(BaseModel):
     start_datetime: Optional[datetime] = None
     end_datetime: Optional[datetime] = None
     event_type: Optional[EventType] = None
+    is_public: Optional[bool] = None
     is_active: Optional[bool] = None
     participants: Optional[list[int]] = None
 

@@ -22,8 +22,18 @@ async def get_events(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка событий с фильтрацией"""
+    # Базовый запрос для активных событий
     query = select(Event).where(Event.is_active == True).options(
         selectinload(Event.participants).selectinload(EventParticipant.user)
+    )
+    
+    # Фильтруем события: показываем только общие события или события, где пользователь является участником
+    # Общие события (is_public=True) или события, где пользователь является участником
+    query = query.where(
+        (Event.is_public == True) | 
+        (Event.id.in_(
+            select(EventParticipant.event_id).where(EventParticipant.user_id == current_user.id)
+        ))
     )
     
     if start_date:
@@ -63,7 +73,8 @@ async def create_event(
         start_datetime=event_data.start_datetime,
         end_datetime=event_data.end_datetime,
         event_type=event_data.event_type,
-        creator_id=current_user.id
+        creator_id=current_user.id,
+        is_public=event_data.is_public
     )
     
     db.add(db_event)

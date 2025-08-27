@@ -179,6 +179,7 @@ class Event(Base):
     end_datetime = Column(DateTime(timezone=True), nullable=False)
     event_type = Column(Enum(EventType), default=EventType.meeting)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_public = Column(Boolean, default=False)  # Общее событие для всех пользователей
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
