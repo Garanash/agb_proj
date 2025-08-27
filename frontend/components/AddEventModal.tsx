@@ -68,6 +68,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         
         setUsers(usersResponse.data)
         
+        // Автоматически добавляем текущего пользователя в список участников
+        if (user) {
+          setFormData(prev => ({
+            ...prev,
+            participants: [user.id]
+          }))
+        }
+        
         // Создаем словарь отделов
         const deptMap: {[key: number]: string} = {}
         departmentsResponse.data.forEach((dept: any) => {
@@ -334,6 +342,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Участники
               </label>
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>ℹ️ Информация:</strong> Вы автоматически будете добавлены как участник события.
+                </p>
+              </div>
               {isLoadingUsers ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -354,6 +367,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                               <input
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
+                                disabled={user.id === user?.id}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
@@ -361,6 +375,10 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                       participants: [...prev.participants, user.id]
                                     }))
                                   } else {
+                                    // Не позволяем удалить текущего пользователя
+                                    if (user.id === user?.id) {
+                                      return
+                                    }
                                     setFormData(prev => ({
                                       ...prev,
                                       participants: prev.participants.filter(id => id !== user.id)
@@ -369,8 +387,9 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                 }}
                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               />
-                              <span className="text-sm text-gray-700">
+                              <span className={`text-sm ${user.id === user?.id ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
                                 {user.first_name} {user.last_name}
+                                {user.id === user?.id && ' (вы)'}
                               </span>
                             </label>
                           ))}
@@ -389,6 +408,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                               <input
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
+                                disabled={user.id === user?.id}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
@@ -396,6 +416,10 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                       participants: [...prev.participants, user.id]
                                     }))
                                   } else {
+                                    // Не позволяем удалить текущего пользователя
+                                    if (user.id === user?.id) {
+                                      return
+                                    }
                                     setFormData(prev => ({
                                       ...prev,
                                       participants: prev.participants.filter(id => id !== user.id)
@@ -404,8 +428,9 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                 }}
                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               />
-                              <span className="text-sm text-gray-700">
+                              <span className={`text-sm ${user.id === user?.id ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
                                 {user.first_name} {user.last_name}
+                                {user.id === user?.id && ' (вы)'}
                               </span>
                             </label>
                           ))

@@ -107,6 +107,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       const startMoment = moment(event.start_datetime)
       const endMoment = moment(event.end_datetime)
       
+      // Убеждаемся, что создатель события всегда в списке участников
+      const participants = event.participants.map(p => p.user_id)
+      if (!participants.includes(event.creator_id)) {
+        participants.push(event.creator_id)
+      }
+      
       setFormData({
         title: event.title,
         description: event.description || '',
@@ -116,7 +122,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         end_time: endMoment.format('HH:mm'),
         event_type: event.event_type,
         is_public: event.is_public,
-        participants: event.participants.map(p => p.user_id)
+        participants: participants
       })
       setError('')
     }
@@ -345,6 +351,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Участники
               </label>
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>ℹ️ Информация:</strong> Создатель события автоматически остается участником и не может быть удален.
+                </p>
+              </div>
               <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-3">
                 {Object.entries(departments).map(([deptId, deptName]) => {
                   const deptUsers = users.filter(user => user.department_id === parseInt(deptId))
@@ -359,6 +370,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                             <input
                               type="checkbox"
                               checked={formData.participants.includes(user.id)}
+                              disabled={user.id === event?.creator_id}
                               onChange={(e) => {
                                 if (e.target.checked) {
                                   setFormData(prev => ({
@@ -366,6 +378,10 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                                     participants: [...prev.participants, user.id]
                                   }))
                                 } else {
+                                  // Не позволяем удалить создателя события
+                                  if (user.id === event?.creator_id) {
+                                    return
+                                  }
                                   setFormData(prev => ({
                                     ...prev,
                                     participants: prev.participants.filter(id => id !== user.id)
@@ -374,8 +390,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                               }}
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-gray-700">
+                            <span className={`text-sm ${user.id === event?.creator_id ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
                               {user.first_name} {user.last_name}
+                              {user.id === event?.creator_id && ' (создатель)'}
                             </span>
                           </label>
                         ))}
@@ -394,6 +411,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                               <input
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
+                                disabled={user.id === event?.creator_id}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
@@ -401,6 +419,10 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                                       participants: [...prev.participants, user.id]
                                     }))
                                   } else {
+                                    // Не позволяем удалить создателя события
+                                    if (user.id === event?.creator_id) {
+                                      return
+                                    }
                                     setFormData(prev => ({
                                       ...prev,
                                       participants: prev.participants.filter(id => id !== user.id)
@@ -409,8 +431,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                                 }}
                                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                               />
-                              <span className="text-sm text-gray-700">
+                              <span className={`text-sm ${user.id === event?.creator_id ? 'text-blue-600 font-medium' : 'text-gray-700'}`}>
                                 {user.first_name} {user.last_name}
+                                {user.id === event?.creator_id && ' (создатель)'}
                               </span>
                             </label>
                           ))

@@ -235,13 +235,30 @@ const ChatPage = () => {
               }, 100);
               
             } else if (data.type === 'system_message') {
+              console.log('📢 Системное сообщение получено:', data.data);
+              
               setSelectedRoom(prev => {
                 if (!prev) return null;
+                
+                // Проверяем, нет ли уже такого системного сообщения
+                const messageExists = prev.messages.some(msg => msg.id === data.data.id);
+                if (messageExists) {
+                  return prev;
+                }
+                
                 return {
                   ...prev,
                   messages: [...prev.messages, data.data]
                 };
               });
+              
+              // Прокручиваем к последнему сообщению
+              setTimeout(() => {
+                const messagesContainer = document.querySelector('.messages-container');
+                if (messagesContainer) {
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+              }, 100);
             } else if (data.type === 'notification') {
               console.log('📢 Уведомление получено:', data);
               // Можно добавить toast уведомление здесь
@@ -462,28 +479,64 @@ const ChatPage = () => {
   const handleLeaveRoom = async () => {
     if (!selectedRoom) return;
 
+    // Подтверждение выхода
+    if (!confirm('Вы уверены, что хотите покинуть беседу? Это действие нельзя отменить.')) {
+      return;
+    }
+
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}/participants/me`, {
+      console.log(`🚪 Покидаем чат ${selectedRoom.id}...`);
+      
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}/leave`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
-        // Удаляем комнату из списка
-        setRooms(prev => prev.filter(room => room.id !== selectedRoom.id));
-        setSelectedRoom(null);
-        // Закрываем WebSocket
+        console.log('✅ Успешно покинули чат');
+        
+        // Закрываем WebSocket подключение
         if (ws) {
-          ws.close();
+          console.log('🔌 Закрываем WebSocket подключение...');
+          ws.close(1000, 'User left the room');
           setWs(null);
         }
+        
+        // Удаляем комнату из списка
+        setRooms(prev => prev.filter(room => room.id !== selectedRoom.id));
+        
+        // Очищаем выбранную комнату
+        setSelectedRoom(null);
+        
+        // Показываем уведомление об успешном выходе
+        alert('Вы успешно покинули беседу');
+        
       } else {
-        console.error('Error leaving room:', response.status);
+        let errorMessage = 'Неизвестная ошибка';
+        try {
+          const errorData = await response.json();
+          if (errorData.detail) {
+            // Проверяем, является ли detail строкой или объектом
+            if (typeof errorData.detail === 'string') {
+              errorMessage = errorData.detail;
+            } else if (typeof errorData.detail === 'object') {
+              // Если detail - это объект, пытаемся извлечь сообщение
+              errorMessage = errorData.detail.message || errorData.detail.detail || JSON.stringify(errorData.detail);
+            } else {
+              errorMessage = String(errorData.detail);
+            }
+          }
+        } catch (parseError) {
+          console.error('Ошибка парсинга ответа об ошибке:', parseError);
+          errorMessage = `Ошибка ${response.status}: ${response.statusText}`;
+        }
+        
+        console.error('❌ Ошибка при выходе из чата:', response.status, errorMessage);
+        alert(`Ошибка при выходе из беседы: ${errorMessage}`);
       }
     } catch (error) {
-      console.error('Error leaving room:', error);
+      console.error('❌ Ошибка при выходе из чата:', error);
+      alert('Произошла ошибка при выходе из беседы. Попробуйте еще раз.');
     }
   };
 
@@ -695,7 +748,14 @@ const ChatPage = () => {
                     >
                       <div className={`flex ${message.sender?.id === user?.id ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2`}>
                         <div className={`flex-shrink-0 ${message.sender?.id === user?.id ? 'ml-2' : 'mr-2'}`}>
-                          {message.sender ? (
+                          {message.sender?.id === 8 ? (
+                            // Аватар для системного пользователя
+                            <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center">
+                              <span className="text-sm font-medium text-white">
+                                ⚙️
+                              </span>
+                            </div>
+                          ) : message.sender ? (
                             renderUserAvatar(message.sender)
                           ) : message.bot ? (
                             renderBotAvatar(message.bot)
@@ -712,15 +772,19 @@ const ChatPage = () => {
                             ? 'bg-blue-500 text-white' 
                             : message.bot 
                               ? 'bg-blue-100 text-blue-900' 
-                              : (!message.sender && !message.bot)
+                              : message.sender?.id === 8  // Системный пользователь
                                 ? 'bg-gray-100 text-gray-700'
-                                : 'bg-white'
+                                : (!message.sender && !message.bot)
+                                  ? 'bg-gray-100 text-gray-700'
+                                  : 'bg-white'
                         } rounded-lg p-3 shadow`}>
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
-                              {message.sender 
-                                ? `${message.sender.first_name} ${message.sender.last_name}`
-                                : message.bot?.name || (!message.sender && !message.bot ? 'Система' : 'Неизвестный отправитель')
+                              {message.sender?.id === 8  // Системный пользователь
+                                ? 'Система'
+                                : message.sender 
+                                  ? `${message.sender.first_name} ${message.sender.last_name}`
+                                  : message.bot?.name || (!message.sender && !message.bot ? 'Система' : 'Неизвестный отправитель')
                               }
                             </span>
                             <span className="text-xs opacity-75">
