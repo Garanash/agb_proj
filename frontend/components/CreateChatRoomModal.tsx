@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 interface Department {
@@ -34,7 +34,7 @@ export default function CreateChatRoomModal({
   onClose,
   onRoomCreated,
 }: CreateChatRoomModalProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [name, setName] = useState('');
   const [departments, setDepartments] = useState<Department[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -77,7 +77,9 @@ export default function CreateChatRoomModal({
       });
       if (!response.ok) throw new Error('Ошибка при загрузке пользователей');
       const data = await response.json();
-      setUsers(data);
+      // Исключаем текущего пользователя из списка
+      const filteredUsers = data.filter((u: User) => u.id !== user?.id);
+      setUsers(filteredUsers);
     } catch (err) {
       setError('Не удалось загрузить пользователей');
       console.error('Error fetching users:', err);
@@ -113,37 +115,61 @@ export default function CreateChatRoomModal({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ 
+          name,
+          description: '', // Можно добавить поле для описания в будущем
+          is_private: false
+        }),
       });
 
-      if (!createRoomResponse.ok) throw new Error('Ошибка при создании чата');
+      if (!createRoomResponse.ok) {
+        const errorData = await createRoomResponse.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Ошибка ${createRoomResponse.status}: ${createRoomResponse.statusText}`);
+      }
+      
       const roomData = await createRoomResponse.json();
 
-      // Добавляем участников
-      const participantPromises = Array.from(selectedParticipants).map(userId =>
-        fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ user_id: userId }),
-        })
-      );
+      // Добавляем участников (если выбраны)
+      if (selectedParticipants.size > 0) {
+        const participantPromises = Array.from(selectedParticipants).map(userId =>
+          fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ user_id: userId }),
+          })
+        );
 
-      // Добавляем ботов
-      const botPromises = Array.from(selectedBots).map(botId =>
-        fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ bot_id: botId }),
-        })
-      );
+        const participantResponses = await Promise.all(participantPromises);
+        const failedParticipants = participantResponses.filter(r => !r.ok);
+        
+        if (failedParticipants.length > 0) {
+          console.warn(`Не удалось добавить ${failedParticipants.length} участников`);
+        }
+      }
 
-      await Promise.all([...participantPromises, ...botPromises]);
+      // Добавляем ботов (если выбраны)
+      if (selectedBots.size > 0) {
+        const botPromises = Array.from(selectedBots).map(botId =>
+          fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({ bot_id: botId }),
+          })
+        );
+
+        const botResponses = await Promise.all(botPromises);
+        const failedBots = botResponses.filter(r => !r.ok);
+        
+        if (failedBots.length > 0) {
+          console.warn(`Не удалось добавить ${failedBots.length} ботов`);
+        }
+      }
 
       onRoomCreated();
       onClose();
@@ -151,7 +177,8 @@ export default function CreateChatRoomModal({
       setSelectedParticipants(new Set());
       setSelectedBots(new Set());
     } catch (err) {
-      setError('Не удалось создать чат');
+      const errorMessage = err instanceof Error ? err.message : 'Не удалось создать чат';
+      setError(errorMessage);
       console.error('Error creating chat room:', err);
     } finally {
       setIsLoading(false);
@@ -180,12 +207,12 @@ export default function CreateChatRoomModal({
 
   if (!isOpen) return null;
 
-  const usersByDepartment = departments.map(dept => ({
+  const usersByDepartment = departments.map((dept: Department) => ({
     department: dept,
-    users: users.filter(user => user.department_id === dept.id),
+    users: users.filter((user: User) => user.department_id === dept.id),
   }));
 
-  const usersWithoutDepartment = users.filter(user => user.department_id === null);
+  const usersWithoutDepartment = users.filter((user: User) => user.department_id === null);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -217,10 +244,19 @@ export default function CreateChatRoomModal({
               Участники
             </label>
             
+            {/* Информация о создателе */}
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Создатель чата:</strong> {user?.first_name} {user?.last_name}
+                <br />
+                <span className="text-blue-600">(автоматически добавлен как участник и администратор)</span>
+              </p>
+            </div>
+            
             {/* Боты */}
             {bots.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">Боты</h3>
+                <h3 className="text-lg font-semibold mb-2">ИИ Боты</h3>
                 <div className="space-y-2">
                   {bots.map(bot => (
                     <div key={bot.id} className="flex items-center">
@@ -272,7 +308,7 @@ export default function CreateChatRoomModal({
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                              <span className="text-sm">
+                              <span className="text-sm font-medium text-gray-600">
                                 {user.first_name[0]}
                                 {user.last_name[0]}
                               </span>
@@ -312,7 +348,7 @@ export default function CreateChatRoomModal({
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                            <span className="text-sm">
+                            <span className="text-sm font-medium text-gray-600">
                               {user.first_name[0]}
                               {user.last_name[0]}
                             </span>
@@ -341,7 +377,7 @@ export default function CreateChatRoomModal({
             <button
               type="submit"
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              disabled={isLoading || !name || (!selectedParticipants.size && !selectedBots.size)}
+              disabled={isLoading || !name}
             >
               {isLoading ? 'Создание...' : 'Создать чат'}
             </button>

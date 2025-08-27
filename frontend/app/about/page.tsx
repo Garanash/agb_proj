@@ -132,7 +132,7 @@ export default function About() {
   return (
     <PageLayout 
       title="О нас"
-      subtitle="ООО «Алмазгеобур» - ведущая компания в области геологоразведки"
+      subtitle="ООО «Алмазгеобур» - НАДЁЖНЫЙ ПРОИЗВОДИТЕЛЬ бурового оборудования и запасных частей для всех видов горных работ"
     >
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Информация о компании */}
@@ -142,42 +142,38 @@ export default function About() {
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Наша компания</h2>
               <div className="space-y-4 text-gray-700">
                 <p>
-                  ООО «Алмазгеобур» является ведущей компанией в области геологоразведочных работ, 
-                  специализирующейся на алмазном бурении и комплексных геологических исследованиях.
+                Алмазгеобур осуществляет деятельность с 2013 года.
+                С 2019 года производственной деятельности компания поставила рекорд на российском рынке, 
+                реализовав более 100 единиц бурового оборудования для геологоразведочных работ.
                 </p>
                 <p>
-                  Наша команда высококвалифицированных специалистов обладает многолетним опытом 
-                  в проведении геологоразведочных работ различной сложности.
-                </p>
-                <p>
-                  Мы используем современное оборудование и передовые технологии для обеспечения 
-                  высокого качества выполняемых работ и соблюдения всех требований безопасности.
+                Благодаря накопленным знаниям о методах проведения горных работ во всех уголках земного шара, 
+                успешной интеграции зарубежного и отечественного опыта реализации конструкторских проектов и 
+                ежедневной обратной связи от заказчиков, компания производит буровое оборудование, 
+                которое ценят не только самые крупные коммерческие компании, но и системообразующие 
+                предприятия России и мира.
                 </p>
               </div>
             </div>
             
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Наши услуги</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Мы производим и обслуживаем оборудование для всех видов горных работ</h2>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">Алмазное бурение геологоразведочных скважин</span>
+                  <span className="text-gray-700">ГЕОЛОГОРАЗВЕДОЧНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">Комплексные геологические исследования</span>
+                  <span className="text-gray-700"> БУРОВЗРЫВНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">Инженерно-геологические изыскания</span>
+                  <span className="text-gray-700"> ПОДЗЕМНЫЕ ГОРНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">Лабораторные исследования керна</span>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">Консультационные услуги</span>
+                  <span className="text-gray-700">ТЕХНИКА NORMET</span>
                 </div>
               </div>
             </div>
@@ -186,20 +182,27 @@ export default function About() {
           {/* Статистика */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 p-6 bg-blue-50 rounded-lg">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">15+</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">12+</div>
               <div className="text-sm text-gray-600">Лет опыта</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">500+</div>
-              <div className="text-sm text-gray-600">Проектов</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">3000+</div>
+              <div className="text-sm text-gray-600">крупных проектов по импортозамещению
+на самую дефицитную
+технику в России</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">50+</div>
-              <div className="text-sm text-gray-600">Специалистов</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">13+</div>
+              <div className="text-sm text-gray-600">филиалов
+с каждым годом наше
+покрытие в мире
+только растет</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">99%</div>
-              <div className="text-sm text-gray-600">Довольных клиентов</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">100+</div>
+              <div className="text-sm text-gray-600">единиц капитального
+бурового оборудования
+с 2019 года производственной деятельности</div>
             </div>
           </div>
 

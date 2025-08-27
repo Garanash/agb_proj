@@ -117,22 +117,20 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/folders/${folderId}/rooms`, {
+      const response = await fetch(`http://localhost:8000/api/chat/folders/${folderId}/rooms/${roomId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          room_id: roomId
-        })
+        }
       });
 
       if (response.ok) {
         onFolderSelected(folderId);
         onClose();
       } else {
-        throw new Error('Не удалось добавить чат в папку');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Не удалось добавить чат в папку');
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка при добавлении чата в папку');

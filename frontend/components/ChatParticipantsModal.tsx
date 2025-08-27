@@ -51,7 +51,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
   onParticipantsUpdated,
   isAdmin
 }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<{[key: number]: string}>({});
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
@@ -82,7 +82,12 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
 
         if (usersResponse.ok) {
           const usersData = await usersResponse.json();
-          setUsers(usersData);
+          // Исключаем текущего пользователя и уже добавленных участников
+          const filteredUsers = usersData.filter((u: User) => 
+            u.id !== user?.id && 
+            !participants.some((p: ChatRoomParticipant) => p.user?.id === u.id)
+          );
+          setUsers(filteredUsers);
         } else {
           throw new Error('Не удалось загрузить пользователей');
         }
@@ -97,8 +102,34 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         } else {
           throw new Error('Не удалось загрузить отделы');
         }
+
+        // Дополнительно загружаем полную информацию об участниках чата
+        if (roomId) {
+          try {
+            const roomResponse = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            if (roomResponse.ok) {
+              const roomData = await roomResponse.json();
+              console.log('Полная информация о чате:', roomData);
+              console.log('Участники чата:', roomData.participants);
+              
+              // Обновляем участников с полной информацией
+              if (roomData.participants && roomData.participants.length > 0) {
+                // Вызываем callback для обновления участников в родительском компоненте
+                onParticipantsUpdated();
+              }
+            }
+          } catch (error) {
+            console.error('Ошибка загрузки деталей чата:', error);
+          }
+        }
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Произошла ошибка при загрузке данных');
+        console.error('Error fetching data:', error);
+        setError('Не удалось загрузить данные');
       } finally {
         setIsLoading(false);
       }
@@ -123,7 +154,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       // Восстанавливаем скролл body
       document.body.style.overflow = 'unset';
     };
-  }, [token, isOpen, onClose]);
+  }, [token, isOpen, roomId, participants, user?.id, onParticipantsUpdated]);
 
   const handleAddParticipants = async () => {
     if (selectedUsers.length === 0) return;
@@ -132,23 +163,27 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_ids: selectedUsers
+      // Добавляем каждого пользователя по отдельности
+      const addPromises = selectedUsers.map(userId =>
+        fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ user_id: userId }),
         })
-      });
+      );
 
-      if (response.ok) {
-        setSelectedUsers([]);
-        onParticipantsUpdated();
-      } else {
-        throw new Error('Не удалось добавить участников');
+      const responses = await Promise.all(addPromises);
+      const failedResponses = responses.filter(r => !r.ok);
+      
+      if (failedResponses.length > 0) {
+        throw new Error(`Не удалось добавить ${failedResponses.length} участников`);
       }
+
+      setSelectedUsers([]);
+      onParticipantsUpdated();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка при добавлении участников');
     } finally {
@@ -163,7 +198,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/' + participantId, {
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/${participantId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -189,7 +224,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/' + participant.id + '/toggle-admin', {
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,6 +245,39 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Функция для отображения аватара пользователя
+  const renderUserAvatar = (user: User, size: string = "w-10 h-10") => {
+    if (user.avatar_url) {
+      return (
+        <img
+          src={user.avatar_url}
+          alt={`${user.first_name} ${user.last_name}`}
+          className={`${size} rounded-full object-cover`}
+        />
+      );
+    } else {
+      return (
+        <div className={`${size} rounded-full bg-gray-300 flex items-center justify-center`}>
+          <span className="text-sm font-medium text-gray-600">
+            {user.first_name[0]}
+            {user.last_name[0]}
+          </span>
+        </div>
+      );
+    }
+  };
+
+  // Функция для отображения аватара бота
+  const renderBotAvatar = (bot: ChatBot, size: string = "w-10 h-10") => {
+    return (
+      <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center`}>
+        <span className="text-sm font-medium text-blue-600">
+          🤖
+        </span>
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -255,26 +323,9 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                   >
                     <div className="flex items-center space-x-3">
                       {participant.user ? (
-                        participant.user.avatar_url ? (
-                          <img
-                            src={participant.user.avatar_url}
-                            alt={`${participant.user.first_name} ${participant.user.last_name}`}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                            <span className="text-sm font-medium text-gray-600">
-                              {participant.user.first_name[0]}
-                              {participant.user.last_name[0]}
-                            </span>
-                          </div>
-                        )
+                        renderUserAvatar(participant.user)
                       ) : participant.bot ? (
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">
-                            🤖
-                          </span>
-                        </div>
+                        renderBotAvatar(participant.bot)
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
                           <span className="text-sm font-medium text-gray-600">
@@ -286,11 +337,21 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                         <p className="font-medium">
                           {participant.user 
                             ? `${participant.user.first_name} ${participant.user.last_name}`
-                            : participant.bot?.name || 'Неизвестный участник'
+                            : participant.bot?.name || 'Загрузка...'
                           }
                         </p>
                         {participant.is_admin && (
                           <span className="text-sm text-blue-600">Администратор</span>
+                        )}
+                        {participant.user && participant.user.department_id && (
+                          <p className="text-sm text-gray-500">
+                            {departments[participant.user.department_id] || 'Без отдела'}
+                          </p>
+                        )}
+                        {!participant.user && !participant.bot && (
+                          <p className="text-sm text-gray-400">
+                            ID: {participant.id}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -344,16 +405,11 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                     
                     return (
                       <optgroup key={deptId} label={deptName}>
-                        {deptUsers.map(user => {
-                          // Не показываем уже добавленных пользователей
-                          if (participants.some(p => p.user?.id === user.id)) return null;
-                          
-                          return (
-                            <option key={user.id} value={user.id}>
-                              {user.first_name} {user.last_name}
-                            </option>
-                          );
-                        })}
+                        {deptUsers.map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name}
+                          </option>
+                        ))}
                       </optgroup>
                     );
                   })}
@@ -361,16 +417,11 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                     <optgroup label="Без отдела">
                       {users
                         .filter(user => !user.department_id)
-                        .map(user => {
-                          // Не показываем уже добавленных пользователей
-                          if (participants.some(p => p.user?.id === user.id)) return null;
-                          
-                          return (
-                            <option key={user.id} value={user.id}>
-                              {user.first_name} {user.last_name}
-                            </option>
-                          );
-                        })
+                        .map(user => (
+                          <option key={user.id} value={user.id}>
+                            {user.first_name} {user.last_name}
+                          </option>
+                        ))
                       }
                     </optgroup>
                   )}

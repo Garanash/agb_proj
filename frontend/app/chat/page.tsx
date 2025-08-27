@@ -17,6 +17,7 @@ interface ChatRoom {
   messages: ChatMessage[];
   is_active: boolean;
   folders: ChatRoomFolder[];
+  unread_count?: number;
 }
 
 interface ChatRoomListItem {
@@ -28,6 +29,7 @@ interface ChatRoomListItem {
   created_at: string;
   updated_at: string | null;
   folders: ChatRoomFolder[];
+  unread_count?: number;
 }
 
 interface ChatRoomParticipant {
@@ -35,6 +37,7 @@ interface ChatRoomParticipant {
   user?: User;
   bot?: ChatBot;
   is_admin: boolean;
+  last_read_at?: string;
 }
 
 interface ChatMessage {
@@ -99,6 +102,7 @@ const ChatPage = () => {
   const [folders, setFolders] = useState<ChatFolder[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<ChatFolder | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [unreadSummary, setUnreadSummary] = useState<{[key: number]: number}>({});
 
   // Показываем загрузку, пока не получим данные пользователя
   if (isLoading || !user) {
@@ -120,7 +124,7 @@ const ChatPage = () => {
       if (!token) return;
       
       try {
-        const [roomsResponse, usersResponse, foldersResponse] = await Promise.all([
+        const [roomsResponse, usersResponse, foldersResponse, unreadResponse] = await Promise.all([
           fetch('http://localhost:8000/api/chat/rooms/', {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -132,6 +136,11 @@ const ChatPage = () => {
             }
           }),
           fetch('http://localhost:8000/api/chat/folders/', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }),
+          fetch('http://localhost:8000/api/chat/unread-summary', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -158,35 +167,73 @@ const ChatPage = () => {
         } else {
           console.error('Error fetching folders:', foldersResponse.status);
         }
+
+        if (unreadResponse.ok) {
+          const unreadData = await unreadResponse.json();
+          const unreadMap: {[key: number]: number} = {};
+          unreadData.unread_summary.forEach((item: any) => {
+            unreadMap[item.room_id] = item.unread_count;
+          });
+          setUnreadSummary(unreadMap);
+        } else {
+          console.error('Error fetching unread summary:', unreadResponse.status);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
 
     fetchData();
+    
+    // Обновляем непрочитанные сообщения каждые 30 секунд
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, [token]);
 
   // WebSocket подключение
   useEffect(() => {
     if (selectedRoom && token && selectedRoom.id) {
       try {
+        console.log(`🔌 Подключение к WebSocket для чата ${selectedRoom.id}`);
         const ws = new WebSocket(`ws://localhost:8000/api/chat/ws/${selectedRoom.id}?token=${token}`);
         
         ws.onopen = () => {
-          console.log('WebSocket connected');
+          console.log(`✅ WebSocket подключен к чату ${selectedRoom.id}`);
         };
 
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            console.log('📨 WebSocket сообщение получено:', data);
+            
             if (data.type === 'message') {
+              // Мгновенно добавляем новое сообщение в чат
               setSelectedRoom(prev => {
                 if (!prev) return null;
+                
+                // Проверяем, нет ли уже такого сообщения
+                const messageExists = prev.messages.some(msg => msg.id === data.data.id);
+                if (messageExists) {
+                  return prev;
+                }
+                
                 return {
                   ...prev,
                   messages: [...prev.messages, data.data]
                 };
               });
+              
+              // Обновляем счетчик непрочитанных сообщений
+              updateUnreadCount(selectedRoom.id);
+              
+              // Прокручиваем к последнему сообщению
+              setTimeout(() => {
+                const messagesContainer = document.querySelector('.messages-container');
+                if (messagesContainer) {
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+              }, 100);
+              
             } else if (data.type === 'system_message') {
               setSelectedRoom(prev => {
                 if (!prev) return null;
@@ -195,37 +242,96 @@ const ChatPage = () => {
                   messages: [...prev.messages, data.data]
                 };
               });
+            } else if (data.type === 'notification') {
+              console.log('📢 Уведомление получено:', data);
+              // Можно добавить toast уведомление здесь
             }
           } catch (error) {
-            console.error('Error parsing WebSocket message:', error);
+            console.error('❌ Ошибка парсинга WebSocket сообщения:', error);
           }
         };
 
         ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          console.error('❌ WebSocket ошибка:', error);
         };
 
-        ws.onclose = () => {
-          console.log('WebSocket disconnected');
+        ws.onclose = (event) => {
+          console.log(`🔌 WebSocket отключен от чата ${selectedRoom.id}:`, event.code, event.reason);
+          
+          // Автоматически переподключаемся при ошибке
+          if (event.code !== 1000) { // 1000 = нормальное закрытие
+            console.log('🔄 Попытка переподключения через 3 секунды...');
+            setTimeout(() => {
+              if (selectedRoom && token) {
+                // Переподключение произойдет автоматически при следующем useEffect
+              }
+            }, 3000);
+          }
         };
 
         setWs(ws);
 
         return () => {
           if (ws.readyState === WebSocket.OPEN) {
-            ws.close();
+            console.log(`🔌 Закрытие WebSocket для чата ${selectedRoom.id}`);
+            ws.close(1000, 'Component unmount');
           }
         };
       } catch (error) {
-        console.error('Error creating WebSocket:', error);
+        console.error('❌ Ошибка создания WebSocket:', error);
       }
     }
-  }, [selectedRoom, token]);
+  }, [selectedRoom?.id, token]);
 
   // Прокрутка к последнему сообщению
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedRoom?.messages]);
+
+  // Функция для обновления счетчика непрочитанных сообщений
+  const updateUnreadCount = async (roomId: number) => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/unread-count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadSummary(prev => ({
+          ...prev,
+          [roomId]: data.unread_count
+        }));
+      }
+    } catch (error) {
+      console.error('Error updating unread count:', error);
+    }
+  };
+
+  // Функция для отметки сообщений как прочитанных
+  const markMessagesAsRead = async (roomId: number) => {
+    if (!token) return;
+    
+    try {
+      await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/mark-read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Обновляем счетчик непрочитанных сообщений
+      setUnreadSummary(prev => ({
+        ...prev,
+        [roomId]: 0
+      }));
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
+  };
 
   const handleRoomSelect = async (room: ChatRoomListItem) => {
     try {
@@ -237,6 +343,9 @@ const ChatPage = () => {
       if (response.ok) {
         const data = await response.json();
         setSelectedRoom(data);
+        
+        // Отмечаем сообщения как прочитанные при выборе чата
+        markMessagesAsRead(room.id);
       } else {
         console.error('Error fetching room details:', response.status);
       }
@@ -248,43 +357,105 @@ const ChatPage = () => {
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedRoom) return;
 
-    // Отправляем сообщение через WebSocket для мгновенного отображения
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({
-        type: 'message',
-        content: message
-      }));
-      setMessage('');
-    } else {
-      // Fallback на HTTP API если WebSocket недоступен
-      try {
-        const response = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}/messages/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ content: message })
-        });
+    const messageContent = message.trim();
+    setMessage(''); // Очищаем поле ввода сразу
 
-        if (response.ok) {
-          setMessage('');
-          // Перезагружаем сообщения
-          const roomResponse = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          if (roomResponse.ok) {
-            const roomData = await roomResponse.json();
-            setSelectedRoom(roomData);
-          }
-        } else {
-          console.error('Error sending message:', response.status);
-        }
-      } catch (error) {
-        console.error('Error sending message:', error);
+    // Создаем временное сообщение для мгновенного отображения
+    const tempMessage = {
+      id: Date.now(), // Временный ID
+      content: messageContent,
+      sender_id: user?.id,
+      sender: user,
+      created_at: new Date().toISOString(),
+      is_edited: false,
+      updated_at: new Date().toISOString()
+    };
+
+    // Мгновенно добавляем сообщение в чат
+    setSelectedRoom(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        messages: [...prev.messages, tempMessage]
+      };
+    });
+
+    // Прокручиваем к последнему сообщению
+    setTimeout(() => {
+      const messagesContainer = document.querySelector('.messages-container');
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
+    }, 100);
+
+    // Отправляем сообщение через WebSocket для мгновенной доставки всем участникам
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({
+          type: 'message',
+          content: messageContent
+        }));
+        console.log('📤 Сообщение отправлено через WebSocket');
+      } catch (error) {
+        console.error('❌ Ошибка отправки через WebSocket:', error);
+        // Fallback на HTTP API
+        sendMessageViaHTTP(messageContent);
+      }
+    } else {
+      console.log('📤 WebSocket недоступен, используем HTTP API');
+      // Fallback на HTTP API если WebSocket недоступен
+      sendMessageViaHTTP(messageContent);
+    }
+  };
+
+  const sendMessageViaHTTP = async (messageContent: string) => {
+    if (!selectedRoom) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}/messages/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: messageContent })
+      });
+
+      if (response.ok) {
+        const newMessage = await response.json();
+        console.log('📤 Сообщение отправлено через HTTP API');
+        
+        // Заменяем временное сообщение на реальное
+        setSelectedRoom(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: prev.messages.map(msg => 
+              msg.id === Date.now() ? newMessage : msg
+            )
+          };
+        });
+      } else {
+        console.error('❌ Ошибка отправки сообщения:', response.status);
+        // Удаляем временное сообщение при ошибке
+        setSelectedRoom(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: prev.messages.filter(msg => msg.id !== Date.now())
+          };
+        });
+      }
+    } catch (error) {
+      console.error('❌ Ошибка отправки сообщения:', error);
+      // Удаляем временное сообщение при ошибке
+      setSelectedRoom(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: prev.messages.filter(msg => msg.id !== Date.now())
+        };
+      });
     }
   };
 
@@ -325,6 +496,64 @@ const ChatPage = () => {
       month: '2-digit',
       year: '2-digit'
     });
+  };
+
+  // Функция для отображения аватара пользователя
+  const renderUserAvatar = (user: User, size: string = "w-10 h-10") => {
+    if (user.avatar_url) {
+      return (
+        <img
+          src={user.avatar_url}
+          alt={`${user.first_name} ${user.last_name}`}
+          className={`${size} rounded-full object-cover`}
+        />
+      );
+    } else {
+      return (
+        <div className={`${size} rounded-full bg-gray-300 flex items-center justify-center`}>
+          <span className="text-sm font-medium text-gray-600">
+            {user.first_name[0]}
+            {user.last_name[0]}
+          </span>
+        </div>
+      );
+    }
+  };
+
+  // Функция для отображения аватара бота
+  const renderBotAvatar = (bot: ChatBot, size: string = "w-10 h-10") => {
+    return (
+      <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center`}>
+        <span className="text-sm font-medium text-blue-600">
+          🤖
+        </span>
+      </div>
+    );
+  };
+
+  const handleOpenParticipantsModal = async () => {
+    if (!selectedRoom) return;
+    
+    // Перезагружаем информацию о чате перед открытием модала
+    try {
+      const response = await fetch(`http://localhost:8000/api/chat/rooms/${selectedRoom.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const roomData = await response.json();
+        console.log('Обновленные данные чата:', roomData);
+        console.log('Участники:', roomData.participants);
+        setSelectedRoom(roomData);
+        setIsParticipantsModalOpen(true);
+      } else {
+        console.error('Ошибка загрузки данных чата:', response.status);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных чата:', error);
+    }
   };
 
   return (
@@ -371,10 +600,19 @@ const ChatPage = () => {
                           className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedRoom?.id === room.id ? 'bg-gray-100' : ''}`}
                           onClick={() => handleRoomSelect(room)}
                         >
-                          <h3 className="font-medium">{room.name}</h3>
-                          <p className="text-sm text-gray-500">
-                            Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-medium">{room.name}</h3>
+                              <p className="text-sm text-gray-500">
+                                Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
+                              </p>
+                            </div>
+                            {unreadSummary[room.id] > 0 && (
+                              <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                {unreadSummary[room.id]}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))
                     }
@@ -396,10 +634,19 @@ const ChatPage = () => {
                     className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedRoom?.id === room.id ? 'bg-gray-100' : ''}`}
                     onClick={() => handleRoomSelect(room)}
                   >
-                    <h3 className="font-medium">{room.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">{room.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
+                      {unreadSummary[room.id] > 0 && (
+                        <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {unreadSummary[room.id]}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))
               }
@@ -417,7 +664,7 @@ const ChatPage = () => {
                   <h2 className="text-lg font-semibold">{selectedRoom.name}</h2>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => setIsParticipantsModalOpen(true)}
+                      onClick={handleOpenParticipantsModal}
                       className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                     >
                       Участники ({selectedRoom.participants.length})
@@ -449,26 +696,9 @@ const ChatPage = () => {
                       <div className={`flex ${message.sender?.id === user?.id ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2`}>
                         <div className={`flex-shrink-0 ${message.sender?.id === user?.id ? 'ml-2' : 'mr-2'}`}>
                           {message.sender ? (
-                            message.sender.avatar_url ? (
-                              <img
-                                src={message.sender.avatar_url}
-                                alt={`${message.sender.first_name} ${message.sender.last_name}`}
-                                className="w-10 h-10 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-600">
-                                  {message.sender.first_name[0]}
-                                  {message.sender.last_name[0]}
-                                </span>
-                              </div>
-                            )
+                            renderUserAvatar(message.sender)
                           ) : message.bot ? (
-                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                              <span className="text-sm font-medium text-blue-600">
-                                🤖
-                              </span>
-                            </div>
+                            renderBotAvatar(message.bot)
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
                               <span className="text-sm font-medium text-gray-600">
