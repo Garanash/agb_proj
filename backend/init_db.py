@@ -17,7 +17,7 @@ async def create_test_data():
         try:
             # Создаем тестовых пользователей
             admin_user = User(
-                username="asistemnyagb",
+                username="agbasistemnyagb",
                 email="admin@almazgeobur.kz",
                 first_name="Александр",
                 last_name="Системный",
@@ -28,7 +28,7 @@ async def create_test_data():
             )
             
             manager_user = User(
-                username="miproektovagb",
+                username="agbmiproektovagb",
                 email="manager@almazgeobur.kz", 
                 first_name="Михаил",
                 last_name="Проектов",
@@ -39,7 +39,7 @@ async def create_test_data():
             )
             
             employee_user = User(
-                username="skompaniiagb",
+                username="agbskompaniiagb",
                 email="employee@almazgeobur.kz",
                 first_name="Сергей",
                 last_name="Компании",

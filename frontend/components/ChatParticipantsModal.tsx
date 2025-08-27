@@ -58,7 +58,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Загрузка пользователей и отделов
+  // Загрузка пользователей и отделов, обработка Escape
   useEffect(() => {
     const fetchData = async () => {
       if (!token || !isOpen) return;
@@ -104,46 +104,66 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       }
     };
 
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      // Блокируем скролл body
+      document.body.style.overflow = 'hidden';
+    }
+
     fetchData();
-  }, [token, isOpen]);
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      // Восстанавливаем скролл body
+      document.body.style.overflow = 'unset';
+    };
+  }, [token, isOpen, onClose]);
 
   const handleAddParticipants = async () => {
-    if (!selectedUsers.length) return;
+    if (selectedUsers.length === 0) return;
     
     setIsLoading(true);
     setError('');
-
+    
     try {
-      const promises = selectedUsers.map(userId =>
-        fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            is_admin: false
-          })
+      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_ids: selectedUsers
         })
-      );
+      });
 
-      await Promise.all(promises);
-      onParticipantsUpdated();
-      setSelectedUsers([]);
+      if (response.ok) {
+        setSelectedUsers([]);
+        onParticipantsUpdated();
+      } else {
+        throw new Error('Не удалось добавить участников');
+      }
     } catch (error) {
-      setError('Не удалось добавить участников');
+      setError(error instanceof Error ? error.message : 'Произошла ошибка при добавлении участников');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleRemoveParticipant = async (participantId: number) => {
+    if (!confirm('Вы уверены, что хотите удалить этого участника?')) return;
+    
     setIsLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/${participantId}`, {
+      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/' + participantId, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -167,9 +187,9 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     
     setIsLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/rooms/${roomId}/participants/${participant.id}`, {
+      const response = await fetch('http://localhost:8000/api/chat/rooms/' + roomId + '/participants/' + participant.id + '/toggle-admin', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -195,16 +215,18 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full mx-4">
-        <div className="border-b border-gray-200 p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg w-full max-w-2xl mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
+        {/* Заголовок */}
+        <div className="border-b border-gray-200 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-semibold text-gray-900">
               Управление участниками
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded"
+              aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -213,169 +235,172 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+        {/* Содержимое */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
 
-          {/* Текущие участники */}
-          <div className="mb-6">
-            <h4 className="font-medium text-gray-900 mb-4">Текущие участники</h4>
-            <div className="space-y-3">
-              {participants.map(participant => (
-                <div
-                  key={participant.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    {participant.user ? (
-                      participant.user.avatar_url ? (
-                        <img
-                          src={participant.user.avatar_url}
-                          alt={`${participant.user.first_name} ${participant.user.last_name}`}
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
+            {/* Текущие участники */}
+            <div className="mb-6">
+              <h4 className="font-medium text-gray-900 mb-4">Текущие участники</h4>
+              <div className="space-y-3">
+                {participants.map(participant => (
+                  <div
+                    key={participant.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {participant.user ? (
+                        participant.user.avatar_url ? (
+                          <img
+                            src={participant.user.avatar_url}
+                            alt={`${participant.user.first_name} ${participant.user.last_name}`}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-600">
+                              {participant.user.first_name[0]}
+                              {participant.user.last_name[0]}
+                            </span>
+                          </div>
+                        )
+                      ) : participant.bot ? (
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600">
+                            🤖
+                          </span>
+                        </div>
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
                           <span className="text-sm font-medium text-gray-600">
-                            {participant.user.first_name[0]}
-                            {participant.user.last_name[0]}
+                            ?
                           </span>
                         </div>
-                      )
-                    ) : participant.bot ? (
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-sm font-medium text-blue-600">
-                          🤖
-                        </span>
+                      )}
+                      <div>
+                        <p className="font-medium">
+                          {participant.user 
+                            ? `${participant.user.first_name} ${participant.user.last_name}`
+                            : participant.bot?.name || 'Неизвестный участник'
+                          }
+                        </p>
+                        {participant.is_admin && (
+                          <span className="text-sm text-blue-600">Администратор</span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-600">
-                          ?
-                        </span>
+                    </div>
+                    {isAdmin && (
+                      <div className="flex items-center space-x-2">
+                        {participant.user && (
+                          <button
+                            onClick={() => handleToggleAdmin(participant)}
+                            className={`px-3 py-1 rounded text-sm ${
+                              participant.is_admin
+                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {participant.is_admin ? 'Снять админа' : 'Сделать админом'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleRemoveParticipant(participant.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          title="Удалить"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium">
-                        {participant.user 
-                          ? `${participant.user.first_name} ${participant.user.last_name}`
-                          : participant.bot?.name || 'Неизвестный участник'
-                        }
-                      </p>
-                      {participant.is_admin && (
-                        <span className="text-sm text-blue-600">Администратор</span>
-                      )}
-                    </div>
                   </div>
-                  {isAdmin && (
-                    <div className="flex items-center space-x-2">
-                      {participant.user && (
-                        <button
-                          onClick={() => handleToggleAdmin(participant)}
-                          className={`px-3 py-1 rounded text-sm ${
-                            participant.is_admin
-                              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {participant.is_admin ? 'Снять админа' : 'Сделать админом'}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleRemoveParticipant(participant.id)}
-                        className="p-1 text-red-600 hover:bg-red-100 rounded"
-                        title="Удалить"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Добавление новых участников */}
-          {isAdmin && (
-            <div>
-              <h4 className="font-medium text-gray-900 mb-4">Добавить участников</h4>
-              <select
-                multiple
-                value={selectedUsers.map(String)}
-                onChange={(e) => {
-                  const selectedOptions = Array.from(e.target.selectedOptions);
-                  const selectedIds = selectedOptions.map(option => parseInt(option.value));
-                  setSelectedUsers(selectedIds);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-              >
-                {Object.entries(departments).map(([deptId, deptName]) => {
-                  const deptUsers = users.filter(user => user.department_id === parseInt(deptId));
-                  if (deptUsers.length === 0) return null;
-                  
-                  return (
-                    <optgroup key={deptId} label={deptName}>
-                      {deptUsers.map(user => {
-                        // Не показываем уже добавленных пользователей
-                        if (participants.some(p => p.user?.id === user.id)) return null;
-                        
-                        return (
-                          <option key={user.id} value={user.id}>
-                            {user.first_name} {user.last_name}
-                          </option>
-                        );
-                      })}
+            {/* Добавление новых участников */}
+            {isAdmin && (
+              <div>
+                <h4 className="font-medium text-gray-900 mb-4">Добавить участников</h4>
+                <select
+                  multiple
+                  value={selectedUsers.map(String)}
+                  onChange={(e) => {
+                    const selectedOptions = Array.from(e.target.selectedOptions);
+                    const selectedIds = selectedOptions.map(option => parseInt(option.value));
+                    setSelectedUsers(selectedIds);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                >
+                  {Object.entries(departments).map(([deptId, deptName]) => {
+                    const deptUsers = users.filter(user => user.department_id === parseInt(deptId));
+                    if (deptUsers.length === 0) return null;
+                    
+                    return (
+                      <optgroup key={deptId} label={deptName}>
+                        {deptUsers.map(user => {
+                          // Не показываем уже добавленных пользователей
+                          if (participants.some(p => p.user?.id === user.id)) return null;
+                          
+                          return (
+                            <option key={user.id} value={user.id}>
+                              {user.first_name} {user.last_name}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    );
+                  })}
+                  {users.filter(user => !user.department_id).length > 0 && (
+                    <optgroup label="Без отдела">
+                      {users
+                        .filter(user => !user.department_id)
+                        .map(user => {
+                          // Не показываем уже добавленных пользователей
+                          if (participants.some(p => p.user?.id === user.id)) return null;
+                          
+                          return (
+                            <option key={user.id} value={user.id}>
+                              {user.first_name} {user.last_name}
+                            </option>
+                          );
+                        })
+                      }
                     </optgroup>
-                  );
-                })}
-                {users.filter(user => !user.department_id).length > 0 && (
-                  <optgroup label="Без отдела">
-                    {users
-                      .filter(user => !user.department_id)
-                      .map(user => {
-                        // Не показываем уже добавленных пользователей
-                        if (participants.some(p => p.user?.id === user.id)) return null;
-                        
-                        return (
-                          <option key={user.id} value={user.id}>
-                            {user.first_name} {user.last_name}
-                          </option>
-                        );
-                      })
-                    }
-                  </optgroup>
-                )}
-              </select>
-              <p className="mt-1 text-sm text-gray-500">
-                Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
-              </p>
-            </div>
-          )}
+                  )}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
+                  Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
+                </p>
+              </div>
+            )}
 
-          <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              disabled={isLoading}
-            >
-              Закрыть
-            </button>
-            {isAdmin && selectedUsers.length > 0 && (
+            <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
               <button
                 type="button"
-                onClick={handleAddParticipants}
+                onClick={onClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 disabled={isLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Добавление...' : 'Добавить выбранных'}
+                Закрыть
               </button>
-            )}
+              {isAdmin && selectedUsers.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleAddParticipants}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Добавление...' : 'Добавить выбранных'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -384,3 +409,4 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
 };
 
 export default ChatParticipantsModal;
+

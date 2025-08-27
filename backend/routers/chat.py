@@ -61,10 +61,13 @@ async def create_chat_room(
     return ChatRoomCreateResponse(
         id=db_room.id,
         name=db_room.name,
+        description=db_room.description,
         creator_id=db_room.creator_id,
+        is_private=db_room.is_private,
         is_active=db_room.is_active,
         created_at=db_room.created_at,
-        updated_at=db_room.updated_at
+        updated_at=db_room.updated_at,
+        folders=[]
     )
 
 
@@ -142,7 +145,9 @@ async def get_chat_room(
     return ChatRoomDetailResponse(
         id=room.id,
         name=room.name,
+        description=room.description,
         creator_id=room.creator_id,
+        is_private=room.is_private,
         is_active=room.is_active,
         created_at=room.created_at,
         updated_at=room.updated_at,
@@ -381,55 +386,10 @@ async def create_chat_message(
     )
     bots = result.scalars().all()
     
-    for bot_participant in bots:
-        result = await db.execute(select(ChatBot).where(ChatBot.id == bot_participant.bot_id))
-        bot = result.scalar_one_or_none()
-        if bot and bot.is_active:
-            try:
-                # Отправляем запрос к VseGPT API
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        "https://api.vsegpt.ru/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {bot.api_key}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "model": bot.model_id,
-                            "messages": [
-                                {"role": "system", "content": bot.system_prompt or "Вы - полезный ассистент."},
-                                {"role": "user", "content": message.content}
-                            ]
-                        }
-                    ) as response:
-                        if response.status == 200:
-                            bot_response = await response.json()
-                            bot_message = bot_response["choices"][0]["message"]["content"]
-                            
-                            # Сохраняем ответ бота
-                            db_bot_message = ChatMessage(
-                                chat_room_id=room_id,
-                                bot_id=bot.id,
-                                content=bot_message
-                            )
-                            db.add(db_bot_message)
-                            await db.commit()
-                            await db.refresh(db_bot_message)
-                            
-                            # Отправляем ответ бота всем подключенным клиентам
-                            if room_id in connected_clients:
-                                for client in connected_clients[room_id]:
-                                    await client.send_json({
-                                        "type": "message",
-                                        "data": {
-                                            "id": db_bot_message.id,
-                                            "content": db_bot_message.content,
-                                            "bot_id": bot.id,
-                                            "created_at": db_bot_message.created_at.isoformat()
-                                        }
-                                    })
-            except Exception as e:
-                print(f"Error sending message to bot {bot.id}: {str(e)}")
+    # Запускаем асинхронную задачу для ботов (они будут отвечать каждую минуту)
+    if bots:
+        import asyncio
+        asyncio.create_task(process_bot_responses(room_id, bots, db))
     
     return db_message
 
@@ -643,3 +603,94 @@ async def websocket_endpoint(
     
     except Exception as e:
         await websocket.close(code=4000)
+
+
+async def process_bot_responses(room_id: int, bots: list, db: AsyncSession):
+    """Обработка ответов ботов каждую минуту"""
+    import asyncio
+    
+    while True:
+        try:
+            # Ждем минуту
+            await asyncio.sleep(60)
+            
+            # Получаем неотвеченные сообщения за последние 5 минут
+            from datetime import datetime, timedelta
+            five_minutes_ago = datetime.now() - timedelta(minutes=5)
+            
+            result = await db.execute(
+                select(ChatMessage).where(and_(
+                    ChatMessage.chat_room_id == room_id,
+                    ChatMessage.created_at >= five_minutes_ago,
+                    ChatMessage.bot_id.is_(None),  # Только сообщения от пользователей
+                    ChatMessage.sender_id.isnot(None)  # Не системные сообщения
+                ))
+            )
+            unresponded_messages = result.scalars().all()
+            
+            if not unresponded_messages:
+                continue
+            
+            # Создаем саммари неотвеченных сообщений
+            message_summary = "\n".join([f"- {msg.content}" for msg in unresponded_messages])
+            
+            for bot_participant in bots:
+                result = await db.execute(select(ChatBot).where(ChatBot.id == bot_participant.bot_id))
+                bot = result.scalar_one_or_none()
+                if not bot or not bot.is_active:
+                    continue
+                
+                try:
+                    # Отправляем запрос к VseGPT API
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            "https://api.vsegpt.ru/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {bot.api_key}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "model": bot.bot_model_id,
+                                "messages": [
+                                    {"role": "system", "content": bot.system_prompt or "Вы - полезный ассистент. Отвечайте кратко и по делу."},
+                                    {"role": "user", "content": f"Вот неотвеченные сообщения в чате:\n{message_summary}\n\nПожалуйста, дайте краткий ответ или комментарий к этим сообщениям."}
+                                ],
+                                "max_tokens": 200,
+                                "temperature": 0.7
+                            }
+                        ) as response:
+                            if response.status == 200:
+                                bot_response = await response.json()
+                                bot_message = bot_response["choices"][0]["message"]["content"]
+                                
+                                # Сохраняем ответ бота
+                                db_bot_message = ChatMessage(
+                                    chat_room_id=room_id,
+                                    bot_id=bot.id,
+                                    content=bot_message
+                                )
+                                db.add(db_bot_message)
+                                await db.commit()
+                                await db.refresh(db_bot_message)
+                                
+                                # Отправляем ответ бота всем подключенным клиентам
+                                if room_id in connected_clients:
+                                    for client in connected_clients[room_id]:
+                                        try:
+                                            await client.send_json({
+                                                "type": "message",
+                                                "data": {
+                                                    "id": db_bot_message.id,
+                                                    "content": db_bot_message.content,
+                                                    "bot_id": bot.id,
+                                                    "created_at": db_bot_message.created_at.isoformat()
+                                                }
+                                            })
+                                        except:
+                                            pass
+                except Exception as e:
+                    print(f"Error sending message to bot {bot.id}: {str(e)}")
+                    
+        except Exception as e:
+            print(f"Error in process_bot_responses: {str(e)}")
+            break

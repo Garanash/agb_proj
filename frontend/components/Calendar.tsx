@@ -52,11 +52,16 @@ const Calendar: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [addEventType, setAddEventType] = useState<'meeting' | 'call' | 'briefing' | 'conference' | 'other'>('meeting')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   console.log('Calendar rendered:', { user: !!user, eventsCount: events.length })
 
   // Загрузка событий с backend
   const fetchEvents = async () => {
+    setIsLoading(true)
+    setError(null)
+    
     try {
       const startOfMonth = moment(currentDate).startOf('month').format('YYYY-MM-DD')
       const endOfMonth = moment(currentDate).endOf('month').format('YYYY-MM-DD')
@@ -70,46 +75,10 @@ const Calendar: React.FC = () => {
       setEvents(response.data)
     } catch (error) {
       console.error('Ошибка загрузки событий:', error)
-      // Fallback к моковым данным
-      const mockEvents: Event[] = [
-        {
-          id: '1',
-          title: 'Встреча с клиентом',
-          start_datetime: moment().add(1, 'day').hour(10).minute(0).toISOString(),
-          end_datetime: moment().add(1, 'day').hour(12).minute(0).toISOString(),
-          description: 'Обсуждение нового проекта бурения',
-          event_type: 'meeting',
-          creator_id: 1,
-          is_active: true,
-          created_at: moment().toISOString(),
-          participants: []
-        },
-        {
-          id: '2',
-          title: 'Заявка на измерение',
-          start_datetime: moment().add(3, 'days').hour(9).minute(0).toISOString(),
-          end_datetime: moment().add(3, 'days').hour(13).minute(0).toISOString(),
-          description: 'Измерение глубины скважины №157',
-          event_type: 'call',
-          creator_id: 1,
-          is_active: true,
-          created_at: moment().toISOString(),
-          participants: []
-        },
-        {
-          id: '3',
-          title: 'Установка оборудования',
-          start_datetime: moment().add(5, 'days').hour(8).minute(0).toISOString(),
-          end_datetime: moment().add(5, 'days').hour(14).minute(0).toISOString(),
-          description: 'Монтаж нового бурового станка',
-          event_type: 'conference',
-          creator_id: 1,
-          is_active: true,
-          created_at: moment().toISOString(),
-          participants: []
-        }
-      ]
-      setEvents(mockEvents)
+      setError(error instanceof Error ? error.message : 'Произошла ошибка при загрузке событий')
+      setEvents([])
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -148,14 +117,21 @@ const Calendar: React.FC = () => {
     setSelectedDate(null)
   }
 
-  const handleAddEvent = (eventType: 'meeting' | 'call' | 'briefing' | 'conference' | 'other') => {
-    setAddEventType(eventType)
+  const handleAddEvent = (eventType?: 'meeting' | 'call' | 'briefing' | 'conference' | 'other') => {
+    if (eventType) {
+      setAddEventType(eventType)
+    } else {
+      setAddEventType('meeting') // По умолчанию
+    }
     setShowDayModal(false)
     setShowAddModal(true)
   }
 
   const handleEventAdded = () => {
-    fetchEvents() // Перезагружаем события
+    // Добавляем небольшую задержку перед обновлением, чтобы бэкенд успел обработать запрос
+    setTimeout(() => {
+      fetchEvents() // Перезагружаем события
+    }, 500)
     setShowAddModal(false)
   }
 
@@ -166,7 +142,10 @@ const Calendar: React.FC = () => {
   }
 
   const handleEventUpdated = () => {
-    fetchEvents() // Перезагружаем события
+    // Добавляем небольшую задержку перед обновлением, чтобы бэкенд успел обработать запрос
+    setTimeout(() => {
+      fetchEvents() // Перезагружаем события
+    }, 500)
     setShowEditModal(false)
     setSelectedEvent(null)
   }
@@ -250,39 +229,11 @@ const Calendar: React.FC = () => {
       {/* Кнопки быстрого добавления */}
       <div className="flex flex-wrap gap-3 mb-6">
         <button
-          onClick={() => handleAddEvent('meeting')}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-        >
-          <span>👥</span>
-          <span>Встреча</span>
-        </button>
-        <button
-          onClick={() => handleAddEvent('call')}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-        >
-          <span>📞</span>
-          <span>Созвон</span>
-        </button>
-        <button
-          onClick={() => handleAddEvent('briefing')}
+          onClick={() => handleAddEvent()}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
-          <span>📋</span>
-          <span>Планерка</span>
-        </button>
-        <button
-          onClick={() => handleAddEvent('conference')}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
-        >
-          <span>🏢</span>
-          <span>Совещание</span>
-        </button>
-        <button
-          onClick={() => handleAddEvent('other')}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
-        >
-          <span>📝</span>
-          <span>Другое</span>
+          <span>📅</span>
+          <span>Создать событие</span>
         </button>
       </div>
 
@@ -468,28 +419,10 @@ const Calendar: React.FC = () => {
                   Закрыть
                 </button>
                 <button 
-                  onClick={() => handleAddEvent('meeting')}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Встреча
-                </button>
-                <button 
-                  onClick={() => handleAddEvent('call')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Созвон
-                </button>
-                <button 
-                  onClick={() => handleAddEvent('briefing')}
+                  onClick={() => handleAddEvent()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Планерка
-                </button>
-                <button 
-                  onClick={() => handleAddEvent('conference')}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  Совещание
+                  Создать событие
                 </button>
               </div>
             </div>

@@ -5,7 +5,7 @@ from typing import List
 
 from database import get_db
 from models import Department, User, UserRole
-from schemas import Department as DepartmentSchema, DepartmentCreate, DepartmentUpdate
+from schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreateResponse, DepartmentCreate, DepartmentUpdate
 from routers.auth import get_current_user
 
 router = APIRouter()
@@ -20,23 +20,40 @@ def check_admin(current_user: User):
         )
 
 
-@router.get("/", response_model=List[DepartmentSchema])
+@router.get("/", response_model=List[DepartmentList])
 async def get_departments(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка отделов"""
-    result = await db.execute(select(Department).where(Department.is_active == True))
+    from sqlalchemy.orm import selectinload
+    
+    result = await db.execute(
+        select(Department)
+        .where(Department.is_active == True)
+        .options(
+            selectinload(Department.head),
+            selectinload(Department.employees)
+            # Исключаем company_employees для избежания циклической ссылки
+        )
+    )
     departments = result.scalars().all()
     return departments
 
 
-@router.get("/{department_id}", response_model=DepartmentSchema)
+@router.get("/{department_id}", response_model=DepartmentCreateResponse)
 async def get_department(
     department_id: int, 
     db: AsyncSession = Depends(get_db)
 ):
     """Получение отдела по ID"""
-    result = await db.execute(select(Department).where(Department.id == department_id))
+    result = await db.execute(
+        select(Department)
+        .where(Department.id == department_id)
+        .options(
+            selectinload(Department.head),
+            selectinload(Department.employees)
+        )
+    )
     department = result.scalar_one_or_none()
     
     if not department:
@@ -45,7 +62,7 @@ async def get_department(
     return department
 
 
-@router.post("/", response_model=DepartmentSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=DepartmentCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_department(
     department_data: DepartmentCreate,
     current_user: User = Depends(get_current_user),
@@ -76,12 +93,22 @@ async def create_department(
     
     db.add(department)
     await db.commit()
-    await db.refresh(department)
     
-    return department
+    # Загружаем созданный отдел с связанными данными для корректной сериализации
+    result = await db.execute(
+        select(Department)
+        .where(Department.id == department.id)
+        .options(
+            selectinload(Department.head),
+            selectinload(Department.employees)
+        )
+    )
+    created_department = result.scalar_one()
+    
+    return created_department
 
 
-@router.put("/{department_id}", response_model=DepartmentSchema)
+@router.put("/{department_id}", response_model=DepartmentCreateResponse)
 async def update_department(
     department_id: int,
     department_data: DepartmentUpdate,
@@ -117,9 +144,19 @@ async def update_department(
         setattr(department, field, value)
     
     await db.commit()
-    await db.refresh(department)
     
-    return department
+    # Загружаем обновленный отдел с связанными данными для корректной сериализации
+    result = await db.execute(
+        select(Department)
+        .where(Department.id == department_id)
+        .options(
+            selectinload(Department.head),
+            selectinload(Department.employees)
+        )
+    )
+    updated_department = result.scalar_one()
+    
+    return updated_department
 
 
 @router.delete("/{department_id}")

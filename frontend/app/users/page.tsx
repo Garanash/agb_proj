@@ -62,13 +62,24 @@ export default function Users() {
   }, [])
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) return
+    if (!confirm('Вы уверены, что хотите деактивировать этого пользователя?')) return
 
     try {
       await axios.delete(`http://localhost:8000/api/users/${userId}`)
       fetchUsers() // Перезагружаем список
-          } catch (error: any) {
-        alert(formatApiError(error, 'Ошибка при удалении пользователя'))
+    } catch (error: any) {
+      alert(formatApiError(error, 'Ошибка при деактивации пользователя'))
+    }
+  }
+
+  const handleActivateUser = async (userId: number) => {
+    if (!confirm('Вы уверены, что хотите активировать этого пользователя?')) return
+
+    try {
+      await axios.post(`http://localhost:8000/api/users/${userId}/activate`)
+      fetchUsers() // Перезагружаем список
+    } catch (error: any) {
+      alert(formatApiError(error, 'Ошибка при активации пользователя'))
     }
   }
 
@@ -126,7 +137,7 @@ export default function Users() {
     <>
       <PageLayout 
         title="Управление пользователями"
-        subtitle="Создание, редактирование и управление учетными записями пользователей"
+        subtitle="Создание, редактирование и управление статусом учетных записей пользователей"
         headerActions={
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -198,13 +209,25 @@ export default function Users() {
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
-                            <button 
-                              onClick={() => handleDeleteUser(userItem.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded"
-                              title="Удалить"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
+                            {userItem.is_active ? (
+                              <button 
+                                onClick={() => handleDeleteUser(userItem.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded"
+                                title="Деактивировать"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleActivateUser(userItem.id)}
+                                className="p-2 text-green-600 hover:bg-green-50 rounded"
+                                title="Активировать"
+                              >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

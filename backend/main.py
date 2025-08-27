@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from database import engine, Base
-from routers import users, auth, news, events, departments, roles, team, chat
+from routers import users, auth, news, events, departments, company_employees, roles, team, chat
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(news.router, prefix="/api/news", tags=["news"])
 app.include_router(events.router, prefix="/api/events", tags=["events"])
 app.include_router(departments.router, prefix="/api/departments", tags=["departments"])
+app.include_router(company_employees.router, prefix="/api/company-employees", tags=["company_employees"])
 app.include_router(roles.router, prefix="/api/roles", tags=["roles"])
 app.include_router(team.router, prefix="/api/team", tags=["team"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])

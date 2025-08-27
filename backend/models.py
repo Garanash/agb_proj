@@ -79,6 +79,7 @@ class Department(Base):
     # Связи
     head = relationship("User", foreign_keys=[head_id])
     employees = relationship("User", back_populates="department_rel", foreign_keys="User.department_id")
+    company_employees = relationship("CompanyEmployee", back_populates="department")
 
 
 class User(Base):
@@ -112,8 +113,8 @@ class User(Base):
         return f"{self.last_name} {self.first_name}"
 
     @staticmethod
-    def generate_username(first_name: str, last_name: str, middle_name: str = None, prefix: str = "АГБ"):
-        """Генерация имени пользователя на основе ФИО"""
+    def generate_username(first_name: str, last_name: str, middle_name: str = None, prefix: str = "AGB"):
+        
         import re
         
         # Транслитерация с русского на английский
@@ -139,8 +140,8 @@ class User(Base):
         # Фамилия целиком
         last_name_translit = transliterate(last_name)
         
-        # Формируем username
-        username = f"{first_letter}{middle_letter}{last_name_translit}{prefix}"
+        # Формируем username с префиксом в начале
+        username = f"{prefix}{first_letter}{middle_letter}{last_name_translit}"
         return username.lower()
 
 
@@ -322,12 +323,20 @@ class EventParticipant(Base):
 
 class ChatBot(Base):
     __tablename__ = "chat_bots"
+    
+    # Конфигурация для избежания предупреждения о model_id
+    __table_args__ = {'extend_existing': True}
+    
+    # Pydantic конфигурация для избежания предупреждения о model_id
+    model_config = {
+        'protected_namespaces': ()
+    }
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # Имя бота
     description = Column(Text, nullable=True)  # Описание бота
     api_key = Column(String, nullable=False)  # API ключ для VseGPT
-    model_id = Column(String, nullable=False)  # ID модели для использования
+    bot_model_id = Column(String, nullable=False)  # ID модели для использования
     system_prompt = Column(Text, nullable=True)  # Системный промпт для бота
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -353,3 +362,23 @@ class ChatMessage(Base):
     chat_room = relationship("ChatRoom", back_populates="messages")
     sender = relationship("User", foreign_keys=[sender_id])
     bot = relationship("ChatBot", foreign_keys=[bot_id])
+
+
+class CompanyEmployee(Base):
+    __tablename__ = "company_employees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    first_name = Column(String, nullable=False)  # Имя
+    last_name = Column(String, nullable=False)   # Фамилия
+    middle_name = Column(String, nullable=True)  # Отчество
+    position = Column(String, nullable=True)     # Должность
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)  # ID отдела
+    phone = Column(String, nullable=True)        # Телефон
+    email = Column(String, nullable=True)        # Email
+    avatar_url = Column(String, nullable=True)   # URL аватара
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    department = relationship("Department", back_populates="company_employees")

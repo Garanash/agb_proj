@@ -9,14 +9,6 @@ import CreateChatRoomModal from '@/components/CreateChatRoomModal';
 import ChatParticipantsModal from '@/components/ChatParticipantsModal';
 import ChatFoldersModal from '@/components/ChatFoldersModal';
 
-interface ChatFolder {
-  id: number;
-  name: string;
-  order_index: number;
-  created_at: string;
-  updated_at: string | null;
-}
-
 interface ChatRoom {
   id: number;
   name: string;
@@ -490,7 +482,7 @@ const ChatPage = () => {
                             ? 'bg-blue-500 text-white' 
                             : message.bot 
                               ? 'bg-blue-100 text-blue-900' 
-                              : message.sender_id === null && message.bot_id === null
+                              : (!message.sender && !message.bot)
                                 ? 'bg-gray-100 text-gray-700'
                                 : 'bg-white'
                         } rounded-lg p-3 shadow`}>
@@ -498,7 +490,7 @@ const ChatPage = () => {
                             <span className="font-medium">
                               {message.sender 
                                 ? `${message.sender.first_name} ${message.sender.last_name}`
-                                : message.bot?.name || (message.sender_id === null && message.bot_id === null ? 'Система' : 'Неизвестный отправитель')
+                                : message.bot?.name || (!message.sender && !message.bot ? 'Система' : 'Неизвестный отправитель')
                               }
                             </span>
                             <span className="text-xs opacity-75">

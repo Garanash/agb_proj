@@ -18,7 +18,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     middle_name: '',
     password: '',
     role: 'employee' as 'admin' | 'manager' | 'employee',
-    prefix: 'АГБ'
+    prefix: 'AGB'
   })
   
   const [isLoading, setIsLoading] = useState(false)
@@ -51,7 +51,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
         middle_name: '',
         password: '',
         role: 'employee',
-        prefix: 'АГБ'
+        prefix: 'AGB'
       })
     } catch (error: any) {
       setError(formatApiError(error, 'Произошла ошибка при создании пользователя'))
@@ -143,8 +143,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="АГБ">АГБ</option>
-                <option value="БСВР">БСВР</option>
+                <option value="AGB">AGB</option>
+                <option value="BSCR">BSCR</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">Username будет сгенерирован автоматически</p>
             </div>

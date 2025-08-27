@@ -150,7 +150,10 @@ export default function NewsPage() {
   }
 
   return (
-    <PageLayout>
+    <PageLayout 
+      title="Новости"
+      subtitle="Последние новости компании"
+    >
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-900">

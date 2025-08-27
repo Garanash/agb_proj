@@ -12,13 +12,13 @@ async def create_admin_bot():
     async with AsyncSessionLocal() as db:
         try:
             # Создаем административного бота
-            admin_bot = ChatBot(
-                name='Admin Assistant',
-                description='Административный помощник с доступом к VseGPT API',
-                api_key='YOUR_VSEGPT_API_KEY_HERE',  # Замените на ваш реальный ключ
-                model_id='gpt-4o-mini',
-                system_prompt='Вы - административный помощник компании Алмазгеобур. Отвечайте профессионально и помогайте с рабочими вопросами.'
-            )
+            bot_data = {
+                "name": "Административный бот",
+                "description": "Бот для административных задач",
+                "api_key": "your-api-key-here",
+                "bot_model_id": 'gpt-4o-mini',
+                "system_prompt": "Ты административный бот. Помогай пользователям с административными вопросами."
+            }
             
             db.add(admin_bot)
             await db.commit()

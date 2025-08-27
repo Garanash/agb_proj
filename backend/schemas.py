@@ -19,7 +19,7 @@ class UserCreate(BaseModel):
     middle_name: Optional[str] = None
     password: str
     role: Optional[UserRole] = UserRole.employee
-    prefix: Optional[str] = "АГБ"  # Префикс для генерации username
+    prefix: Optional[str] = "AGB"  # Префикс для генерации username
 
 
 class UserUpdate(BaseModel):
@@ -92,6 +92,91 @@ class Department(DepartmentBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    head: Optional[User] = None
+    employees: list[User] = []
+    # Исключаем company_employees для избежания циклической ссылки
+
+    class Config:
+        from_attributes = True
+
+
+class DepartmentList(DepartmentBase):
+    id: int
+    head_id: Optional[int] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    head: Optional[User] = None
+    users: list[User] = []
+    # Исключаем company_employees для избежания циклической ссылки
+
+    class Config:
+        from_attributes = True
+
+
+class DepartmentCreateResponse(DepartmentBase):
+    id: int
+    head_id: Optional[int] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Исключаем связанные данные для избежания ошибок
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyEmployeeBase(BaseModel):
+    first_name: str
+    last_name: str
+    middle_name: Optional[str] = None
+    position: str
+    department_id: int
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: bool = True
+
+
+class CompanyEmployeeCreate(CompanyEmployeeBase):
+    pass
+
+
+class CompanyEmployeeUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    middle_name: Optional[str] = None
+    position: Optional[str] = None
+    department_id: Optional[int] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class CompanyEmployee(CompanyEmployeeBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Исключаем department для избежания циклической ссылки
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyEmployeeList(CompanyEmployeeBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Исключаем department для избежания циклической ссылки
+
+    class Config:
+        from_attributes = True
+
+
+class CompanyEmployeeCreateResponse(CompanyEmployeeBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    # Исключаем связанные данные для избежания ошибок
 
     class Config:
         from_attributes = True
@@ -297,7 +382,7 @@ class ChatBotBase(BaseModel):
     name: str
     description: Optional[str] = None
     api_key: str
-    model_id: str
+    bot_model_id: str
     system_prompt: Optional[str] = None
 
     model_config = {
@@ -313,7 +398,7 @@ class ChatBotUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     api_key: Optional[str] = None
-    model_id: Optional[str] = None
+    bot_model_id: Optional[str] = None
     system_prompt: Optional[str] = None
     is_active: Optional[bool] = None
 
@@ -501,7 +586,9 @@ class ChatRoomCreateResponse(BaseModel):
 class ChatRoomDetailResponse(BaseModel):
     id: int
     name: str
+    description: Optional[str] = None
     creator_id: int
+    is_private: bool
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

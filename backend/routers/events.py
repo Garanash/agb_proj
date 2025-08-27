@@ -85,7 +85,16 @@ async def create_event(
         db.add(participant)
 
     await db.commit()
-    await db.refresh(db_event)
+    
+    # Загружаем событие с участниками для корректной сериализации
+    result = await db.execute(
+        select(Event)
+        .options(
+            selectinload(Event.participants).selectinload(EventParticipant.user)
+        )
+        .where(Event.id == db_event.id)
+    )
+    db_event = result.scalar_one()
     
     return db_event
 
@@ -178,9 +187,8 @@ async def update_event(
         setattr(event, field, value)
     
     await db.commit()
-    await db.refresh(event)
     
-    # Загружаем обновленные данные с участниками
+    # Загружаем обновленные данные с участниками для корректной сериализации
     result = await db.execute(
         select(Event)
         .where(Event.id == event_id)

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '../utils/errorHandler'
+import Modal from './Modal'
 
 interface User {
   id: number
@@ -46,15 +47,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
   console.log('AddEventModal rendered:', { isOpen, selectedDate: !!selectedDate, initialEventType })
 
+
+
   // Загрузка пользователей и отделов
   useEffect(() => {
     const fetchUsers = async () => {
       setIsLoadingUsers(true)
       try {
+        console.log('Загружаем пользователей и отделы...')
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/users/'),
+          axios.get('http://localhost:8000/api/users/chat-users/'),
           axios.get('http://localhost:8000/api/departments/')
         ])
+        
+        console.log('Получено пользователей:', usersResponse.data.length)
+        console.log('Получено отделов:', departmentsResponse.data.length)
         
         setUsers(usersResponse.data)
         
@@ -64,8 +71,15 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           deptMap[dept.id] = dept.name
         })
         setDepartments(deptMap)
+        
+        console.log('Словарь отделов:', deptMap)
       } catch (error) {
         console.error('Ошибка загрузки пользователей:', error)
+        // Показываем ошибку пользователю
+        if (error.response) {
+          console.error('Статус ошибки:', error.response.status)
+          console.error('Данные ошибки:', error.response.data)
+        }
       } finally {
         setIsLoadingUsers(false)
       }
@@ -84,6 +98,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       setFormData(prev => ({
         ...prev,
         participants: selectedIds
+      }))
+    } else if (name === 'event_type') {
+      setFormData(prev => ({
+        ...prev,
+        event_type: value as 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
       }))
     } else {
       setFormData(prev => ({
@@ -136,7 +155,31 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         participants: []
       })
     } catch (error: any) {
-      setError(formatApiError(error, 'Произошла ошибка при создании события'))
+      console.error('Ошибка создания события:', error)
+      let errorMessage = 'Произошла ошибка при создании события'
+      
+      if (error.response) {
+        // Ошибка от сервера
+        if (error.response.data && error.response.data.detail) {
+          errorMessage = error.response.data.detail
+        } else if (error.response.status === 400) {
+          errorMessage = 'Некорректные данные события'
+        } else if (error.response.status === 401) {
+          errorMessage = 'Необходима авторизация'
+        } else if (error.response.status === 403) {
+          errorMessage = 'Недостаточно прав для создания события'
+        } else if (error.response.status === 500) {
+          errorMessage = 'Ошибка сервера при создании события'
+        }
+      } else if (error.request) {
+        // Ошибка сети
+        errorMessage = 'Ошибка соединения с сервером'
+      } else {
+        // Другие ошибки
+        errorMessage = error.message || errorMessage
+      }
+      
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -162,28 +205,13 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   if (!isOpen || !selectedDate) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full mx-4">
-        <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
-              Добавить событие
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            {selectedDate.format('DD MMMM YYYY, dddd')}
-          </p>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Добавить событие" maxWidth="2xl">
+      <div className="p-6">
+        <p className="text-sm text-gray-600 mb-6">
+          {selectedDate.format('DD MMMM YYYY, dddd')}
+        </p>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit}>
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
@@ -204,6 +232,25 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Введите название события"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Тип события
+              </label>
+              <select
+                name="event_type"
+                value={formData.event_type}
+                onChange={handleInputChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="meeting">Встреча</option>
+                <option value="call">Созвон</option>
+                <option value="briefing">Планерка</option>
+                <option value="conference">Совещание</option>
+                <option value="other">Другое</option>
+              </select>
             </div>
 
             <div>
@@ -250,65 +297,95 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Тип события *
-              </label>
-              <select
-                name="event_type"
-                value={formData.event_type}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="meeting">Встреча</option>
-                <option value="call">Созвон</option>
-                <option value="briefing">Планерка</option>
-                <option value="conference">Совещание</option>
-                <option value="other">Другое</option>
-              </select>
-            </div>
+
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Участники
               </label>
-              <select
-                name="participants"
-                multiple
-                value={formData.participants.map(String)}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-              >
-                {Object.entries(departments).map(([deptId, deptName]) => {
-                  const deptUsers = users.filter(user => user.department_id === parseInt(deptId))
-                  if (deptUsers.length === 0) return null
-                  
-                  return (
-                    <optgroup key={deptId} label={deptName}>
-                      {deptUsers.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )
-                })}
-                {users.filter(user => !user.department_id).length > 0 && (
-                  <optgroup label="Без отдела">
-                    {users
-                      .filter(user => !user.department_id)
-                      .map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </option>
-                      ))
-                    }
-                  </optgroup>
-                )}
-              </select>
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Загрузка пользователей...</span>
+                </div>
+              ) : (
+                <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-3">
+                  {Object.entries(departments).map(([deptId, deptName]) => {
+                    const deptUsers = users.filter(user => user.department_id === parseInt(deptId))
+                    if (deptUsers.length === 0) return null
+                    
+                    return (
+                      <div key={deptId} className="mb-3">
+                        <h4 className="font-medium text-gray-700 mb-2 text-sm">{deptName}</h4>
+                        <div className="space-y-2">
+                          {deptUsers.map(user => (
+                            <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.participants.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: [...prev.participants, user.id]
+                                    }))
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: prev.participants.filter(id => id !== user.id)
+                                    }))
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">
+                                {user.first_name} {user.last_name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {users.filter(user => !user.department_id).length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm">Без отдела</h4>
+                      <div className="space-y-2">
+                        {users
+                          .filter(user => !user.department_id)
+                          .map(user => (
+                            <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.participants.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: [...prev.participants, user.id]
+                                    }))
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: prev.participants.filter(id => id !== user.id)
+                                    }))
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">
+                                {user.first_name} {user.last_name}
+                              </span>
+                            </label>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="mt-1 text-sm text-gray-500">
-                Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
+                Отметьте чекбоксы для выбора участников
               </p>
             </div>
           </div>
@@ -332,7 +409,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 

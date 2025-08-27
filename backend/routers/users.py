@@ -143,12 +143,12 @@ async def delete_user(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Удаление пользователя (только для администраторов)"""
+    """Деактивация пользователя (только для администраторов)"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     if user_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Нельзя удалить самого себя")
+        raise HTTPException(status_code=400, detail="Нельзя деактивировать самого себя")
     
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -156,10 +156,37 @@ async def delete_user(
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    await db.delete(user)
+    # Вместо удаления деактивируем пользователя
+    user.is_active = False
     await db.commit()
     
-    return {"message": "Пользователь успешно удален"}
+    return {"message": "Пользователь успешно деактивирован"}
+
+
+@router.post("/{user_id}/activate")
+async def activate_user(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Активация пользователя (только для администраторов)"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    if user.is_active:
+        raise HTTPException(status_code=400, detail="Пользователь уже активен")
+    
+    # Активируем пользователя
+    user.is_active = True
+    await db.commit()
+    
+    return {"message": "Пользователь успешно активирован"}
 
 
 @router.post("/{user_id}/reset-password")

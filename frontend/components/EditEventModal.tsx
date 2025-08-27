@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '../utils/errorHandler'
+import Modal from './Modal'
 
 interface User {
   id: number
@@ -72,7 +73,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/users/'),
+          axios.get('http://localhost:8000/api/users/chat-users/'),
           axios.get('http://localhost:8000/api/departments/')
         ])
         
@@ -192,25 +193,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   if (!isOpen || !event) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
-              Редактировать событие
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Редактировать событие" maxWidth="2xl">
+      <div className="p-6">
+        <form onSubmit={handleSubmit}>
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
@@ -328,42 +313,82 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Участники
               </label>
-              <select
-                name="participants"
-                multiple
-                value={formData.participants.map(String)}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-              >
+              <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-3">
                 {Object.entries(departments).map(([deptId, deptName]) => {
                   const deptUsers = users.filter(user => user.department_id === parseInt(deptId))
                   if (deptUsers.length === 0) return null
                   
                   return (
-                    <optgroup key={deptId} label={deptName}>
-                      {deptUsers.map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </option>
-                      ))}
-                    </optgroup>
+                    <div key={deptId} className="mb-3">
+                      <h4 className="font-medium text-gray-700 mb-2 text-sm">{deptName}</h4>
+                      <div className="space-y-2">
+                        {deptUsers.map(user => (
+                          <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.participants.includes(user.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    participants: [...prev.participants, user.id]
+                                  }))
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    participants: prev.participants.filter(id => id !== user.id)
+                                  }))
+                                }
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {user.first_name} {user.last_name}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   )
                 })}
                 {users.filter(user => !user.department_id).length > 0 && (
-                  <optgroup label="Без отдела">
-                    {users
-                      .filter(user => !user.department_id)
-                      .map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.first_name} {user.last_name}
-                        </option>
-                      ))
-                    }
-                  </optgroup>
+                  <div className="mb-3">
+                    <h4 className="font-medium text-gray-700 mb-2 text-sm">Без отдела</h4>
+                    <div className="space-y-2">
+                                              {users
+                          .filter(user => !user.department_id)
+                          .map(user => (
+                            <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formData.participants.includes(user.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: [...prev.participants, user.id]
+                                    }))
+                                  } else {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      participants: prev.participants.filter(id => id !== user.id)
+                                    }))
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">
+                                {user.first_name} {user.last_name}
+                              </span>
+                            </label>
+                          ))
+                        }
+                    </div>
+                  </div>
                 )}
-              </select>
+              </div>
               <p className="mt-1 text-sm text-gray-500">
-                Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
+                Отметьте чекбоксы для выбора участников
               </p>
             </div>
           </div>
@@ -387,7 +412,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 

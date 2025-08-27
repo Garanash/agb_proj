@@ -8,13 +8,17 @@ import { useAuth } from '@/components/AuthContext'
 import axios from 'axios'
 import CreateDepartmentModal from '@/components/CreateDepartmentModal'
 import EditDepartmentModal from '@/components/EditDepartmentModal'
+import CompanyEmployeeModal from '@/components/CompanyEmployeeModal'
 
 export default function About() {
   const { user } = useAuth()
   const [openDepartment, setOpenDepartment] = useState<string | null>(null)
-  const [departments, setDepartments] = useState([])
+  const [departments, setDepartments] = useState<any[]>([])
+  const [companyEmployees, setCompanyEmployees] = useState<any[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [editingDepartment, setEditingDepartment] = useState(null)
+  const [editingDepartment, setEditingDepartment] = useState<any>(null)
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   const isAdmin = user?.role === 'admin'
@@ -23,30 +27,93 @@ export default function About() {
     setOpenDepartment(openDepartment === departmentName ? null : departmentName)
   }
 
-  // Загружаем отделы с сервера
+  // Загружаем отделы и сотрудников с сервера
   useEffect(() => {
-    const fetchDepartments = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/departments/')
-        setDepartments(response.data)
+        const [departmentsResponse, employeesResponse] = await Promise.all([
+          axios.get('http://localhost:8000/api/departments/'),
+          axios.get('http://localhost:8000/api/company-employees/')
+        ])
+        setDepartments(departmentsResponse.data)
+        setCompanyEmployees(employeesResponse.data)
       } catch (error) {
-        console.error('Ошибка при загрузке отделов:', error)
+        console.error('Ошибка при загрузке данных:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchDepartments()
+    fetchData()
   }, [])
 
   const handleDepartmentCreated = () => {
-    // Перезагружаем отделы
-    window.location.reload()
+    // Перезагружаем отделы без перезагрузки страницы
+    // Добавляем небольшую задержку, чтобы backend успел обработать запрос
+    setTimeout(async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/departments/')
+        console.log('Обновляем список отделов:', response.data)
+        setDepartments(response.data)
+      } catch (error) {
+        console.error('Ошибка при загрузке отделов:', error)
+      }
+    }, 500)
   }
 
   const handleDepartmentUpdated = () => {
-    // Перезагружаем отделы
-    window.location.reload()
+    // Перезагружаем отделы без перезагрузки страницы
+    // Добавляем небольшую задержку, чтобы backend успел обработать запрос
+    setTimeout(async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/departments/')
+        console.log('Обновляем список отделов после редактирования:', response.data)
+        setDepartments(response.data)
+      } catch (error) {
+        console.error('Ошибка при загрузке отделов:', error)
+      }
+    }, 500)
+  }
+
+  const handleEmployeeCreated = () => {
+    // Перезагружаем сотрудников без перезагрузки страницы
+    // Добавляем небольшую задержку, чтобы backend успел обработать запрос
+    setTimeout(async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/company-employees/')
+        console.log('Обновляем список сотрудников:', response.data)
+        setCompanyEmployees(response.data)
+      } catch (error) {
+        console.error('Ошибка при загрузке сотрудников:', error)
+      }
+    }, 500)
+  }
+
+  const handleEmployeeUpdated = () => {
+    // Перезагружаем сотрудников без перезагрузки страницы
+    // Добавляем небольшую задержку, чтобы backend успел обработать запрос
+    setTimeout(async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/company-employees/')
+        console.log('Обновляем список сотрудников после редактирования:', response.data)
+        setCompanyEmployees(response.data)
+      } catch (error) {
+        console.error('Ошибка при загрузке сотрудников:', error)
+      }
+    }, 500)
+  }
+
+  const handleDeleteEmployee = async (employeeId: number) => {
+    if (!confirm('Вы уверены, что хотите удалить этого сотрудника?')) return
+    
+    try {
+      await axios.delete(`http://localhost:8000/api/company-employees/${employeeId}`)
+      // Обновляем список сотрудников без перезагрузки страницы
+      setCompanyEmployees(prev => prev.filter(emp => emp.id !== employeeId))
+    } catch (error) {
+      console.error('Ошибка при удалении сотрудника:', error)
+      alert('Ошибка при удалении сотрудника')
+    }
   }
 
   const handleDeleteDepartment = async (departmentId: number) => {
@@ -54,7 +121,8 @@ export default function About() {
     
     try {
       await axios.delete(`http://localhost:8000/api/departments/${departmentId}`)
-      window.location.reload()
+      // Обновляем список отделов без перезагрузки страницы
+      setDepartments(prev => prev.filter(dept => dept.id !== departmentId))
     } catch (error) {
       console.error('Ошибка при удалении отдела:', error)
       alert('Ошибка при удалении отдела')
@@ -140,13 +208,22 @@ export default function About() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Наша команда</h2>
               {isAdmin && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <PlusIcon className="w-4 h-4" />
-                  <span>Добавить отдел</span>
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowEmployeeModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    <span>Добавить сотрудника</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    <span>Добавить отдел</span>
+                  </button>
+                </div>
               )}
             </div>
             <div className="space-y-4">
@@ -191,8 +268,49 @@ export default function About() {
                         <p className="text-sm text-gray-600 mb-4">
                           {department.description}
                         </p>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 mb-4">
                           Отдел создан: {new Date(department.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                        
+                        {/* Сотрудники отдела */}
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-3">Сотрудники отдела:</h4>
+                          <div className="space-y-2">
+                            {companyEmployees
+                              .filter(emp => emp.department_id === department.id && emp.is_active)
+                              .map(employee => (
+                                <div key={employee.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <div className="font-medium text-gray-900">
+                                      {employee.last_name} {employee.first_name} {employee.middle_name}
+                                    </div>
+                                    <div className="text-sm text-gray-600">{employee.position}</div>
+                                    {employee.email && (
+                                      <div className="text-xs text-gray-500">{employee.email}</div>
+                                    )}
+                                  </div>
+                                  {isAdmin && (
+                                    <div className="flex items-center space-x-2">
+                                      <button
+                                        onClick={() => setEditingEmployee(employee)}
+                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                      >
+                                        <PencilIcon className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteEmployee(employee.id)}
+                                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                      >
+                                        <TrashIcon className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            {companyEmployees.filter(emp => emp.department_id === department.id && emp.is_active).length === 0 && (
+                              <div className="text-sm text-gray-500 italic">В отделе пока нет сотрудников</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -219,6 +337,26 @@ export default function About() {
           onClose={() => setEditingDepartment(null)}
           onDepartmentUpdated={handleDepartmentUpdated}
           department={editingDepartment}
+        />
+      )}
+
+      {/* Модальные окна для управления сотрудниками */}
+      {showEmployeeModal && (
+        <CompanyEmployeeModal
+          isOpen={showEmployeeModal}
+          onClose={() => setShowEmployeeModal(false)}
+          onEmployeeCreated={handleEmployeeCreated}
+          onEmployeeUpdated={handleEmployeeUpdated}
+        />
+      )}
+
+      {editingEmployee && (
+        <CompanyEmployeeModal
+          isOpen={!!editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onEmployeeCreated={handleEmployeeCreated}
+          onEmployeeUpdated={handleEmployeeUpdated}
+          employee={editingEmployee}
         />
       )}
     </PageLayout>

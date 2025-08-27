@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react'
 import { useAuth } from './AuthContext'
 import axios from 'axios'
 import { formatApiError } from '../utils/errorHandler'
+import Modal from './Modal'
 
 interface ProfileEditModalProps {
   isOpen: boolean
@@ -19,16 +20,12 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
     middle_name: user?.middle_name || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    department_id: user?.department_id || null,
-    position: user?.position || '',
-    avatar_url: user?.avatar_url || ''
+    email: user?.email || ''
   })
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [previewAvatar, setPreviewAvatar] = useState(user?.avatar_url || '')
+  const [previewAvatar, setPreviewAvatar] = useState('')
 
   console.log('ProfileEditModal rendered:', { isOpen, user: !!user })
 
@@ -51,10 +48,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
       reader.onload = (e) => {
         const result = e.target?.result as string
         setPreviewAvatar(result)
-        setFormData(prev => ({
-          ...prev,
-          avatar_url: result
-        }))
+        // Не добавляем avatar_url в formData, так как это поле не существует в User
       }
       reader.readAsDataURL(file)
     }
@@ -92,25 +86,9 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-lg">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
-              Редактировать профиль
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
+    <Modal isOpen={isOpen} onClose={onClose} title="Редактировать профиль" maxWidth="2xl">
+      <div className="p-6">
+        <form onSubmit={handleSubmit}>
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
@@ -214,49 +192,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Телефон
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="+7 (xxx) xxx-xx-xx"
-              />
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Отдел
-              </label>
-              <input
-                type="text"
-                name="department_id"
-                value={formData.department_id || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="ID отдела"
-                disabled
-              />
-              <p className="text-xs text-gray-500 mt-1">Отдел можно изменить только через администратора</p>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Должность
-              </label>
-              <input
-                type="text"
-                name="position"
-                value={formData.position}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Введите должность"
-              />
-            </div>
           </div>
 
           {/* Кнопки */}
@@ -279,7 +215,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }
 
