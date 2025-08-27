@@ -227,16 +227,7 @@ const Calendar: React.FC = () => {
         </div>
       </div>
 
-      {/* Кнопки быстрого добавления */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        <button
-          onClick={() => handleAddEvent()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <span>📅</span>
-          <span>Создать событие</span>
-        </button>
-      </div>
+
 
       {/* Сетка календаря */}
       <div className="space-y-4">

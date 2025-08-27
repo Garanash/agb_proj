@@ -265,16 +265,11 @@ export default function About() {
                   {openDepartment === department.name && (
                     <div className="px-6 py-4 bg-white">
                       <div className="space-y-4">
-                        <p className="text-sm text-gray-600 mb-4">
-                          {department.description}
-                        </p>
-                        <div className="text-sm text-gray-500 mb-4">
-                          Отдел создан: {new Date(department.created_at).toLocaleDateString('ru-RU')}
-                        </div>
+                        
+                        
                         
                         {/* Сотрудники отдела */}
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-3">Сотрудники отдела:</h4>
                           <div className="space-y-2">
                             {companyEmployees
                               .filter(emp => emp.department_id === department.id && emp.is_active)
