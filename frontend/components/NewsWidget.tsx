@@ -22,6 +22,7 @@ const NewsWidget: React.FC = () => {
   const { user } = useAuth()
   const [news, setNews] = useState<NewsItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [isLoading, setIsLoading] = useState(false)
 
   const canManageNews = user && (user.role === 'admin' || user.role === 'manager')
 
@@ -33,6 +34,7 @@ const NewsWidget: React.FC = () => {
   }, [selectedCategory])
 
   const fetchNews = async () => {
+    setIsLoading(true)
     try {
       const params = new URLSearchParams()
       if (selectedCategory !== 'all') {
@@ -40,7 +42,11 @@ const NewsWidget: React.FC = () => {
       }
       params.append('limit', '10')
 
-      const response = await fetch(`http://localhost:8000/api/news?${params}`)
+      const response = await fetch(`http://localhost:8000/api/news?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+        }
+      })
       if (response.ok) {
         const newsData = await response.json()
         const formattedNews = newsData.map((item: any) => ({
@@ -53,54 +59,14 @@ const NewsWidget: React.FC = () => {
         }))
         setNews(formattedNews)
       } else {
-        throw new Error('Failed to fetch news')
+        console.error('Failed to fetch news:', response.status)
+        setNews([])
       }
     } catch (error) {
       console.error('Error fetching news:', error)
-      // Fallback к моковым данным при ошибке
-      const mockNews: NewsItem[] = [
-        {
-          id: '1',
-          title: 'Новое оборудование поступило на склад',
-          content: 'В нашу компанию поступила партия современного бурового оборудования последнего поколения. Это позволит повысить эффективность работ и качество услуг.',
-          author: 'Кавецкий С.В.',
-          publishedAt: moment().subtract(1, 'day').toDate(),
-          category: 'equipment'
-        },
-        {
-          id: '2',
-          title: 'Успешное завершение проекта "Северный"',
-          content: 'Команда Алмазгеобур успешно завершила геологоразведочные работы на объекте "Северный". Все поставленные задачи выполнены в срок и с высоким качеством.',
-          author: 'Горбунов Ю.В.',
-          publishedAt: moment().subtract(2, 'days').toDate(),
-          category: 'projects'
-        },
-        {
-          id: '3',
-          title: 'Обновление правил техники безопасности',
-          content: 'С 1 декабря вступают в силу обновленные правила техники безопасности. Все сотрудники должны пройти дополнительный инструктаж.',
-          author: 'Данилова Г.Ю.',
-          publishedAt: moment().subtract(3, 'days').toDate(),
-          category: 'safety'
-        },
-        {
-          id: '4',
-          title: 'Корпоративное мероприятие',
-          content: 'Приглашаем всех сотрудников на корпоративное мероприятие, посвященное Дню работника геологии. Мероприятие состоится 15 декабря в 18:00.',
-          author: 'Ягодина Е.В.',
-          publishedAt: moment().subtract(5, 'days').toDate(),
-          category: 'general'
-        },
-        {
-          id: '5',
-          title: 'Новый контракт с международной компанией',
-          content: 'Алмазгеобур заключил долгосрочный контракт с ведущей международной горнодобывающей компанией на выполнение геологоразведочных работ.',
-          author: 'Свинарёв А.С.',
-          publishedAt: moment().subtract(7, 'days').toDate(),
-          category: 'projects'
-        }
-      ]
-      setNews(mockNews)
+      setNews([])
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -179,30 +145,40 @@ const NewsWidget: React.FC = () => {
 
       {/* Список новостей */}
       <div className="space-y-4 flex-1 overflow-y-auto">
-        {filteredNews.map((item) => (
-          <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-            {/* Заголовок и категория */}
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold text-gray-800 text-sm leading-tight flex-1">
-                {item.title}
-              </h3>
-              <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
-                {getCategoryName(item.category)}
-              </span>
-            </div>
-
-            {/* Содержимое */}
-            <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-              {item.content}
-            </p>
-
-            {/* Мета-информация */}
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>Автор: {item.author}</span>
-              <span>{moment(item.publishedAt).format('DD MMMM, HH:mm')}</span>
-            </div>
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Загрузка новостей...</p>
           </div>
-        ))}
+        ) : filteredNews.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Нет новостей в этой категории.</p>
+          </div>
+        ) : (
+          filteredNews.map((item) => (
+            <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              {/* Заголовок и категория */}
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-gray-800 text-sm leading-tight flex-1">
+                  {item.title}
+                </h3>
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                  {getCategoryName(item.category)}
+                </span>
+              </div>
+
+              {/* Содержимое */}
+              <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                {item.content}
+              </p>
+
+              {/* Мета-информация */}
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>Автор: {item.author}</span>
+                <span>{moment(item.publishedAt).format('DD MMMM, HH:mm')}</span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Кнопка управления новостями */}

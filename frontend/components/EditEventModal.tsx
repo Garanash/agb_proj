@@ -5,6 +5,7 @@ import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '../utils/errorHandler'
 import Modal from './Modal'
+import { useAuth } from './AuthContext'
 
 interface User {
   id: number
@@ -29,6 +30,7 @@ interface Event {
   description?: string
   event_type: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
   creator_id: number
+  is_public: boolean
   is_active: boolean
   created_at: string
   participants: EventParticipant[]
@@ -47,6 +49,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   onEventUpdated, 
   event 
 }) => {
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -55,6 +58,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     end_date: '',
     end_time: '',
     event_type: 'meeting' as 'meeting' | 'call' | 'briefing' | 'conference' | 'other',
+    is_public: false,
     participants: [] as number[]
   })
   
@@ -111,6 +115,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         end_date: endMoment.format('YYYY-MM-DD'),
         end_time: endMoment.format('HH:mm'),
         event_type: event.event_type,
+        is_public: event.is_public,
         participants: event.participants.map(p => p.user_id)
       })
       setError('')
@@ -154,6 +159,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       if (startDateTime !== event.start_datetime) updateData.start_datetime = startDateTime
       if (endDateTime !== event.end_datetime) updateData.end_datetime = endDateTime
       if (formData.event_type !== event.event_type) updateData.event_type = formData.event_type
+      if (formData.is_public !== event.is_public) updateData.is_public = formData.is_public
       
       // Сравниваем списки участников
       const currentParticipants = event.participants.map(p => p.user_id).sort()
@@ -308,6 +314,32 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 <option value="other">Другое</option>
               </select>
             </div>
+
+            {/* Поле для общих событий - только для админов */}
+            {user?.role === 'admin' && (
+              <div>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="is_public"
+                    checked={formData.is_public}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        is_public: e.target.checked
+                      }))
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    🌍 Общее событие для всех пользователей
+                  </span>
+                </label>
+                <p className="mt-1 text-sm text-gray-500">
+                  Общие события будут видны всем пользователям в календаре
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

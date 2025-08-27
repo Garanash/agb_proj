@@ -5,6 +5,7 @@ import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '../utils/errorHandler'
 import Modal from './Modal'
+import { useAuth } from './AuthContext'
 
 interface User {
   id: number
@@ -29,12 +30,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   onEventAdded,
   initialEventType = 'meeting'
 }) => {
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     start_time: '09:00',
     end_time: '10:00',
     event_type: initialEventType,
+    is_public: false,
     participants: [] as number[]
   })
   
@@ -137,6 +140,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         start_datetime: startDateTime,
         end_datetime: endDateTime,
         event_type: formData.event_type,
+        is_public: formData.is_public,
         participants: formData.participants
       }
 
@@ -152,6 +156,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         start_time: '09:00',
         end_time: '10:00',
         event_type: initialEventType,
+        is_public: false,
         participants: []
       })
     } catch (error: any) {
@@ -252,6 +257,32 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 <option value="other">Другое</option>
               </select>
             </div>
+
+            {/* Поле для общих событий - только для админов */}
+            {user?.role === 'admin' && (
+              <div>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="is_public"
+                    checked={formData.is_public}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        is_public: e.target.checked
+                      }))
+                    }}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    🌍 Создать общее событие для всех пользователей
+                  </span>
+                </label>
+                <p className="mt-1 text-sm text-gray-500">
+                  Общие события будут видны всем пользователям в календаре
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

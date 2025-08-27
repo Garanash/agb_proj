@@ -37,6 +37,7 @@ interface Event {
   description?: string
   event_type: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
   creator_id: number
+  is_public: boolean
   is_active: boolean
   created_at: string
   participants: EventParticipant[]
@@ -279,9 +280,10 @@ const Calendar: React.FC = () => {
                         event.event_type === 'conference' ? 'bg-purple-600' :
                         event.event_type === 'other' ? 'bg-gray-600' :
                         'bg-purple-600'
-                      }`}
-                      title={event.title}
+                      } ${event.is_public ? 'ring-2 ring-yellow-300' : ''}`}
+                      title={`${event.title}${event.is_public ? ' (Общее событие)' : ''}`}
                     >
+                      {event.is_public && '🌍 '}
                       {event.title}
                     </div>
                   ))}
@@ -341,7 +343,14 @@ const Calendar: React.FC = () => {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h5 className="font-semibold text-gray-900">{event.title}</h5>
+                            <div className="flex items-center gap-2">
+                              <h5 className="font-semibold text-gray-900">{event.title}</h5>
+                              {event.is_public && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  🌍 Общее событие
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm text-gray-600 mt-1">
                               {moment(event.start_datetime).format('HH:mm')} - {moment(event.end_datetime).format('HH:mm')}
                             </p>

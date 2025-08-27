@@ -28,10 +28,12 @@ interface User {
 export default function Users() {
   const { user } = useAuth()
   const [users, setUsers] = useState<User[]>([])
+  const [deactivatedUsers, setDeactivatedUsers] = useState<User[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'active' | 'deactivated'>('active')
   
   // Проверка доступа - только администраторы
   if (user?.role !== 'admin') {
@@ -48,8 +50,12 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       setIsLoading(true)
-      const response = await axios.get('http://localhost:8000/api/users/')
-      setUsers(response.data)
+      const [activeResponse, deactivatedResponse] = await Promise.all([
+        axios.get('http://localhost:8000/api/users/'),
+        axios.get('http://localhost:8000/api/users/deactivated/')
+      ])
+      setUsers(activeResponse.data)
+      setDeactivatedUsers(deactivatedResponse.data)
     } catch (error) {
       console.error('Ошибка загрузки пользователей:', error)
     } finally {
@@ -139,16 +145,50 @@ export default function Users() {
         title="Управление пользователями"
         subtitle="Создание, редактирование и управление статусом учетных записей пользователей"
         headerActions={
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-          >
-            <UserPlusIcon className="h-5 w-5" />
-            <span>Добавить пользователя</span>
-          </button>
+          activeTab === 'active' && (
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <UserPlusIcon className="h-5 w-5" />
+              <span>Добавить пользователя</span>
+            </button>
+          )
         }
       >
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Вкладки */}
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'active'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Активные пользователи
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                  {users.filter(u => u.is_active).length}
+                </span>
+              </button>
+              <button
+                onClick={() => setActiveTab('deactivated')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'deactivated'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Деактивированные пользователи
+                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                  {deactivatedUsers.filter(u => !u.is_active).length}
+                </span>
+              </button>
+            </nav>
+          </div>
+          
           <div className="p-6">
             {isLoading ? (
               <div className="text-center py-8">
@@ -164,11 +204,13 @@ export default function Users() {
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Email</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Роль</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Статус</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Действия</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                        {activeTab === 'active' ? 'Действия' : 'Действия'}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((userItem) => (
+                    {(activeTab === 'active' ? users.filter(u => u.is_active) : deactivatedUsers.filter(u => !u.is_active)).map((userItem) => (
                       <tr key={userItem.id} className="border-b border-gray-100">
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
@@ -235,10 +277,10 @@ export default function Users() {
                   </tbody>
                 </table>
                 
-                {users.length === 0 && (
+                {(activeTab === 'active' ? users.filter(u => u.is_active) : deactivatedUsers.filter(u => !u.is_active)).length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <UserPlusIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>Пользователи не найдены</p>
+                    <p>{activeTab === 'active' ? 'Активные пользователи не найдены' : 'Деактивированные пользователи не найдены'}</p>
                   </div>
                 )}
               </div>

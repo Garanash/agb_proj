@@ -34,11 +34,23 @@ export default function NewsPage() {
 
   useEffect(() => {
     if (canManageNews) {
-      fetchMyNews()
+      fetchAllNews()
     } else {
       fetchPublicNews()
     }
   }, [canManageNews])
+
+  const fetchAllNews = async () => {
+    try {
+      setLoading(true)
+      const response = await axios.get('http://localhost:8000/api/news/')
+      setNews(response.data)
+    } catch (error) {
+      console.error('Ошибка загрузки всех новостей:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchMyNews = async () => {
     try {
@@ -80,7 +92,7 @@ export default function NewsPage() {
     try {
       await axios.delete(`http://localhost:8000/api/news/${newsId}`)
       if (canManageNews) {
-        fetchMyNews()
+        fetchAllNews()
       } else {
         fetchPublicNews()
       }
@@ -92,7 +104,7 @@ export default function NewsPage() {
   const handleNewsCreated = () => {
     setShowCreateModal(false)
     if (canManageNews) {
-      fetchMyNews()
+      fetchAllNews()
     } else {
       fetchPublicNews()
     }
@@ -102,7 +114,7 @@ export default function NewsPage() {
     setShowEditModal(false)
     setSelectedNews(null)
     if (canManageNews) {
-      fetchMyNews()
+      fetchAllNews()
     } else {
       fetchPublicNews()
     }
