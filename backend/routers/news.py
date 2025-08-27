@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -7,7 +7,7 @@ from typing import List, Optional
 from database import get_db
 from models import News, User, UserRole
 from schemas import News as NewsSchema, NewsCreate, NewsUpdate
-from routers.auth import get_current_user
+from routers.auth import get_current_user, get_current_user_optional
 
 router = APIRouter()
 
@@ -23,13 +23,20 @@ def check_admin_or_manager(current_user: User):
 
 @router.get("/", response_model=List[NewsSchema])
 async def get_news(
+    request: Request,
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка новостей"""
-    query = select(News).where(News.is_published == True).order_by(desc(News.created_at))
+    # Админы и менеджеры видят все новости, обычные пользователи только опубликованные
+    current_user = await get_current_user_optional(request, db)
+    
+    if current_user and current_user.role in [UserRole.admin, UserRole.manager]:
+        query = select(News).order_by(desc(News.created_at))
+    else:
+        query = select(News).where(News.is_published == True).order_by(desc(News.created_at))
     
     if category:
         query = query.where(News.category == category)

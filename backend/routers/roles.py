@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from typing import List
 
 from database import get_db
 from models import User, Role, RolePermission, UserRoleAssignment, Permission
@@ -17,7 +18,7 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 
-@router.get("/permissions", response_model=list[str])
+@router.get("/permissions", response_model=List[str])
 async def get_permissions(
     current_user: User = Depends(get_current_user)
 ):
@@ -28,7 +29,7 @@ async def get_permissions(
     return [permission.value for permission in Permission]
 
 
-@router.get("/", response_model=list[RoleSchema])
+@router.get("/", response_model=List[RoleSchema])
 async def read_roles(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

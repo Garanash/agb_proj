@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List
 
 from database import get_db
 from models import Event, User, EventParticipant
@@ -13,7 +13,7 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 
-@router.get("/", response_model=list[EventSchema])
+@router.get("/", response_model=List[EventSchema])
 async def get_events(
     start_date: Optional[date] = Query(None, description="Начальная дата фильтра"),
     end_date: Optional[date] = Query(None, description="Конечная дата фильтра"),
@@ -80,8 +80,19 @@ async def create_event(
     db.add(db_event)
     await db.flush()  # Получаем ID события
 
-    # Добавляем участников
+    # Автоматически добавляем создателя события в список участников
+    creator_participant = EventParticipant(
+        event_id=db_event.id,
+        user_id=current_user.id
+    )
+    db.add(creator_participant)
+    
+    # Добавляем остальных участников (если они есть)
     for user_id in event_data.participants:
+        # Пропускаем создателя, если он уже добавлен
+        if user_id == current_user.id:
+            continue
+            
         # Проверяем существование пользователя
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
@@ -175,8 +186,19 @@ async def update_event(
         for participant in old_participants:
             await db.delete(participant)
 
-        # Добавляем новых участников
+        # Автоматически добавляем создателя события в список участников
+        creator_participant = EventParticipant(
+            event_id=event.id,
+            user_id=event.creator_id
+        )
+        db.add(creator_participant)
+        
+        # Добавляем остальных участников (если они есть)
         for user_id in update_data['participants']:
+            # Пропускаем создателя, если он уже добавлен
+            if user_id == event.creator_id:
+                continue
+                
             # Проверяем существование пользователя
             result = await db.execute(select(User).where(User.id == user_id))
             user = result.scalar_one_or_none()

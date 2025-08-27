@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
+from typing import List
 
 from database import get_db
 from models import User
@@ -16,7 +17,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-@router.get("/", response_model=list[UserSchema])
+@router.get("/", response_model=List[UserSchema])
 async def read_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -30,7 +31,7 @@ async def read_users(
     return users
 
 
-@router.get("/chat-users/", response_model=list[UserSchema])
+@router.get("/chat-users/", response_model=List[UserSchema])
 async def read_chat_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -41,7 +42,7 @@ async def read_chat_users(
     return users
 
 
-@router.get("/deactivated/", response_model=list[UserSchema])
+@router.get("/deactivated/", response_model=List[UserSchema])
 async def read_deactivated_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)

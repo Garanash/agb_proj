@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+from typing import List
 
 from database import get_db
 from models import User, TeamMember
@@ -16,7 +17,7 @@ from routers.auth import get_current_user
 router = APIRouter()
 
 
-@router.get("/", response_model=list[TeamMemberWithUser])
+@router.get("/", response_model=List[TeamMemberWithUser])
 async def get_team_members(
     db: AsyncSession = Depends(get_db),
     show_all: bool = False,

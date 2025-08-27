@@ -9,3 +9,4 @@ from .roles import router as roles_router
 from .team import router as team_router
 from .chat import router as chat_router
 from .chat_folders import router as chat_folders_router
+from .ved_passports import router as ved_passports_router

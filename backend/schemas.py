@@ -1,19 +1,25 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, validator
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List, Union
 from models import UserRole, NewsCategory, EventType, Permission
 
 
 class UserBase(BaseModel):
     username: str
-    email: EmailStr
+    email: str
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
+    
+    @validator('email')
+    def validate_email(cls, v):
+        if not v or '@' not in v:
+            raise ValueError('Некорректный email адрес')
+        return v
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: str
     first_name: str
     last_name: str
     middle_name: Optional[str] = None
@@ -24,7 +30,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     # username нельзя изменять
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
@@ -40,7 +46,7 @@ class UserProfileUpdate(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     middle_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     phone: Optional[str] = None
     department_id: Optional[int] = None
     position: Optional[str] = None
@@ -93,7 +99,7 @@ class Department(DepartmentBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     head: Optional[User] = None
-    employees: list[User] = []
+    employees: List[User] = []
     # Исключаем company_employees для избежания циклической ссылки
 
     class Config:
@@ -107,7 +113,7 @@ class DepartmentList(DepartmentBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     head: Optional[User] = None
-    users: list[User] = []
+    users: List[User] = []
     # Исключаем company_employees для избежания циклической ссылки
 
     class Config:
@@ -233,7 +239,7 @@ class EventBase(BaseModel):
 
 
 class EventCreate(EventBase):
-    participants: list[int] = []  # Список ID пользователей-участников
+    participants: List[int] = []  # Список ID пользователей-участников
 
     @validator('start_datetime', 'end_datetime')
     def validate_future_date(cls, v):
@@ -257,7 +263,7 @@ class EventUpdate(BaseModel):
     event_type: Optional[EventType] = None
     is_public: Optional[bool] = None
     is_active: Optional[bool] = None
-    participants: Optional[list[int]] = None
+    participants: Optional[List[int]] = None
 
 
 class EventParticipant(BaseModel):
@@ -277,7 +283,7 @@ class Event(EventBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    participants: list[EventParticipant] = []
+    participants: List[EventParticipant] = []
 
     class Config:
         from_attributes = True
@@ -296,14 +302,14 @@ class RoleBase(BaseModel):
 
 
 class RoleCreate(RoleBase):
-    permissions: list[Permission] = []
+    permissions: List[Permission] = []
 
 
 class RoleUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
-    permissions: Optional[list[Permission]] = None
+    permissions: Optional[List[Permission]] = None
 
 
 class Role(RoleBase):
@@ -312,7 +318,7 @@ class Role(RoleBase):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    permissions: list[Permission] = []
+    permissions: List[Permission] = []
 
     class Config:
         from_attributes = True
@@ -448,6 +454,7 @@ class ChatRoomFolder(BaseModel):
     id: int
     folder_id: int
     room_id: int
+    user_id: int  # Пользователь, который добавил чат в папку
     created_at: datetime
 
     class Config:
@@ -459,7 +466,8 @@ class ChatRoomBase(BaseModel):
 
 
 class ChatRoomCreate(ChatRoomBase):
-    pass
+    description: Optional[str] = None
+    is_private: Optional[bool] = False
 
 
 class ChatRoomUpdate(BaseModel):
@@ -519,6 +527,8 @@ class ChatMessageResponse(BaseModel):
     is_edited: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    sender: Optional[User] = None  # Полные данные отправителя
+    bot: Optional[ChatBot] = None  # Полные данные бота
 
     class Config:
         from_attributes = True
@@ -540,6 +550,7 @@ class ChatRoomParticipant(ChatRoomParticipantBase):
     bot_id: Optional[int] = None
     is_admin: bool
     joined_at: datetime
+    last_read_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -552,34 +563,9 @@ class ChatRoomParticipantResponse(BaseModel):
     bot_id: Optional[int] = None
     is_admin: bool
     joined_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
-class ChatRoom(ChatRoomBase):
-    id: int
-    creator_id: int
-    is_active: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    creator: User
-    participants: list[ChatRoomParticipant] = []
-    messages: list[ChatMessage] = []
-
-    class Config:
-        from_attributes = True
-
-
-class ChatRoomCreateResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str] = None
-    is_private: bool
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    creator_id: int
-    folders: list[ChatRoomFolder] = []  # Добавляем папки
+    last_read_at: Optional[datetime] = None
+    user: Optional[User] = None  # Полные данные пользователя
+    bot: Optional[ChatBot] = None  # Полные данные бота
 
     class Config:
         from_attributes = True
@@ -594,8 +580,125 @@ class ChatRoomDetailResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    participants: list[ChatRoomParticipant] = []
-    messages: list[ChatMessage] = []
+    participants: List[ChatRoomParticipantResponse] = []  # Используем правильную схему
+    messages: List[ChatMessageResponse] = []
 
     class Config:
         from_attributes = True
+
+
+class ChatRoom(ChatRoomBase):
+    id: int
+    description: Optional[str] = None
+    creator_id: int
+    is_private: bool
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    creator: User
+    participants: List[ChatRoomParticipantResponse] = []  # Используем правильную схему
+    messages: List[ChatMessageResponse] = []  # Используем правильную схему
+
+    class Config:
+        from_attributes = True
+
+
+class ChatRoomCreateResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    is_private: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    creator_id: int
+    folders: List[ChatRoomFolder] = []  # Добавляем папки
+
+    class Config:
+        from_attributes = True
+
+
+# Схемы для номенклатуры и паспортов ВЭД
+class VEDNomenclatureBase(BaseModel):
+    code_1c: str
+    name: str
+    article: str
+    matrix: str
+    drilling_depth: Optional[str] = None
+    height: Optional[str] = None
+    thread: Optional[str] = None
+    product_type: str
+
+
+class VEDNomenclatureCreate(VEDNomenclatureBase):
+    pass
+
+
+class VEDNomenclatureUpdate(BaseModel):
+    code_1c: Optional[str] = None
+    name: Optional[str] = None
+    article: Optional[str] = None
+    matrix: Optional[str] = None
+    drilling_depth: Optional[str] = None
+    height: Optional[str] = None
+    thread: Optional[str] = None
+    product_type: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class VEDNomenclature(VEDNomenclatureBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class VEDPassportBase(BaseModel):
+    order_number: str
+    nomenclature_id: int
+    quantity: int = 1
+
+
+class VEDPassportCreate(VEDPassportBase):
+    pass
+
+
+class VEDPassportUpdate(BaseModel):
+    order_number: Optional[str] = None
+    nomenclature_id: Optional[int] = None
+    quantity: Optional[int] = None
+    status: Optional[str] = None
+
+
+class VEDPassport(VEDPassportBase):
+    id: int
+    passport_number: str
+    created_by: int
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    nomenclature: VEDNomenclature
+
+    class Config:
+        from_attributes = True
+
+
+class VEDPassportWithCreator(VEDPassport):
+    creator: User
+
+    class Config:
+        from_attributes = True
+
+
+class BulkPassportCreate(BaseModel):
+    order_number: str
+    items: List[dict]  # Список позиций с кодом 1С и количеством
+
+
+class PassportGenerationResult(BaseModel):
+    success: bool
+    message: str
+    passports: List[VEDPassport] = []
+    errors: List[str] = []

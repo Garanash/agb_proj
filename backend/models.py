@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, Enum, ForeignKey, select
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from database import Base
@@ -9,6 +9,7 @@ class UserRole(str, enum.Enum):
     admin = "admin"
     manager = "manager"
     employee = "employee"
+    ved_passport = "ved_passport"
 
 
 class Permission(str, enum.Enum):
@@ -49,6 +50,13 @@ class Permission(str, enum.Enum):
     # Настройки
     VIEW_SETTINGS = "view_settings"
     EDIT_SETTINGS = "edit_settings"
+    
+    # Паспорта ВЭД
+    VIEW_VED_PASSPORTS = "view_ved_passports"
+    CREATE_VED_PASSPORTS = "create_ved_passports"
+    EDIT_VED_PASSPORTS = "edit_ved_passports"
+    DELETE_VED_PASSPORTS = "delete_ved_passports"
+    VIEW_VED_ARCHIVE = "view_ved_archive"
 
 
 class NewsCategory(str, enum.Enum):
@@ -268,7 +276,9 @@ class ChatRoom(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)  # Название беседы
+    description = Column(Text, nullable=True)  # Описание беседы
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Создатель беседы
+    is_private = Column(Boolean, default=False)  # Приватная беседа
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -286,11 +296,13 @@ class ChatRoomFolder(Base):
     id = Column(Integer, primary_key=True, index=True)
     folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Пользователь, который добавил чат в папку
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
     folder = relationship("ChatFolder", back_populates="rooms")
     room = relationship("ChatRoom", back_populates="folders")
+    user = relationship("User")  # Связь с пользователем
 
 
 class ChatRoomParticipant(Base):
@@ -299,9 +311,10 @@ class ChatRoomParticipant(Base):
     id = Column(Integer, primary_key=True, index=True)
     chat_room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Может быть NULL для ботов
-    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)  # ID бота, если участник - бот
+    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)  # ID бота, если сообщение от бота
     is_admin = Column(Boolean, default=False)  # Администратор беседы
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_read_at = Column(DateTime(timezone=True), nullable=True)  # Время последнего прочтения
 
     # Связи
     chat_room = relationship("ChatRoom", back_populates="participants")
@@ -383,3 +396,91 @@ class CompanyEmployee(Base):
 
     # Связи
     department = relationship("Department", back_populates="company_employees")
+
+
+class VEDNomenclature(Base):
+    """Номенклатура для паспортов ВЭД"""
+    __tablename__ = "ved_nomenclature"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code_1c = Column(String, unique=True, nullable=False, index=True)  # Код 1С
+    name = Column(String, nullable=False)  # Наименование
+    article = Column(String, nullable=False)  # Артикул
+    matrix = Column(String, nullable=False)  # Матрица (NQ, HQ, PQ, HQ3, NW, HW, HWT, PWT)
+    drilling_depth = Column(String, nullable=True)  # Глубина бурения (03-05, 05-07, etc.)
+    height = Column(String, nullable=True)  # Высота (12 мм, 15 мм, etc.)
+    thread = Column(String, nullable=True)  # Резьба (W, WT)
+    product_type = Column(String, nullable=False)  # Тип продукта (коронка, расширитель, башмак)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class VEDPassport(Base):
+    """Паспорт ВЭД"""
+    __tablename__ = "ved_passports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    passport_number = Column(String, unique=True, nullable=False, index=True)  # Номер паспорта
+    order_number = Column(String, nullable=False)  # Номер заказа покупателя
+    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)  # Количество
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="active")  # active, completed, processing
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    nomenclature = relationship("VEDNomenclature", lazy="selectin")
+    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+
+    @staticmethod
+    async def generate_passport_number(db, matrix: str, drilling_depth: str = None, article: str = None) -> str:
+        """Генерация номера паспорта согласно правилам"""
+        import datetime
+        from sqlalchemy import func
+        
+        # Получаем текущий год
+        current_year = str(datetime.datetime.now().year)[-2:]
+        
+        # Получаем следующий серийный номер для текущего года
+        # Ищем максимальный серийный номер среди паспортов текущего года
+        current_year_start = datetime.datetime.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        
+        # Получаем все паспорта текущего года
+        result = await db.execute(
+            select(VEDPassport).where(VEDPassport.created_at >= current_year_start)
+        )
+        passports_this_year = result.scalars().all()
+        
+        # Находим максимальный серийный номер
+        max_serial = 0
+        for passport in passports_this_year:
+            try:
+                # Извлекаем серийный номер из номера паспорта
+                # Ищем 6-значное число в номере паспорта
+                import re
+                match = re.search(r'\b(\d{6})\b', passport.passport_number)
+                if match:
+                    serial = int(match.group(1))
+                    if serial > max_serial:
+                        max_serial = serial
+            except (ValueError, IndexError):
+                continue
+        
+        # Следующий серийный номер
+        next_serial = max_serial + 1
+        serial_number = f"{next_serial:06d}"
+        
+        # Логируем для отладки
+        print(f"DEBUG: max_serial={max_serial}, next_serial={next_serial}, current_year={current_year}")
+        
+        if drilling_depth:
+            # Для коронок: AGB [Глубина бурения] [Матрица] [Серийный номер] [Год]
+            passport_number = f"AGB {drilling_depth} {matrix} {serial_number} {current_year}"
+        else:
+            # Для расширителей и башмаков: AGB [Матрица] [Серийный номер] [Год]
+            passport_number = f"AGB {matrix} {serial_number} {current_year}"
+        
+        print(f"DEBUG: Generated passport number: {passport_number}")
+        return passport_number
