@@ -211,12 +211,25 @@ const ChatPage = () => {
               setSelectedRoom(prev => {
                 if (!prev) return null;
                 
-                // Проверяем, нет ли уже такого сообщения
+                // Проверяем, нет ли уже такого сообщения по ID
                 const messageExists = prev.messages.some(msg => msg.id === data.data.id);
                 if (messageExists) {
+                  console.log('📝 Сообщение уже существует, пропускаем:', data.data.id);
                   return prev;
                 }
                 
+                // Дополнительная проверка на дублирование по содержимому и времени
+                const duplicateByContent = prev.messages.some(msg => 
+                  msg.content === data.data.content && 
+                  Math.abs(new Date(msg.created_at).getTime() - new Date(data.data.created_at).getTime()) < 5000
+                );
+                
+                if (duplicateByContent) {
+                  console.log('📝 Дублирующееся сообщение по содержимому, пропускаем');
+                  return prev;
+                }
+                
+                console.log('📝 Добавляем новое сообщение:', data.data);
                 return {
                   ...prev,
                   messages: [...prev.messages, data.data]
@@ -240,12 +253,25 @@ const ChatPage = () => {
               setSelectedRoom(prev => {
                 if (!prev) return null;
                 
-                // Проверяем, нет ли уже такого системного сообщения
+                // Проверяем, нет ли уже такого системного сообщения по ID
                 const messageExists = prev.messages.some(msg => msg.id === data.data.id);
                 if (messageExists) {
+                  console.log('📢 Системное сообщение уже существует, пропускаем:', data.data.id);
                   return prev;
                 }
                 
+                // Дополнительная проверка на дублирование по содержимому и времени
+                const duplicateByContent = prev.messages.some(msg => 
+                  msg.content === data.data.content && 
+                  Math.abs(new Date(msg.created_at).getTime() - new Date(data.data.created_at).getTime()) < 5000
+                );
+                
+                if (duplicateByContent) {
+                  console.log('📢 Дублирующееся системное сообщение, пропускаем');
+                  return prev;
+                }
+                
+                console.log('📢 Добавляем новое системное сообщение:', data.data);
                 return {
                   ...prev,
                   messages: [...prev.messages, data.data]
@@ -388,6 +414,8 @@ const ChatPage = () => {
       updated_at: new Date().toISOString()
     };
 
+    console.log('📤 Отправляем сообщение:', messageContent);
+
     // Мгновенно добавляем сообщение в чат
     setSelectedRoom(prev => {
       if (!prev) return null;
@@ -442,6 +470,8 @@ const ChatPage = () => {
         const newMessage = await response.json();
         console.log('📤 Сообщение отправлено через HTTP API');
         
+        console.log('📤 HTTP API: заменяем временное сообщение на реальное:', newMessage.id);
+        
         // Заменяем временное сообщение на реальное
         setSelectedRoom(prev => {
           if (!prev) return null;
@@ -454,6 +484,8 @@ const ChatPage = () => {
         });
       } else {
         console.error('❌ Ошибка отправки сообщения:', response.status);
+        console.log('❌ HTTP API: удаляем временное сообщение при ошибке');
+        
         // Удаляем временное сообщение при ошибке
         setSelectedRoom(prev => {
           if (!prev) return null;
@@ -465,6 +497,8 @@ const ChatPage = () => {
       }
     } catch (error) {
       console.error('❌ Ошибка отправки сообщения:', error);
+      console.log('❌ HTTP API: удаляем временное сообщение при ошибке сети');
+      
       // Удаляем временное сообщение при ошибке
       setSelectedRoom(prev => {
         if (!prev) return null;

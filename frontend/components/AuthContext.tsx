@@ -10,7 +10,7 @@ interface User {
   first_name: string
   last_name: string
   middle_name?: string
-  role: 'admin' | 'manager' | 'employee'
+  role: 'admin' | 'manager' | 'employee' | 'ved_passport'
   is_active: boolean
   created_at: string
 }

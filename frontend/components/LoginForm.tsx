@@ -47,11 +47,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Вход в систему</h2>
-        <p className="text-gray-600 mt-2">Felix - Корпоративная платформа</p>
-      </div>
-
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
@@ -97,15 +92,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
           {isLoading ? 'Вход...' : 'Войти'}
         </button>
       </form>
-
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          Тестовые данные для входа:
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          admin / admin123
-        </p>
-      </div>
     </div>
   )
 }

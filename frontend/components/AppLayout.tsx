@@ -20,9 +20,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
   // Для всех остальных страниц показываем основную раскладку с сайдбаром
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 relative">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto relative z-10">
         {children}
       </main>
     </div>

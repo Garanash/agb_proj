@@ -14,6 +14,31 @@
   opacity: 0.95;
 }
 
+/* Стили для нового логотипа */
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-svg {
+  transition: all 0.3s ease;
+}
+
+.logo-svg:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+/* Специальные стили для логотипа на странице входа */
+.login-logo {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.login-logo:hover {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+}
+
 /* Кастомные стили для аватаров и карточек */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
