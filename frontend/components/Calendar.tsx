@@ -109,6 +109,11 @@ const Calendar: React.FC = () => {
   }
 
   const handleDateClick = (date: moment.Moment) => {
+    // Проверяем, не является ли дата прошедшей
+    if (isPast(date)) {
+      alert('Нельзя создавать события в прошедшие даты')
+      return
+    }
     setSelectedDate(date)
     setShowDayModal(true)
   }
@@ -251,12 +256,13 @@ const Calendar: React.FC = () => {
             return (
               <div
                 key={index}
-                className={`min-h-[90px] p-2 border border-gray-200 transition-colors cursor-pointer ${
-                  isPastDay ? 'bg-gray-100' : 'hover:bg-gray-50'
+                className={`min-h-[90px] p-2 border border-gray-200 transition-colors ${
+                  isPastDay ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'hover:bg-gray-50 cursor-pointer'
                 } ${isTodayDay ? 'bg-blue-50 border-blue-300' : ''} ${
                   !isCurrentMonthDay ? 'text-gray-400' : ''
                 }`}
-                onClick={() => handleDateClick(day)}
+                onClick={isPastDay ? undefined : () => handleDateClick(day)}
+                title={isPastDay ? 'Нельзя создавать события в прошедшие даты' : 'Нажмите для просмотра событий'}
               >
                 <div className={`text-sm font-medium ${isTodayDay ? 'text-blue-600' : ''}`}>
                   {day.format('D')}
@@ -418,12 +424,22 @@ const Calendar: React.FC = () => {
                 >
                   Закрыть
                 </button>
-                <button 
-                  onClick={() => handleAddEvent()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Создать событие
-                </button>
+                {selectedDate && isPast(selectedDate) ? (
+                  <button 
+                    disabled
+                    className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed opacity-50"
+                    title="Нельзя создавать события в прошедшие даты"
+                  >
+                    Создать событие
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleAddEvent()}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Создать событие
+                  </button>
+                )}
               </div>
             </div>
           </div>
