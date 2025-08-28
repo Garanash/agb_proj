@@ -11,34 +11,27 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
-    restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    build: ./backend
     environment:
       DATABASE_URL: postgresql+asyncpg://felix_user:felix_password@db:5432/agb_felix
-      SECRET_KEY: "your-secret-key-here-change-in-production"
+      SECRET_KEY: "your-secret-key-here"
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
     depends_on:
       - db
     networks:
       - app-network
-    restart: unless-stopped
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost
     depends_on:
       - backend
     networks:
       - app-network
-    restart: unless-stopped
 
   nginx:
     image: nginx:alpine
@@ -51,7 +44,6 @@ services:
       - backend
     networks:
       - app-network
-    restart: unless-stopped
 
 volumes:
   postgres_data:
