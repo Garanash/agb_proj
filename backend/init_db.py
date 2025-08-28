@@ -34,9 +34,6 @@ async def create_admin_user():
         async_session.add(admin_user)
         await async_session.commit()
         
-        # Обновляем объект чтобы получить ID
-        await async_session.refresh(admin_user)
-        
         # Создаем отдел администрации
         admin_department = Department(
             name="Администрация",
