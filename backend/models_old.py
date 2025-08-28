@@ -46,7 +46,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
-    department = relationship("Department", back_populates="employees", lazy="selectin")
+    department = relationship("Department", lazy="selectin")
 
 class Department(Base):
     """Подразделения компании"""
@@ -146,24 +146,13 @@ class Team(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    project_id = Column(Integer, nullable=True)
+    leader_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-class TeamMember(Base):
-    """Участники команды"""
-    __tablename__ = "team_members"
-
-    id = Column(Integer, primary_key=True, index=True)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    role = Column(String, default="member")  # member, lead, manager
-    joined_at = Column(DateTime(timezone=True), server_default=func.now())
-
     # Связи
-    team = relationship("Team", lazy="selectin")
-    user = relationship("User", lazy="selectin")
+    leader = relationship("User", foreign_keys=[leader_id], lazy="selectin")
 
 class ChatRoom(Base):
     """Чат-комнаты"""
@@ -172,8 +161,25 @@ class ChatRoom(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    is_private = Column(Boolean, default=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_public = Column(Boolean, default=True)
+    folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    folder = relationship("ChatFolder", lazy="selectin")
+
+class ChatFolder(Base):
+    """Папки для организации чат-комнат"""
+    __tablename__ = "chat_folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_user_specific = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -188,54 +194,26 @@ class ChatMessage(Base):
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
     sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(String, nullable=False)
-    is_edited = Column(Boolean, default=False)
+    message_type = Column(String, default="text")  # text, file, image
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     room = relationship("ChatRoom", lazy="selectin")
     sender = relationship("User", foreign_keys=[sender_id], lazy="selectin")
 
 class ChatParticipant(Base):
-    """Участники чата"""
+    """Участники чат-комнат"""
     __tablename__ = "chat_participants"
 
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    joined_at = Column(DateTime(timezone=True), server_default=func.now())
     last_read_at = Column(DateTime(timezone=True), nullable=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
     room = relationship("ChatRoom", lazy="selectin")
     user = relationship("User", lazy="selectin")
-
-class ChatFolder(Base):
-    """Папки для организации чатов"""
-    __tablename__ = "chat_folders"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    is_default = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Связи
-    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
-
-class ChatRoomFolder(Base):
-    """Связь чат-комнат с папками"""
-    __tablename__ = "chat_room_folders"
-
-    id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
-    folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Связи
-    room = relationship("ChatRoom", lazy="selectin")
-    folder = relationship("ChatFolder", lazy="selectin")
 
 class ChatBot(Base):
     """Чат-боты"""
@@ -244,52 +222,89 @@ class ChatBot(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    model_id = Column(String, nullable=True)
+    model_id = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
 
-class VedPassport(Base):
-    """ВЭД паспорта"""
+class VEDNomenclature(Base):
+    """Номенклатура для паспортов ВЭД"""
+    __tablename__ = "ved_nomenclature"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code_1c = Column(String, unique=True, nullable=False, index=True)  # Код 1С
+    name = Column(String, nullable=False)  # Наименование
+    article = Column(String, nullable=False)  # Артикул
+    matrix = Column(String, nullable=False)  # Матрица (NQ, HQ, PQ, HQ3, NW, HW, HWT, PWT)
+    drilling_depth = Column(String, nullable=True)  # Глубина бурения (03-05, 05-07, etc.)
+    height = Column(String, nullable=True)  # Высота (12 мм, 15 мм, etc.)
+    thread = Column(String, nullable=True)  # Резьба (W, WT)
+    product_type = Column(String, nullable=False)  # Тип продукта (коронка, расширитель, башмак)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class PassportCounter(Base):
+    """Счетчик паспортов для каждого года"""
+    __tablename__ = "passport_counters"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    year = Column(Integer, nullable=False, unique=True, index=True)
+    current_serial = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<PassportCounter(year={self.year}, current_serial={self.current_serial})>"
+
+class VEDPassport(Base):
+    """Паспорт ВЭД"""
     __tablename__ = "ved_passports"
 
     id = Column(Integer, primary_key=True, index=True)
-    passport_number = Column(String, nullable=False, unique=True)
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=True)
-    status = Column(String, default="active")  # active, archived, draft
+    passport_number = Column(String, unique=True, nullable=False, index=True)  # Номер паспорта
+    order_number = Column(String, nullable=False)  # Номер заказа покупателя
+    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)  # Количество
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String, default="active")  # active, completed, processing
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
+    nomenclature = relationship("VEDNomenclature", lazy="selectin")
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
 
-class VedPassportRole(Base):
-    """Роли пользователей в ВЭД паспортах"""
-    __tablename__ = "ved_passport_roles"
-
-    id = Column(Integer, primary_key=True, index=True)
-    passport_id = Column(Integer, ForeignKey("ved_passports.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    role = Column(String, nullable=False)  # owner, editor, viewer
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Связи
-    passport = relationship("VedPassport", lazy="selectin")
-    user = relationship("User", lazy="selectin")
-
-class PassportCounter(Base):
-    """Счетчики для ВЭД паспортов"""
-    __tablename__ = "passport_counters"
-
-    id = Column(Integer, primary_key=True, index=True)
-    counter_name = Column(String, nullable=False, unique=True)
-    current_value = Column(Integer, default=0)
-    prefix = Column(String, nullable=True)
-    suffix = Column(String, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    @staticmethod
+    async def generate_passport_number(db, matrix: str, drilling_depth: str = None, article: str = None) -> str:
+        """Генерация номера паспорта используя счетчик из БД"""
+        current_year = datetime.datetime.now().year
+        current_year_suffix = str(current_year)[-2:]  # Последние 2 цифры года
+        
+        # Получаем или создаем счетчик для текущего года
+        counter = db.query(PassportCounter).filter(PassportCounter.year == current_year).first()
+        
+        if not counter:
+            # Создаем новый счетчик для текущего года
+            counter = PassportCounter(year=current_year, current_serial=0)
+            db.add(counter)
+            db.commit()
+            db.refresh(counter)
+            print(f"DEBUG: Created new counter for year {current_year}")
+        
+        # Увеличиваем счетчик
+        counter.current_serial += 1
+        db.commit()
+        
+        # Форматируем серийный номер с ведущими нулями
+        serial_number = str(counter.current_serial).zfill(6)
+        
+        # Формируем номер паспорта
+        passport_number = f"{serial_number}{current_year_suffix}"
+        
+        print(f"DEBUG: Generated passport number: {passport_number} (serial: {counter.current_serial}, year: {current_year})")
+        return passport_number

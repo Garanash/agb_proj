@@ -1,10 +1,8 @@
 import asyncio
-import asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import engine, get_db
-from models import User, News, UserRole, NewsCategory, Department
+from database import engine
+from models import User, UserRole, Department
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -50,6 +48,10 @@ async def create_admin_user():
             
             # Назначаем админа в отдел администрации
             admin_user.department_id = admin_department.id
+            await async_session.commit()
+            
+            # Назначаем админа главой отдела администрации
+            admin_department.head_id = admin_user.id
             await async_session.commit()
             
             print("✅ Администратор успешно создан!")

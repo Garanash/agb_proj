@@ -66,13 +66,11 @@ async def create_user(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
-    # Генерируем username
-    username = User.generate_username(
-        user_data.first_name, 
-        user_data.last_name, 
-        user_data.middle_name, 
-        user_data.prefix
-    )
+    # Генерируем username если не указан
+    if user_data.username:
+        username = user_data.username
+    else:
+        username = f"{user_data.first_name.lower()}.{user_data.last_name.lower()}"
     
     # Проверяем, не существует ли уже пользователь с таким username или email
     result = await db.execute(
@@ -95,7 +93,10 @@ async def create_user(
         last_name=user_data.last_name,
         middle_name=user_data.middle_name,
         hashed_password=hashed_password,
-        role=user_data.role
+        role=user_data.role,
+        phone=user_data.phone,
+        department_id=user_data.department_id,
+        position=user_data.position
     )
     
     db.add(db_user)
