@@ -42,8 +42,7 @@ async def create_admin_user():
             # Создаем отдел администрации
             admin_department = Department(
                 name="Администрация",
-                description="Административный отдел компании",
-                head_id=admin_user.id
+                description="Административный отдел компании"
             )
             
             async_session.add(admin_department)
