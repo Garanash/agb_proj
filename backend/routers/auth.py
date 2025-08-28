@@ -5,7 +5,6 @@ from sqlalchemy.future import select
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-import secrets
 
 from database import get_db
 from models import User
@@ -129,17 +128,7 @@ async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db))
         data={"sub": user.username}, expires_delta=access_token_expires
     )
     
-    # Создаем сессию в базе данных
-    session_token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + access_token_expires
-    
-    user_session = UserSession(
-        user_id=user.id,
-        session_token=session_token,
-        expires_at=expires_at
-    )
-    db.add(user_session)
-    await db.commit()
+    # JWT токен уже создан выше, дополнительных сессий не нужно
     
     return LoginResponse(
         access_token=access_token,
@@ -160,17 +149,8 @@ async def logout(
         if username:
             user = await get_user_by_username(db, username)
             if user:
-                # Удаляем все активные сессии пользователя
-                result = await db.execute(
-                    select(UserSession).where(
-                        UserSession.user_id == user.id,
-                        UserSession.expires_at > datetime.utcnow()
-                    )
-                )
-                sessions = result.scalars().all()
-                for session in sessions:
-                    await db.delete(session)
-                await db.commit()
+                # JWT токены не хранятся в БД, просто возвращаем успех
+                pass
     except JWTError:
         pass
     
