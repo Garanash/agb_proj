@@ -46,7 +46,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"  # Только локальный доступ
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost
+      NEXT_PUBLIC_API_URL: http://172.25.155.26
     depends_on:
       - backend
     networks:
