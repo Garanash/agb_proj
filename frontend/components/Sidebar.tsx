@@ -158,7 +158,7 @@ export default function Sidebar() {
         if (prev.has(activeItem.name)) {
           return prev
         }
-        return new Set([...prev, activeItem.name])
+        return new Set(Array.from(prev).concat(activeItem.name))
       })
     }
   }, [pathname, filteredNavigation, isItemActive])
@@ -206,7 +206,7 @@ export default function Sidebar() {
               </button>
               
               {/* Подпункты */}
-              {hasChildren && isExpanded && (
+              {hasChildren && isExpanded && item.children && (
                 <div className="ml-6 mt-2 space-y-1">
                   {item.children.map((child) => {
                     const isChildActive = pathname === child.href

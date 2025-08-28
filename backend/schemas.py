@@ -24,7 +24,7 @@ class UserCreate(BaseModel):
     last_name: str
     middle_name: Optional[str] = None
     password: str
-    role: Optional[UserRole] = UserRole.employee
+    role: Optional[UserRole] = UserRole.EMPLOYEE
     prefix: Optional[str] = "AGB"  # Префикс для генерации username
 
 

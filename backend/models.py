@@ -10,6 +10,20 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
     USER = "user"
     MANAGER = "manager"
+    EMPLOYEE = "employee"
+    VED_PASSPORT = "ved_passport"
+
+class NewsCategory(str, enum.Enum):
+    GENERAL = "general"
+    TECHNICAL = "technical"
+    EVENT = "event"
+    ANNOUNCEMENT = "announcement"
+
+class Permission(str, enum.Enum):
+    READ = "read"
+    WRITE = "write"
+    DELETE = "delete"
+    ADMIN = "admin"
 
 class User(Base):
     """Пользователи системы"""
@@ -19,8 +33,10 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    full_name = Column(String, nullable=False)
-    role = Column(String, default=UserRole.USER)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    middle_name = Column(String, nullable=True)
+    role = Column(String, default=UserRole.EMPLOYEE)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -58,6 +74,8 @@ class EventType(str, enum.Enum):
     MEETING = "meeting"
     CONFERENCE = "conference"
     TRAINING = "training"
+    BRIEFING = "briefing"
+    CALL = "call"
     OTHER = "other"
 
 class Event(Base):

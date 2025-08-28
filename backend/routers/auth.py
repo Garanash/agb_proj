@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 import secrets
 
 from database import get_db
-from models import User, UserSession
+from models import User
 from schemas import UserLogin, LoginResponse, User as UserSchema, UserProfileUpdate
 
 router = APIRouter()

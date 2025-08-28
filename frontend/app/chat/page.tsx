@@ -404,14 +404,12 @@ const ChatPage = () => {
     setMessage(''); // Очищаем поле ввода сразу
 
     // Создаем временное сообщение для мгновенного отображения
-    const tempMessage = {
+    const tempMessage: ChatMessage = {
       id: Date.now(), // Временный ID
       content: messageContent,
-      sender_id: user?.id,
-      sender: user,
+      sender: undefined, // Будет обновлено после ответа API
       created_at: new Date().toISOString(),
-      is_edited: false,
-      updated_at: new Date().toISOString()
+      is_edited: false
     };
 
     console.log('📤 Отправляем сообщение:', messageContent);

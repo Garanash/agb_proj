@@ -13,6 +13,8 @@ interface User {
   role: 'admin' | 'manager' | 'employee' | 'ved_passport'
   is_active: boolean
   created_at: string
+  avatar_url?: string | null
+  department_id?: number | null
 }
 
 interface AuthContextType {

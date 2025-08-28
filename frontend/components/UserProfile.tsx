@@ -120,12 +120,12 @@ export default function UserProfile() {
         {/* Аватар с инициалами */}
         <div className={`
           w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden
-          ${!user.avatar_url ? getAvatarColor(user.username) : ''}
+          ${!user?.avatar_url ? getAvatarColor(user?.username || '') : ''}
         `}>
-          {user.avatar_url ? (
+          {user?.avatar_url ? (
             <img 
               src={user.avatar_url} 
-              alt={`${user.last_name} ${user.first_name}`} 
+              alt={`${user?.last_name} ${user?.first_name}`} 
               className="w-full h-full object-cover"
             />
           ) : (
@@ -136,10 +136,10 @@ export default function UserProfile() {
         {/* Информация о пользователе */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">
-            {user.last_name} {user.first_name} {user.middle_name || ''}
+            {user?.last_name} {user?.first_name} {user?.middle_name || ''}
           </p>
           <p className="text-xs text-gray-600 truncate">
-            @{user.username}
+            @{user?.username}
           </p>
         </div>
         
@@ -160,25 +160,25 @@ export default function UserProfile() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">Email:</span>
               <span className="text-gray-800 font-medium truncate ml-2">
-                {user.email}
+                {user?.email}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">Роль:</span>
               <span className="text-gray-800 font-medium">
-                {getRoleName(user.role)}
+                {getRoleName(user?.role || 'employee')}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">Статус:</span>
               <span className={`
                 px-2 py-1 rounded-full text-xs font-medium
-                ${user.is_active 
+                ${user?.is_active 
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-red-100 text-red-800'
                 }
               `}>
-                {user.is_active ? 'Активен' : 'Неактивен'}
+                {user?.is_active ? 'Активен' : 'Неактивен'}
               </span>
             </div>
           </div>

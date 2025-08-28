@@ -29,7 +29,7 @@ async def create_admin_user():
                 last_name="Системы",
                 middle_name="",
                 hashed_password=pwd_context.hash("neurofork1"),
-                role=UserRole.admin,
+                role=UserRole.ADMIN,
                 is_active=True
             )
             
@@ -60,6 +60,8 @@ async def create_admin_user():
             
         except Exception as e:
             print(f"❌ Ошибка при создании администратора: {e}")
+            import traceback
+            traceback.print_exc()
             await async_session.rollback()
         finally:
             await async_session.close()

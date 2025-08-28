@@ -84,7 +84,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         setDepartments(deptMap)
         
         console.log('Словарь отделов:', deptMap)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Ошибка загрузки пользователей:', error)
         // Показываем ошибку пользователю
         if (error.response) {
