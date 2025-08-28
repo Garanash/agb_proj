@@ -22,8 +22,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:8000:8000"  # Только локальный доступ
     environment:
       DATABASE_URL: postgresql+asyncpg://felix_user:felix_password@db:5432/agb_felix
       PYTHONWARNINGS: "ignore:Unverified HTTPS request"
@@ -43,10 +41,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    ports:
-      - "127.0.0.1:3000:3000"  # Только локальный доступ
     environment:
-      NEXT_PUBLIC_API_URL: http://172.25.155.26
+      NEXT_PUBLIC_API_URL: http://localhost
     depends_on:
       - backend
     networks:
