@@ -17,7 +17,8 @@ app = FastAPI(
     title="Felix - Алмазгеобур Platform",
     description="Корпоративная платформа для Алмазгеобур",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
 # CORS настройки
