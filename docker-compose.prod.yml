@@ -22,9 +22,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    environment:
-      DATABASE_URL: postgresql+asyncpg://felix_user:felix_password@db:5432/agb_felix
-      PYTHONWARNINGS: "ignore:Unverified HTTPS request"
+    env_file:
+      - production.env
     depends_on:
       db:
         condition: service_healthy
@@ -41,8 +40,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost
+    env_file:
+      - production.env
     depends_on:
       - backend
     networks:
@@ -63,6 +62,11 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:

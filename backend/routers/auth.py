@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,9 +14,10 @@ from schemas import UserLogin, LoginResponse, User as UserSchema, UserProfileUpd
 router = APIRouter()
 
 # Конфигурация
-SECRET_KEY = "your-secret-key-here-change-in-production"  # В продакшене использовать переменную окружения
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 часа в минутах
+ACCESS_TOKEN_EXPIRE_HOURS = ACCESS_TOKEN_EXPIRE_MINUTES // 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
