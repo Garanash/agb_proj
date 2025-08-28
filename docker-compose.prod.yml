@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15
@@ -5,43 +7,33 @@ services:
       POSTGRES_DB: agb_felix
       POSTGRES_USER: felix_user
       POSTGRES_PASSWORD: felix_password
-    ports:
-      - "127.0.0.1:5432:5432"  # Только локальный доступ
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U felix_user -d agb_felix"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    env_file:
-      - production.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://felix_user:felix_password@db:5432/agb_felix
+      SECRET_KEY: "your-secret-key-here-change-in-production"
+      ALGORITHM: "HS256"
+      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - app-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pgrep -f uvicorn || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    env_file:
-      - production.env
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost
     depends_on:
       - backend
     networks:
@@ -52,21 +44,14 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - frontend
       - backend
     networks:
       - app-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   postgres_data:
