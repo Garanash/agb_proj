@@ -49,12 +49,22 @@ chmod +x deploy.sh
 
 ## 🛠️ Полезные команды
 
+### Основные скрипты:
+```bash
+# Запуск приложения
+./deploy.sh
+
+# Проверка статуса
+./status.sh
+
+# Остановка
+docker-compose -f docker-compose.prod.yml down
+```
+
+### Ручные команды:
 ```bash
 # Посмотреть логи
 docker-compose -f docker-compose.prod.yml logs
-
-# Остановить все
-docker-compose -f docker-compose.prod.yml down
 
 # Перезапустить
 docker-compose -f docker-compose.prod.yml restart
