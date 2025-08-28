@@ -57,7 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkTokenValidity = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/auth/me')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+      const response = await axios.get(`${apiUrl}/api/auth/me`)
       setUser(response.data)
       console.log('User loaded:', response.data)
     } catch (error) {
@@ -73,7 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/login', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+      const response = await axios.post(`${apiUrl}/api/auth/login`, {
         username,
         password
       })
@@ -95,7 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await axios.post('http://localhost:8000/api/auth/logout')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+      await axios.post(`${apiUrl}/api/auth/logout`)
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
@@ -109,7 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/auth/me')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
+      const response = await axios.get(`${apiUrl}/api/auth/me`)
       setUser(response.data)
     } catch (error) {
       console.error('Refresh user error:', error)
