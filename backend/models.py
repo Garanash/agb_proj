@@ -46,7 +46,7 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
-    department = relationship("Department", back_populates="employees", lazy="selectin")
+    department = relationship("Department", foreign_keys=[department_id], back_populates="employees", lazy="selectin")
 
 class Department(Base):
     """Подразделения компании"""
@@ -62,7 +62,7 @@ class Department(Base):
 
     # Связи
     head = relationship("User", foreign_keys=[head_id], lazy="selectin")
-    employees = relationship("User", back_populates="department", lazy="selectin")
+    employees = relationship("User", foreign_keys=[User.department_id], back_populates="department", lazy="selectin")
 
 class CompanyEmployee(Base):
     """Сотрудники компании"""
