@@ -4,7 +4,13 @@
 
 // Базовый URL API
 export const getApiUrl = (): string => {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+  // На клиенте используем текущий origin
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  // На сервере используем переменную окружения или fallback
+  return process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000';
 };
 
 // URL для WebSocket
