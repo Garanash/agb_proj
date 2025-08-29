@@ -17,22 +17,20 @@ echo "Email: $EMAIL"
 echo "Имя: $FIRST_NAME $LAST_NAME"
 echo ""
 
-# Создаем администратора через API
-echo "📡 Отправка запроса на создание администратора..."
+# Проверяем, запущены ли контейнеры
+if ! docker-compose ps | grep -q "agb_backend"; then
+    echo "❌ Backend контейнер не запущен!"
+    echo "Запустите: docker-compose up -d"
+    exit 1
+fi
 
-RESPONSE=$(curl -s -X POST \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"username\": \"$USERNAME\",
-    \"password\": \"$PASSWORD\",
-    \"email\": \"$EMAIL\",
-    \"first_name\": \"$FIRST_NAME\",
-    \"last_name\": \"$LAST_NAME\"
-  }" \
-  http://localhost/api/auth/register)
+# Копируем скрипт в контейнер
+echo "📋 Копирование скрипта в контейнер..."
+docker cp create-admin-db.py agb_backend:/app/
 
-echo "Ответ сервера:"
-echo "$RESPONSE" | jq '.' 2>/dev/null || echo "$RESPONSE"
+# Запускаем скрипт в контейнере
+echo "⚙️ Выполнение скрипта в контейнере..."
+docker-compose exec -T backend python create-admin-db.py
 
 # Проверяем, что администратор создан
 echo ""
@@ -53,7 +51,12 @@ if echo "$LOGIN_RESPONSE" | grep -q "access_token"; then
     echo "Логин: $USERNAME"
     echo "Пароль: $PASSWORD"
     echo "Email: $EMAIL"
+    echo ""
+    echo "🌐 Теперь можете войти в приложение через браузер"
 else
-    echo "❌ Ошибка при создании администратора"
+    echo "❌ Ошибка при проверке администратора"
     echo "Ответ сервера: $LOGIN_RESPONSE"
+    echo ""
+    echo "💡 Попробуйте проверить логи контейнера:"
+    echo "docker-compose logs backend"
 fi
