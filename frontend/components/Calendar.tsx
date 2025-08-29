@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
 import { useAuth } from './AuthContext'
@@ -67,7 +68,7 @@ const Calendar: React.FC = () => {
       const startOfMonth = moment(currentDate).startOf('month').format('YYYY-MM-DD')
       const endOfMonth = moment(currentDate).endOf('month').format('YYYY-MM-DD')
       
-      const response = await axios.get(`http://localhost:8000/api/events/`, {
+      const response = await axios.get(`${getApiUrl()}/api/events/`, {
         params: {
           start_date: startOfMonth,
           end_date: endOfMonth
@@ -160,7 +161,7 @@ const Calendar: React.FC = () => {
     if (!confirm(`Вы уверены, что хотите удалить событие "${event.title}"?`)) return
 
     try {
-      await axios.delete(`http://localhost:8000/api/events/${event.id}`)
+      await axios.delete(`${getApiUrl()}/api/events/${event.id}`)
       fetchEvents() // Перезагружаем события
       setShowDayModal(false)
     } catch (error: any) {

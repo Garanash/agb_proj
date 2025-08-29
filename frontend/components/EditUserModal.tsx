@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface User {
   id: number
@@ -105,7 +106,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.department_id !== user.department_id) updateData.department_id = formData.department_id
       if (formData.position !== (user.position || '')) updateData.position = formData.position || null
 
-      await axios.put(`http://localhost:8000/api/users/${user.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/users/${user.id}`, updateData)
       
       onUserUpdated()
       onClose()

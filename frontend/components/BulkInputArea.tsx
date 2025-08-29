@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ClipboardDocumentIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext'
 
 interface NomenclatureItem {
@@ -53,7 +54,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     
     setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/ved-passports/nomenclature/', {
+      const response = await fetch(`${getApiUrl()}/api/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

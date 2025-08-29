@@ -1,26 +1,27 @@
-FROM node:18-alpine AS builder
+# Фронтенд - Next.js
+FROM node:18-alpine
 
 WORKDIR /app
 
+# Копируем package.json и package-lock.json
 COPY package*.json ./
-RUN npm install
 
+# Устанавливаем зависимости
+RUN npm ci
+
+# Копируем исходный код
 COPY . .
+
+# Собираем приложение
 RUN npm run build
 
-FROM node:18-alpine AS runner
-
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
+# Открываем порт
 EXPOSE 3000
 
+# Устанавливаем переменную окружения
+ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+# Запускаем приложение
+CMD ["npm", "start"]

@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 import Modal from './Modal'
 import { useAuth } from './AuthContext'
 
@@ -77,8 +78,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/users/chat-users/'),
-          axios.get('http://localhost:8000/api/departments/')
+          axios.get(`${getApiUrl()}/api/users/chat-users/`),
+          axios.get(`${getApiUrl()}/api/departments/list`)
         ])
         
         setUsers(usersResponse.data)
@@ -174,7 +175,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         updateData.participants = formData.participants
       }
 
-      await axios.put(`http://localhost:8000/api/events/${event.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/events/${event.id}`, updateData)
       
       onEventUpdated()
       onClose()

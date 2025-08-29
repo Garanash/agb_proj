@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { getApiUrl } from '@/utils/api';
 import LoginForm from '@/components/LoginForm'
 import Logo from '@/components/Logo'
 

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from database import get_db
@@ -13,20 +14,18 @@ router = APIRouter()
 
 def check_admin(current_user: User):
     """Проверка прав администратора"""
-    if current_user.role != UserRole.admin:
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав для выполнения этой операции"
         )
 
 
-@router.get("/", response_model=List[DepartmentList])
+@router.get("/list", response_model=List[DepartmentList])
 async def get_departments(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка отделов"""
-    from sqlalchemy.orm import selectinload
-    
     result = await db.execute(
         select(Department)
         .where(Department.is_active == True)
@@ -38,6 +37,34 @@ async def get_departments(
     )
     departments = result.scalars().all()
     return departments
+
+
+# Редирект роуты для совместимости с frontend
+@router.get("/", response_model=List[DepartmentList])
+async def get_departments_root(
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /list для совместимости"""
+    return await get_departments(db)
+
+
+@router.get("/create/", response_model=List[DepartmentList])
+async def get_departments_create_slash(
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /list для совместимости с create/"""
+    return await get_departments(db)
+
+
+# POST роуты для совместимости с frontend
+@router.post("/", response_model=DepartmentCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_department_root(
+    department_data: DepartmentCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /create для совместимости с frontend POST /api/departments/"""
+    return await create_department(department_data, current_user, db)
 
 
 @router.get("/{department_id}", response_model=DepartmentCreateResponse)
@@ -62,7 +89,7 @@ async def get_department(
     return department
 
 
-@router.post("/", response_model=DepartmentCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/create", response_model=DepartmentCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_department(
     department_data: DepartmentCreate,
     current_user: User = Depends(get_current_user),

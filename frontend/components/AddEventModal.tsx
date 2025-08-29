@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 import Modal from './Modal'
 import { useAuth } from './AuthContext'
 
@@ -58,9 +59,10 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         console.log('Загружаем пользователей и отделы...')
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/users/chat-users/'),
-          axios.get('http://localhost:8000/api/departments/')
+          axios.get(`${apiUrl}/api/users/chat-users/`),
+          axios.get(`${apiUrl}/api/departments/list`)
         ])
         
         console.log('Получено пользователей:', usersResponse.data.length)
@@ -131,28 +133,30 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     setError('')
 
     try {
-      // Формируем даты и время
+      // Формируем даты и время с явным UTC timezone
       const startDateTime = moment(selectedDate)
         .hour(parseInt(formData.start_time.split(':')[0]))
         .minute(parseInt(formData.start_time.split(':')[1]))
+        .utc()
         .toISOString()
 
       const endDateTime = moment(selectedDate)
         .hour(parseInt(formData.end_time.split(':')[0]))
         .minute(parseInt(formData.end_time.split(':')[1]))
+        .utc()
         .toISOString()
 
       const eventData = {
         title: formData.title,
         description: formData.description || null,
-        start_datetime: startDateTime,
-        end_datetime: endDateTime,
+        start_date: startDateTime,
+        end_date: endDateTime,
         event_type: formData.event_type,
         is_public: formData.is_public,
         participants: formData.participants
       }
 
-      await axios.post('http://localhost:8000/api/events/', eventData)
+      await axios.post(`${getApiUrl()}/api/events/`, eventData)
       
       onEventAdded()
       onClose()

@@ -9,6 +9,27 @@ from models import User
 from schemas import User as UserSchema, UserCreate, UserUpdate, PasswordReset
 from routers.auth import get_current_user
 
+
+def transliterate(text: str) -> str:
+    """Простая транслитерация русского текста в латиницу"""
+    translit_dict = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D', 'Е': 'E', 'Ё': 'Yo',
+        'Ж': 'Zh', 'З': 'Z', 'И': 'I', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M',
+        'Н': 'N', 'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U',
+        'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Sch',
+        'Ъ': '', 'Ы': 'Y', 'Ь': '', 'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya'
+    }
+
+    result = []
+    for char in text:
+        result.append(translit_dict.get(char, char))
+    return ''.join(result)
+
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -17,7 +38,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-@router.get("/", response_model=List[UserSchema])
+@router.get("/list", response_model=List[UserSchema])
 async def read_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -31,7 +52,7 @@ async def read_users(
     return users
 
 
-@router.get("/chat-users/", response_model=List[UserSchema])
+@router.get("/chat-users", response_model=List[UserSchema])
 async def read_chat_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -42,7 +63,7 @@ async def read_chat_users(
     return users
 
 
-@router.get("/deactivated/", response_model=List[UserSchema])
+@router.get("/deactivated", response_model=List[UserSchema])
 async def read_deactivated_users(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -50,13 +71,43 @@ async def read_deactivated_users(
     """Получение списка всех деактивированных пользователей (только для администраторов)"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    
+
     result = await db.execute(select(User).where(User.is_active == False))
     users = result.scalars().all()
     return users
 
 
+# Редирект роуты для совместимости с frontend
+@router.get("/", response_model=List[UserSchema])
+async def read_users_root(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /list для совместимости"""
+    return await read_users(current_user, db)
+
+
+@router.get("/deactivated/", response_model=List[UserSchema])
+async def read_deactivated_users_slash(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /deactivated для совместимости с trailing slash"""
+    return await read_deactivated_users(current_user, db)
+
+
+# POST роуты для совместимости с frontend
 @router.post("/", response_model=UserSchema)
+async def create_user_root(
+    user_data: UserCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /create для совместимости с frontend POST /api/users/"""
+    return await create_user(user_data, current_user, db)
+
+
+@router.post("/create", response_model=UserSchema)
 async def create_user(
     user_data: UserCreate,
     current_user: User = Depends(get_current_user),
@@ -70,7 +121,15 @@ async def create_user(
     if user_data.username:
         username = user_data.username
     else:
-        username = f"{user_data.first_name.lower()}.{user_data.last_name.lower()}"
+        # Формируем username: первые буквы имени и отчества + . + фамилия (на латинице)
+        first_initial = transliterate(user_data.first_name[0].upper()) if user_data.first_name else ""
+        middle_initial = transliterate(user_data.middle_name[0].upper()) if user_data.middle_name else ""
+        last_name_translit = transliterate(user_data.last_name).lower() if user_data.last_name else ""
+
+        if middle_initial:
+            username = f"{first_initial}{middle_initial}.{last_name_translit}"
+        else:
+            username = f"{first_initial}.{last_name_translit}"
     
     # Проверяем, не существует ли уже пользователь с таким username или email
     result = await db.execute(

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getApiUrl } from '@/utils/api';
 import Calendar from '@/components/Calendar'
 import NewsWidget from '@/components/NewsWidget'
 import PageLayout from '@/components/PageLayout'

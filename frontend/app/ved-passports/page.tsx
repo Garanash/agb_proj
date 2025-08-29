@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import Link from 'next/link'
 import { useAuth } from '../../components/AuthContext'
 import { 
@@ -40,7 +41,8 @@ export default function VEDPassportsPage() {
     
     setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/ved-passports/archive/', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+      const response = await fetch(`${apiUrl}/api/ved-passports/archive/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

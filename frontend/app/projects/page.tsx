@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import PageLayout from '@/components/PageLayout'
 import { useAuth } from '@/components/AuthContext'
 import DevelopmentModal from '@/components/DevelopmentModal'

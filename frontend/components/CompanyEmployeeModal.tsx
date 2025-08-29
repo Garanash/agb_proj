@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface CompanyEmployee {
   id: number
@@ -102,7 +103,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get('http://localhost:8000/api/departments/')
+      const response = await axios.get(`${getApiUrl()}/api/departments/list`)
       setDepartments(response.data)
     } catch (error) {
       console.error('Ошибка загрузки отделов:', error)
@@ -125,12 +126,12 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     try {
       if (employee) {
         // Обновление
-        await axios.put(`http://localhost:8000/api/company-employees/${employee.id}`, formData)
+        await axios.put(`${getApiUrl()}/api/company-employees/${employee.id}`, formData)
         onEmployeeUpdated()
         onClose()
       } else {
         // Создание
-        const response = await axios.post('http://localhost:8000/api/company-employees/', formData)
+        const response = await axios.post(`${getApiUrl()}/api/company-employees/`, formData)
         console.log('Сотрудник создан успешно:', response.data)
         onEmployeeCreated()
         onClose()

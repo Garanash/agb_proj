@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '../../../components/AuthContext'
 import { 
   ArrowLeftIcon,
@@ -153,7 +154,7 @@ export default function VEDPassportsArchivePage() {
         }
       })
       
-      const url = `http://localhost:8000/api/ved-passports/archive/${params.toString() ? '?' + params.toString() : ''}`
+      const url = `${getApiUrl()}/api/ved-passports/archive/${params.toString() ? '?' + params.toString() : ''}`
       
       const response = await fetch(url, {
         headers: {
@@ -246,7 +247,7 @@ export default function VEDPassportsArchivePage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/ved-passports/${id}`, {
+      const response = await fetch(`${getApiUrl()}/api/ved-passports/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -58,6 +58,23 @@ venv.bak/
 # Docker
 .dockerignore
 
+# Production
+.env
+ssl/
+*.pem
+*.key
+*.crt
+
+# Temporary deployment files
+deploy-temp/
+*.tmp
+
 # Misc
 *.tgz
 *.tar.gz
+
+# Production scripts (keep in repo)
+# deploy-server.sh
+# quick-deploy.sh
+# init-production.sh
+# docker-compose.prod.yml

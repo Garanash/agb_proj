@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -40,7 +41,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     setError('')
 
     try {
-      await axios.post('http://localhost:8000/api/users/', formData)
+      await axios.post(`${getApiUrl()}/api/users/`, formData)
       onUserCreated()
       onClose()
       // Сбрасываем форму
@@ -192,6 +193,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
               >
                 <option value="employee">Сотрудник</option>
                 <option value="manager">Менеджер</option>
+                <option value="ved_passport">Сотрудник ВЭД</option>
                 <option value="admin">Администратор</option>
               </select>
             </div>

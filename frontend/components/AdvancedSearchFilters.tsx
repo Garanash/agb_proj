@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext'
 import { 
   MagnifyingGlassIcon, 
@@ -65,7 +66,8 @@ export default function AdvancedSearchFilters({
     
     setIsLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/ved-passports/archive/filters/', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+      const response = await fetch(`${apiUrl}/api/ved-passports/archive/filters/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface Department {
   id: number
@@ -70,7 +71,7 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({
       if (formData.name !== department.name) updateData.name = formData.name
       if (formData.description !== (department.description || '')) updateData.description = formData.description
 
-      await axios.put(`http://localhost:8000/api/departments/${department.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/departments/${department.id}`, updateData)
       
       onDepartmentUpdated()
     } catch (error: any) {

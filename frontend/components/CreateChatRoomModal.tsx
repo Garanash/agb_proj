@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext';
 
 interface Department {
@@ -54,7 +55,7 @@ export default function CreateChatRoomModal({
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/departments/', {
+      const response = await fetch(`${getApiUrl()}/api/departments/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -70,7 +71,7 @@ export default function CreateChatRoomModal({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/users/chat-users/', {
+      const response = await fetch(`${getApiUrl()}/api/users/chat-users/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -88,7 +89,7 @@ export default function CreateChatRoomModal({
 
   const fetchBots = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/chat/bots/', {
+      const response = await fetch(`${getApiUrl()}/api/chat/bots/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -109,7 +110,7 @@ export default function CreateChatRoomModal({
 
     try {
       // Создаем чат
-      const createRoomResponse = await fetch('http://localhost:8000/api/chat/rooms/', {
+      const createRoomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function CreateChatRoomModal({
       // Добавляем участников (если выбраны)
       if (selectedParticipants.size > 0) {
         const participantPromises = Array.from(selectedParticipants).map(userId =>
-          fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
+          fetch(`${getApiUrl()}/api/chat/rooms/${roomData.id}/participants/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -153,7 +154,7 @@ export default function CreateChatRoomModal({
       // Добавляем ботов (если выбраны)
       if (selectedBots.size > 0) {
         const botPromises = Array.from(selectedBots).map(botId =>
-          fetch(`http://localhost:8000/api/chat/rooms/${roomData.id}/participants/`, {
+          fetch(`${getApiUrl()}/api/chat/rooms/${roomData.id}/participants/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

@@ -14,14 +14,14 @@ router = APIRouter()
 
 def check_admin_or_manager(current_user: User):
     """Проверка прав администратора или менеджера"""
-    if current_user.role not in [UserRole.admin, UserRole.manager]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав для выполнения этой операции"
         )
 
 
-@router.get("/", response_model=List[NewsSchema])
+@router.get("/list", response_model=List[NewsSchema])
 async def get_news(
     request: Request,
     skip: int = 0,
@@ -32,20 +32,67 @@ async def get_news(
     """Получение списка новостей"""
     # Админы и менеджеры видят все новости, обычные пользователи только опубликованные
     current_user = await get_current_user_optional(request, db)
-    
-    if current_user and current_user.role in [UserRole.admin, UserRole.manager]:
+
+    if current_user and current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
         query = select(News).order_by(desc(News.created_at))
     else:
         query = select(News).where(News.is_published == True).order_by(desc(News.created_at))
-    
+
     if category:
         query = query.where(News.category == category)
-    
+
     query = query.offset(skip).limit(limit)
     result = await db.execute(query)
     news = result.scalars().all()
-    
+
     return news
+
+
+# Редирект роуты для совместимости с frontend
+@router.get("/", response_model=List[NewsSchema])
+async def get_news_root(
+    request: Request,
+    skip: int = 0,
+    limit: int = 10,
+    category: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение списка новостей с query параметрами"""
+    return await get_news(request, skip, limit, category, db)
+
+
+@router.get("", response_model=List[NewsSchema])
+async def get_news_no_slash(
+    request: Request,
+    skip: int = 0,
+    limit: int = 10,
+    category: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение списка новостей без trailing slash для совместимости"""
+    return await get_news(request, skip, limit, category, db)
+
+
+@router.get("/my/", response_model=List[NewsSchema])
+async def get_my_news_slash(
+    skip: int = 0,
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /my для совместимости с trailing slash"""
+    return await get_my_news(skip, limit, current_user, db)
+
+
+# POST роуты для совместимости с frontend
+@router.post("/", response_model=NewsSchema, status_code=status.HTTP_201_CREATED)
+async def create_news_root(
+    news_data: NewsCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Редирект на /create для совместимости с frontend POST /api/news/"""
+    return await create_news(news_data, current_user, db)
 
 
 @router.get("/{news_id}", response_model=NewsSchema)
@@ -60,7 +107,7 @@ async def get_news_item(news_id: int, db: AsyncSession = Depends(get_db)):
     return news
 
 
-@router.post("/", response_model=NewsSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/create", response_model=NewsSchema, status_code=status.HTTP_201_CREATED)
 async def create_news(
     news_data: NewsCreate,
     current_user: User = Depends(get_current_user),
@@ -74,7 +121,7 @@ async def create_news(
         content=news_data.content,
         category=news_data.category,
         author_id=current_user.id,
-        author_name=current_user.full_name,
+        author_name=f"{current_user.last_name} {current_user.first_name}",
         is_published=news_data.is_published
     )
     
@@ -100,7 +147,7 @@ async def update_news(
         raise HTTPException(status_code=404, detail="Новость не найдена")
     
     # Проверяем права: автор может редактировать свои новости, админы и менеджеры - любые
-    if news.author_id != current_user.id and current_user.role not in [UserRole.admin, UserRole.manager]:
+    if news.author_id != current_user.id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав для редактирования этой новости"

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { UserPlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { getApiUrl } from '@/utils/api';
 import PageLayout from '@/components/PageLayout'
 import CreateUserModal from '@/components/CreateUserModal'
 import EditUserModal from '@/components/EditUserModal'
@@ -51,8 +52,8 @@ export default function Users() {
     try {
       setIsLoading(true)
       const [activeResponse, deactivatedResponse] = await Promise.all([
-        axios.get('http://localhost:8000/api/users/'),
-        axios.get('http://localhost:8000/api/users/deactivated/')
+        axios.get(`${getApiUrl()}/api/users/list`),
+        axios.get(`${getApiUrl()}/api/users/deactivated/`)
       ])
       setUsers(activeResponse.data)
       setDeactivatedUsers(deactivatedResponse.data)
@@ -71,7 +72,7 @@ export default function Users() {
     if (!confirm('Вы уверены, что хотите деактивировать этого пользователя?')) return
 
     try {
-      await axios.delete(`http://localhost:8000/api/users/${userId}`)
+      await axios.delete(`${getApiUrl()}/api/users/${userId}`)
       fetchUsers() // Перезагружаем список
     } catch (error: any) {
       alert(formatApiError(error, 'Ошибка при деактивации пользователя'))
@@ -82,7 +83,7 @@ export default function Users() {
     if (!confirm('Вы уверены, что хотите активировать этого пользователя?')) return
 
     try {
-      await axios.post(`http://localhost:8000/api/users/${userId}/activate`)
+      await axios.post(`${getApiUrl()}/api/users/${userId}/activate`)
       fetchUsers() // Перезагружаем список
     } catch (error: any) {
       alert(formatApiError(error, 'Ошибка при активации пользователя'))

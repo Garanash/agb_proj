@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext';
 
 interface ChatBot {
@@ -70,8 +71,8 @@ const ChatBotEditor: React.FC<ChatBotEditorProps> = ({
 
     try {
       const url = bot
-        ? `http://localhost:8000/api/chat/bots/${bot.id}`
-        : 'http://localhost:8000/api/chat/bots/';
+        ? `${getApiUrl()}/api/chat/bots/${bot.id}`
+        : `${getApiUrl()}/api/chat/bots/`;
       const method = bot ? 'PUT' : 'POST';
 
       const response = await fetch(url, {

@@ -235,8 +235,8 @@ class News(NewsBase):
 class EventBase(BaseModel):
     title: str
     description: Optional[str] = None
-    start_datetime: datetime
-    end_datetime: datetime
+    start_date: datetime  # Исправлено: соответствует модели базы данных
+    end_date: datetime    # Исправлено: соответствует модели базы данных
     event_type: EventType
     is_public: bool = False  # Общее событие для всех пользователей
 
@@ -244,16 +244,16 @@ class EventBase(BaseModel):
 class EventCreate(EventBase):
     participants: List[int] = []  # Список ID пользователей-участников
 
-    @validator('start_datetime', 'end_datetime')
-    def validate_future_date(cls, v):
-        # Убираем строгую проверку на будущую дату, так как пользователи могут создавать события на сегодня
-        # if v.replace(tzinfo=timezone.utc) <= datetime.now(timezone.utc):
-        #     raise ValueError('Дата события должна быть в будущем')
+    @validator('start_date', 'end_date')
+    def validate_datetime_format(cls, v):
+        """Валидация формата даты и времени"""
+        # Pydantic v1 автоматически конвертирует ISO строки в datetime объекты
         return v
-    
-    @validator('end_datetime')
+
+    @validator('end_date')
     def validate_end_after_start(cls, v, values):
-        if 'start_datetime' in values and v <= values['start_datetime']:
+        """Проверка, что дата окончания после даты начала"""
+        if 'start_date' in values and v <= values['start_date']:
             raise ValueError('Дата окончания должна быть после даты начала')
         return v
 
@@ -261,8 +261,8 @@ class EventCreate(EventBase):
 class EventUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    start_datetime: Optional[datetime] = None
-    end_datetime: Optional[datetime] = None
+    start_date: Optional[datetime] = None  # Исправлено: соответствует модели базы данных
+    end_date: Optional[datetime] = None    # Исправлено: соответствует модели базы данных
     event_type: Optional[EventType] = None
     is_public: Optional[bool] = None
     is_active: Optional[bool] = None
@@ -280,9 +280,15 @@ class EventParticipant(BaseModel):
         from_attributes = True
 
 
-class Event(EventBase):
+class EventResponse(BaseModel):
     id: int
-    creator_id: int
+    title: str
+    description: Optional[str] = None
+    start_date: datetime  # Исправлено: соответствует модели базы данных
+    end_date: datetime    # Исправлено: соответствует модели базы данных
+    event_type: EventType
+    is_public: bool
+    organizer_id: int    # Исправлено: соответствует модели базы данных
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
@@ -658,24 +664,25 @@ class VEDNomenclature(VEDNomenclatureBase):
         from_attributes = True
 
 
-class VEDPassportBase(BaseModel):
+class VedPassportBase(BaseModel):
+    title: Optional[str] = None  # Опционально, генерируется автоматически
     order_number: str
     nomenclature_id: int
     quantity: int = 1
 
 
-class VEDPassportCreate(VEDPassportBase):
+class VedPassportCreate(VedPassportBase):
     pass
 
 
-class VEDPassportUpdate(BaseModel):
+class VedPassportUpdate(BaseModel):
     order_number: Optional[str] = None
     nomenclature_id: Optional[int] = None
     quantity: Optional[int] = None
     status: Optional[str] = None
 
 
-class VEDPassport(VEDPassportBase):
+class VedPassport(VedPassportBase):
     id: int
     passport_number: str
     created_by: int
@@ -688,7 +695,7 @@ class VEDPassport(VEDPassportBase):
         from_attributes = True
 
 
-class VEDPassportWithCreator(VEDPassport):
+class VedPassportWithCreator(VedPassport):
     creator: User
 
     class Config:
@@ -703,5 +710,5 @@ class BulkPassportCreate(BaseModel):
 class PassportGenerationResult(BaseModel):
     success: bool
     message: str
-    passports: List[VEDPassport] = []
+    passports: List[VedPassport] = []
     errors: List[str] = []

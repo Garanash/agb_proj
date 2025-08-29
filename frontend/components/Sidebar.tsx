@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation'
 import { 
   HomeIcon, 

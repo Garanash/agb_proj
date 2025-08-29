@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { getApiUrl } from '@/utils/api';
 import TextLogo from './TextLogo'
 
 interface PageLayoutProps {

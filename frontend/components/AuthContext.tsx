@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
 
 interface User {
@@ -51,13 +52,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Проверяем валидность токена при загрузке
       checkTokenValidity()
     } else {
+      // Если токена нет, сразу завершаем загрузку
       setIsLoading(false)
     }
   }, [])
 
   const checkTokenValidity = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.25.155.26'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
       console.log('API URL for token validation:', apiUrl)
       const response = await axios.get(`${apiUrl}/api/auth/me`)
       setUser(response.data)
@@ -75,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.25.155.26'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
       console.log('API URL for login:', apiUrl)
       const response = await axios.post(`${apiUrl}/api/auth/login`, {
         username,
@@ -99,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.25.155.26'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
       await axios.post(`${apiUrl}/api/auth/logout`)
     } catch (error) {
       console.error('Logout error:', error)
@@ -114,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.25.155.26'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost'
       const response = await axios.get(`${apiUrl}/api/auth/me`)
       setUser(response.data)
     } catch (error) {

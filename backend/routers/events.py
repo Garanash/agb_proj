@@ -7,13 +7,13 @@ from typing import Optional, List
 
 from database import get_db
 from models import Event, User, EventParticipant
-from schemas import Event as EventSchema, EventCreate, EventUpdate
+from schemas import EventResponse, EventCreate, EventUpdate
 from routers.auth import get_current_user
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[EventSchema])
+@router.get("/", response_model=List[EventResponse])
 async def get_events(
     start_date: Optional[date] = Query(None, description="Начальная дата фильтра"),
     end_date: Optional[date] = Query(None, description="Конечная дата фильтра"),
@@ -37,22 +37,22 @@ async def get_events(
     )
     
     if start_date:
-        query = query.where(Event.start_datetime >= datetime.combine(start_date, datetime.min.time()))
+        query = query.where(Event.start_date >= datetime.combine(start_date, datetime.min.time()))
     
     if end_date:
-        query = query.where(Event.end_datetime <= datetime.combine(end_date, datetime.max.time()))
+        query = query.where(Event.end_date <= datetime.combine(end_date, datetime.max.time()))
     
     if event_type:
         query = query.where(Event.event_type == event_type)
     
-    query = query.order_by(Event.start_datetime)
+    query = query.order_by(Event.start_date)
     
     result = await db.execute(query)
     events = result.scalars().all()
     return events
 
 
-@router.post("/", response_model=EventSchema)
+@router.post("/", response_model=EventResponse)
 async def create_event(
     event_data: EventCreate,
     current_user: User = Depends(get_current_user),
@@ -60,20 +60,24 @@ async def create_event(
 ):
     """Создание нового события"""
     # Проверяем корректность дат
-    if event_data.end_datetime <= event_data.start_datetime:
+    if event_data.end_date <= event_data.start_date:
         raise HTTPException(
             status_code=400, 
             detail="Дата окончания должна быть позже даты начала"
         )
     
     # Создаем событие
+    # Конвертируем timezone-aware datetime в timezone-naive для базы данных
+    start_date_naive = event_data.start_date.replace(tzinfo=None) if event_data.start_date.tzinfo else event_data.start_date
+    end_date_naive = event_data.end_date.replace(tzinfo=None) if event_data.end_date.tzinfo else event_data.end_date
+
     db_event = Event(
         title=event_data.title,
         description=event_data.description,
-        start_datetime=event_data.start_datetime,
-        end_datetime=event_data.end_datetime,
+        start_date=start_date_naive,
+        end_date=end_date_naive,
         event_type=event_data.event_type,
-        creator_id=current_user.id,
+        organizer_id=current_user.id,
         is_public=event_data.is_public
     )
     
@@ -121,7 +125,7 @@ async def create_event(
     return db_event
 
 
-@router.get("/{event_id}", response_model=EventSchema)
+@router.get("/{event_id}", response_model=EventResponse)
 async def get_event(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -141,7 +145,7 @@ async def get_event(
     return event
 
 
-@router.put("/{event_id}", response_model=EventSchema)
+@router.put("/{event_id}", response_model=EventResponse)
 async def update_event(
     event_id: int,
     event_data: EventUpdate,
@@ -248,7 +252,7 @@ async def delete_event(
         raise HTTPException(status_code=404, detail="Событие не найдено")
     
     # Проверяем права: только создатель или администратор могут удалять
-    if event.creator_id != current_user.id and current_user.role != "admin":
+    if event.organizer_id != current_user.id and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Недостаточно прав для удаления")
     
     # Мягкое удаление

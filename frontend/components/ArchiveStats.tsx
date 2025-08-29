@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext'
 import { 
   DocumentIcon, 
@@ -47,7 +48,8 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
     setError(null)
     
     try {
-      const response = await fetch('http://localhost:8000/api/ved-passports/archive/stats', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+      const response = await fetch(`${apiUrl}/api/ved-passports/archive/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

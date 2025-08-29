@@ -7,12 +7,12 @@ from datetime import datetime
 from sqlalchemy import func
 
 from database import get_db
-from models import User, UserRole, VEDNomenclature, VEDPassport
+from models import User, UserRole, VEDNomenclature, VedPassport
 from schemas import (
     VEDNomenclature as VEDNomenclatureSchema, 
-    VEDPassport as VEDPassportSchema,
-    VEDPassportCreate,
-    VEDPassportUpdate,
+    VedPassport as VedPassportSchema,
+    VedPassportCreate,
+    VedPassportUpdate,
     BulkPassportCreate,
     PassportGenerationResult
 )
@@ -27,7 +27,7 @@ async def get_ved_nomenclature(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка номенклатуры для паспортов ВЭД"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     result = await db.execute(
@@ -44,7 +44,7 @@ async def get_ved_nomenclature_by_code(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение номенклатуры по коду 1С"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     result = await db.execute(
@@ -58,21 +58,21 @@ async def get_ved_nomenclature_by_code(
     return nomenclature
 
 
-@router.get("/", response_model=List[VEDPassportSchema])
+@router.get("/", response_model=List[VedPassportSchema])
 async def get_ved_passports(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка паспортов ВЭД"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         result = await db.execute(
-            select(VEDPassport)
-            .options(joinedload(VEDPassport.nomenclature))
-            .where(VEDPassport.created_by == current_user.id)
-            .order_by(VEDPassport.created_at.desc())
+            select(VedPassport)
+            .options(joinedload(VedPassport.nomenclature))
+            .where(VedPassport.created_by == current_user.id)
+            .order_by(VedPassport.created_at.desc())
         )
         passports = result.scalars().all()
         return passports
@@ -82,14 +82,14 @@ async def get_ved_passports(
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
-@router.post("/", response_model=VEDPassportSchema)
+@router.post("/", response_model=VedPassportSchema)
 async def create_ved_passport(
-    passport_data: VEDPassportCreate,
+    passport_data: VedPassportCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нового паспорта ВЭД"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
@@ -103,17 +103,25 @@ async def create_ved_passport(
             raise HTTPException(status_code=404, detail="Номенклатура не найдена")
         
         # Генерируем номер паспорта
-        passport_number = await VEDPassport.generate_passport_number(
+        passport_number = await VedPassport.generate_passport_number(
             db=db,
             matrix=nomenclature.matrix,
             drilling_depth=nomenclature.drilling_depth
         )
-        
+
         print(f"DEBUG: Created passport with number: {passport_number}")
-        
+
+        # Генерируем заголовок на основе номенклатуры, если не передан
+        title = passport_data.title
+        if not title:
+            title = f"Паспорт ВЭД {nomenclature.name} {nomenclature.matrix}"
+            if nomenclature.drilling_depth:
+                title += f" {nomenclature.drilling_depth}"
+
         # Создаем паспорт
-        new_passport = VEDPassport(
+        new_passport = VedPassport(
             passport_number=passport_number,
+            title=title,
             order_number=passport_data.order_number,
             nomenclature_id=passport_data.nomenclature_id,
             quantity=passport_data.quantity,
@@ -126,9 +134,9 @@ async def create_ved_passport(
         
         # Получаем полные данные паспорта с номенклатурой
         result = await db.execute(
-            select(VEDPassport)
-            .options(joinedload(VEDPassport.nomenclature))
-            .where(VEDPassport.id == new_passport.id)
+            select(VedPassport)
+            .options(joinedload(VedPassport.nomenclature))
+            .where(VedPassport.id == new_passport.id)
         )
         full_passport = result.scalar_one_or_none()
         
@@ -152,7 +160,7 @@ async def create_bulk_passports(
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нескольких паспортов ВЭД из списка позиций"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     created_passports = []
@@ -180,16 +188,24 @@ async def create_bulk_passports(
                 
                 # Создаем паспорт для каждого количества
                 for _ in range(quantity):
-                    passport_number = await VEDPassport.generate_passport_number(
+                    passport_number = await VedPassport.generate_passport_number(
                         db=db,
                         matrix=nomenclature.matrix,
                         drilling_depth=nomenclature.drilling_depth
                     )
-                    
+
                     print(f"DEBUG: Created bulk passport with number: {passport_number}")
-                    
-                    new_passport = VEDPassport(
+
+                    # Генерируем заголовок на основе номенклатуры, если не передан
+                    title = bulk_data.title
+                    if not title:
+                        title = f"Паспорт ВЭД {nomenclature.name} {nomenclature.matrix}"
+                        if nomenclature.drilling_depth:
+                            title += f" {nomenclature.drilling_depth}"
+
+                    new_passport = VedPassport(
                         passport_number=passport_number,
+                        title=title,
                         order_number=bulk_data.order_number,
                         nomenclature_id=nomenclature.id,
                         quantity=1,
@@ -209,9 +225,9 @@ async def create_bulk_passports(
             # Получаем полные данные созданных паспортов
             passport_ids = [p.id for p in created_passports]
             result = await db.execute(
-                select(VEDPassport)
-                .options(joinedload(VEDPassport.nomenclature))
-                .where(VEDPassport.id.in_(passport_ids))
+                select(VedPassport)
+                .options(joinedload(VedPassport.nomenclature))
+                .where(VedPassport.id.in_(passport_ids))
             )
             full_passports = result.scalars().all()
             
@@ -234,21 +250,21 @@ async def create_bulk_passports(
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
-@router.get("/{passport_id}", response_model=VEDPassportSchema)
+@router.get("/{passport_id}", response_model=VedPassportSchema)
 async def get_ved_passport(
     passport_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Получение конкретного паспорта ВЭД по ID"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         result = await db.execute(
-            select(VEDPassport)
-            .options(joinedload(VEDPassport.nomenclature))
-            .where(VEDPassport.id == passport_id)
+            select(VedPassport)
+            .options(joinedload(VedPassport.nomenclature))
+            .where(VedPassport.id == passport_id)
         )
         passport = result.scalar_one_or_none()
         
@@ -267,20 +283,20 @@ async def get_ved_passport(
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
-@router.put("/{passport_id}", response_model=VEDPassportSchema)
+@router.put("/{passport_id}", response_model=VedPassportSchema)
 async def update_ved_passport(
     passport_id: int,
-    passport_data: VEDPassportUpdate,
+    passport_data: VedPassportUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Обновление паспорта ВЭД"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         result = await db.execute(
-            select(VEDPassport).where(VEDPassport.id == passport_id)
+            select(VedPassport).where(VedPassport.id == passport_id)
         )
         passport = result.scalar_one_or_none()
         
@@ -301,9 +317,9 @@ async def update_ved_passport(
         
         # Получаем полные данные
         result = await db.execute(
-            select(VEDPassport)
-            .options(joinedload(VEDPassport.nomenclature))
-            .where(VEDPassport.id == passport_id)
+            select(VedPassport)
+            .options(joinedload(VedPassport.nomenclature))
+            .where(VedPassport.id == passport_id)
         )
         full_passport = result.scalar_one_or_none()
         
@@ -327,12 +343,12 @@ async def delete_ved_passport(
     db: AsyncSession = Depends(get_db)
 ):
     """Удаление паспорта ВЭД"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         result = await db.execute(
-            select(VEDPassport).where(VEDPassport.id == passport_id)
+            select(VedPassport).where(VedPassport.id == passport_id)
         )
         passport = result.scalar_one_or_none()
         
@@ -360,7 +376,7 @@ async def delete_ved_passport(
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
-@router.get("/archive/", response_model=List[VEDPassportSchema])
+@router.get("/archive/", response_model=List[VedPassportSchema])
 async def get_ved_passports_archive(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -374,21 +390,21 @@ async def get_ved_passports_archive(
     code_1c: Optional[str] = None
 ):
     """Получение архива паспортов ВЭД с расширенной фильтрацией"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         # Базовый запрос
-        query = select(VEDPassport).options(joinedload(VEDPassport.nomenclature))
+        query = select(VedPassport).options(joinedload(VedPassport.nomenclature))
         
         # Фильтры
-        filters = [VEDPassport.created_by == current_user.id]
+        filters = [VedPassport.created_by == current_user.id]
         
         # Поиск по тексту (номер паспорта, номер заказа)
         if search:
             search_filter = (
-                VEDPassport.passport_number.ilike(f"%{search}%") |
-                VEDPassport.order_number.ilike(f"%{search}%")
+                VedPassport.passport_number.ilike(f"%{search}%") |
+                VedPassport.order_number.ilike(f"%{search}%")
             )
             filters.append(search_filter)
         
@@ -402,13 +418,13 @@ async def get_ved_passports_archive(
         
         # Фильтр по статусу
         if status:
-            filters.append(VEDPassport.status == status)
+            filters.append(VedPassport.status == status)
         
         # Фильтр по дате создания (от)
         if date_from:
             try:
                 from_date = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
-                filters.append(VEDPassport.created_at >= from_date)
+                filters.append(VedPassport.created_at >= from_date)
             except ValueError:
                 pass
         
@@ -416,13 +432,13 @@ async def get_ved_passports_archive(
         if date_to:
             try:
                 to_date = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
-                filters.append(VEDPassport.created_at <= to_date)
+                filters.append(VedPassport.created_at <= to_date)
             except ValueError:
                 pass
         
         # Фильтр по номеру заказа
         if order_number:
-            filters.append(VEDPassport.order_number.ilike(f"%{order_number}%"))
+            filters.append(VedPassport.order_number.ilike(f"%{order_number}%"))
         
         # Фильтр по коду 1С
         if code_1c:
@@ -435,7 +451,7 @@ async def get_ved_passports_archive(
             query = query.where(filters[0])
         
         # Сортировка
-        query = query.order_by(VEDPassport.created_at.desc())
+        query = query.order_by(VedPassport.created_at.desc())
         
         result = await db.execute(query)
         passports = result.scalars().all()
@@ -452,48 +468,48 @@ async def get_archive_stats(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение статистики архива паспортов"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
         # Общее количество паспортов
         total_result = await db.execute(
-            select(VEDPassport).where(VEDPassport.created_by == current_user.id)
+            select(VedPassport).where(VedPassport.created_by == current_user.id)
         )
         total_passports = len(total_result.scalars().all())
         
         # Количество по статусам
         status_result = await db.execute(
-            select(VEDPassport.status, func.count(VEDPassport.id))
-            .where(VEDPassport.created_by == current_user.id)
-            .group_by(VEDPassport.status)
+            select(VedPassport.status, func.count(VedPassport.id))
+            .where(VedPassport.created_by == current_user.id)
+            .group_by(VedPassport.status)
         )
         status_counts = dict(status_result.fetchall())
         
         # Количество по типам продуктов
         product_type_result = await db.execute(
-            select(VEDNomenclature.product_type, func.count(VEDPassport.id))
-            .join(VEDPassport, VEDPassport.nomenclature_id == VEDNomenclature.id)
-            .where(VEDPassport.created_by == current_user.id)
+            select(VEDNomenclature.product_type, func.count(VedPassport.id))
+            .join(VedPassport, VedPassport.nomenclature_id == VEDNomenclature.id)
+            .where(VedPassport.created_by == current_user.id)
             .group_by(VEDNomenclature.product_type)
         )
         product_type_counts = dict(product_type_result.fetchall())
         
         # Количество по матрицам
         matrix_result = await db.execute(
-            select(VEDNomenclature.matrix, func.count(VEDPassport.id))
-            .join(VEDPassport, VEDPassport.nomenclature_id == VEDNomenclature.id)
-            .where(VEDPassport.created_by == current_user.id)
+            select(VEDNomenclature.matrix, func.count(VedPassport.id))
+            .join(VedPassport, VedPassport.nomenclature_id == VEDNomenclature.id)
+            .where(VedPassport.created_by == current_user.id)
             .group_by(VEDNomenclature.matrix)
         )
         matrix_counts = dict(matrix_result.fetchall())
         
         # Последние созданные паспорты
         recent_result = await db.execute(
-            select(VEDPassport)
-            .options(joinedload(VEDPassport.nomenclature))
-            .where(VEDPassport.created_by == current_user.id)
-            .order_by(VEDPassport.created_at.desc())
+            select(VedPassport)
+            .options(joinedload(VedPassport.nomenclature))
+            .where(VedPassport.created_by == current_user.id)
+            .order_by(VedPassport.created_at.desc())
             .limit(5)
         )
         recent_passports = recent_result.scalars().all()
@@ -529,7 +545,7 @@ async def get_archive_filters(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение доступных фильтров для архива"""
-    if current_user.role != UserRole.ved_passport:
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
@@ -551,9 +567,9 @@ async def get_archive_filters(
         
         # Получаем уникальные статусы
         statuses_result = await db.execute(
-            select(VEDPassport.status)
+            select(VedPassport.status)
             .distinct()
-            .where(VEDPassport.created_by == current_user.id)
+            .where(VedPassport.created_by == current_user.id)
         )
         statuses = [row[0] for row in statuses_result.fetchall()]
         

@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface CreateNewsModalProps {
   isOpen: boolean
@@ -50,7 +51,7 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
     setError('')
 
     try {
-      await axios.post('http://localhost:8000/api/news/', formData)
+      await axios.post(`${getApiUrl()}/api/news/`, formData)
       
       // Сбрасываем форму
       setFormData({

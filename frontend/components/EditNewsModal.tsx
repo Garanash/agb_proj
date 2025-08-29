@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface News {
   id: number
@@ -87,7 +88,7 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
       if (formData.category !== news.category) updateData.category = formData.category
       if (formData.is_published !== news.is_published) updateData.is_published = formData.is_published
 
-      await axios.put(`http://localhost:8000/api/news/${news.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/news/${news.id}`, updateData)
       
       onNewsUpdated()
     } catch (error: any) {

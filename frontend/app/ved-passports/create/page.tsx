@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '../../../components/AuthContext'
 import { 
   ArrowLeftIcon,
@@ -111,7 +112,7 @@ export default function CreateVEDPassportPage() {
       const passports: CreatedPassport[] = []
       
       for (let i = 0; i < formData.quantity; i++) {
-        const response = await fetch('http://localhost:8000/api/ved-passports/', {
+        const response = await fetch(`${getApiUrl()}/api/ved-passports/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -190,7 +191,7 @@ export default function CreateVEDPassportPage() {
       for (const item of validItems) {
         // Создаем паспорт для каждого экземпляра
         for (let i = 0; i < item.quantity; i++) {
-          const response = await fetch('http://localhost:8000/api/ved-passports/', {
+          const response = await fetch(`${getApiUrl()}/api/ved-passports/`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

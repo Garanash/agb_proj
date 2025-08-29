@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react'
 
+import { getApiUrl } from '@/utils/api';
 interface ModalProps {
   isOpen: boolean
   onClose: () => void

@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '../utils/errorHandler'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface CreateDepartmentModalProps {
   isOpen: boolean
@@ -39,7 +40,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
     setError('')
 
     try {
-      await axios.post('http://localhost:8000/api/departments/', formData)
+      await axios.post(`${getApiUrl()}/api/departments/`, formData)
       
       // Сбрасываем форму
       setFormData({

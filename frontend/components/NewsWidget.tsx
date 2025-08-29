@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import { useRouter } from 'next/navigation'
 import { useAuth } from './AuthContext'
 import moment from 'moment'
@@ -42,7 +43,7 @@ const NewsWidget: React.FC = () => {
       }
       params.append('limit', '10')
 
-      const response = await fetch(`http://localhost:8000/api/news?${params}`, {
+      const response = await fetch(`${getApiUrl()}/api/news/?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }

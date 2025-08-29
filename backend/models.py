@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, select
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession
 from database import Base
 import enum
 import datetime
@@ -103,11 +104,13 @@ class Event(Base):
     location = Column(String, nullable=True)
     organizer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_public = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     organizer = relationship("User", foreign_keys=[organizer_id], lazy="selectin")
+    participants = relationship("EventParticipant", back_populates="event", lazy="selectin")
 
 class EventParticipant(Base):
     """Участники событий"""
@@ -120,7 +123,7 @@ class EventParticipant(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
-    event = relationship("Event", lazy="selectin")
+    event = relationship("Event", back_populates="participants", lazy="selectin")
     user = relationship("User", lazy="selectin")
 
 class News(Base):
@@ -130,7 +133,9 @@ class News(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
+    category = Column(String, default="general")
     author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    author_name = Column(String, nullable=True)
     is_published = Column(Boolean, default=True)
     published_at = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -252,21 +257,82 @@ class ChatBot(Base):
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
 
+class VEDNomenclature(Base):
+    """Номенклатура для паспортов ВЭД"""
+    __tablename__ = "ved_nomenclature"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code_1c = Column(String, unique=True, nullable=False, index=True)  # Код 1С
+    name = Column(String, nullable=False)  # Наименование
+    article = Column(String, nullable=False)  # Артикул
+    matrix = Column(String, nullable=False)  # Матрица (NQ, HQ, PQ, HQ3, NW, HW, HWT, PWT)
+    drilling_depth = Column(String, nullable=True)  # Глубина бурения (03-05, 05-07, etc.)
+    height = Column(String, nullable=True)  # Высота (12 мм, 15 мм, etc.)
+    thread = Column(String, nullable=True)  # Резьба (W, WT)
+    product_type = Column(String, nullable=False)  # Тип продукта (коронка, расширитель, башмак)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class VedPassport(Base):
     """ВЭД паспорта"""
     __tablename__ = "ved_passports"
 
     id = Column(Integer, primary_key=True, index=True)
     passport_number = Column(String, nullable=False, unique=True)
-    title = Column(String, nullable=False)
+    title = Column(String, nullable=True)  # Теперь nullable, генерируется автоматически
     description = Column(String, nullable=True)
     status = Column(String, default="active")  # active, archived, draft
+    order_number = Column(String, nullable=False)
+    quantity = Column(Integer, default=1)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    nomenclature = relationship("VEDNomenclature", lazy="selectin")
+
+    @staticmethod
+    async def generate_passport_number(db: AsyncSession, matrix: str, drilling_depth: str = None, article: str = None) -> str:
+        """Генерация номера паспорта используя счетчик из БД"""
+        current_year = datetime.datetime.now().year
+        current_year_suffix = str(current_year)[-2:]  # Последние 2 цифры года
+        counter_name = f"ved_passport_{current_year}"
+
+        # Получаем или создаем счетчик для текущего года
+        result = await db.execute(
+            select(PassportCounter).where(PassportCounter.counter_name == counter_name)
+        )
+        counter = result.scalar_one_or_none()
+
+        if not counter:
+            # Создаем новый счетчик для текущего года
+            counter = PassportCounter(
+                counter_name=counter_name,
+                current_value=0,
+                prefix="",
+                suffix=current_year_suffix
+            )
+            db.add(counter)
+            await db.commit()
+            await db.refresh(counter)
+            print(f"DEBUG: Created new counter for year {current_year}")
+
+        # Увеличиваем счетчик
+        counter.current_value += 1
+        await db.commit()
+
+        # Форматируем серийный номер с ведущими нулями
+        serial_number = str(counter.current_value).zfill(6)
+
+        # Формируем номер паспорта
+        passport_number = f"{serial_number}{current_year_suffix}"
+
+        print(f"DEBUG: Generated passport number: {passport_number} (serial: {counter.current_value}, year: {current_year})")
+        return passport_number
 
 class VedPassportRole(Base):
     """Роли пользователей в ВЭД паспортах"""

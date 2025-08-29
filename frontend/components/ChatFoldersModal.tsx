@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from './AuthContext';
 
 interface ChatFolder {
@@ -39,7 +40,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
       setError('');
       
       try {
-        const response = await fetch('http://localhost:8000/api/chat/folders/', {
+        const response = await fetch(`${getApiUrl()}/api/chat/folders/`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -86,7 +87,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat/folders/', {
+      const response = await fetch(`${getApiUrl()}/api/chat/folders/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -117,7 +118,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch(`http://localhost:8000/api/chat/folders/${folderId}/rooms/${roomId}`, {
+      const response = await fetch(`${getApiUrl()}/api/chat/folders/${folderId}/rooms/${roomId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

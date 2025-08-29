@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getApiUrl } from '@/utils/api';
 import Image from 'next/image'
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import PageLayout from '@/components/PageLayout'
@@ -32,8 +33,8 @@ export default function About() {
     const fetchData = async () => {
       try {
         const [departmentsResponse, employeesResponse] = await Promise.all([
-          axios.get('http://localhost:8000/api/departments/'),
-          axios.get('http://localhost:8000/api/company-employees/')
+          axios.get(`${getApiUrl()}/api/departments/list`),
+          axios.get(`${getApiUrl()}/api/company-employees/`)
         ])
         setDepartments(departmentsResponse.data)
         setCompanyEmployees(employeesResponse.data)
@@ -52,7 +53,7 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/departments/')
+        const response = await axios.get(`${getApiUrl()}/api/departments/list`)
         console.log('Обновляем список отделов:', response.data)
         setDepartments(response.data)
       } catch (error) {
@@ -66,7 +67,7 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/departments/')
+        const response = await axios.get(`${getApiUrl()}/api/departments/list`)
         console.log('Обновляем список отделов после редактирования:', response.data)
         setDepartments(response.data)
       } catch (error) {
@@ -80,7 +81,7 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/company-employees/')
+        const response = await axios.get(`${getApiUrl()}/api/company-employees/`)
         console.log('Обновляем список сотрудников:', response.data)
         setCompanyEmployees(response.data)
       } catch (error) {
@@ -94,7 +95,7 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/company-employees/')
+        const response = await axios.get(`${getApiUrl()}/api/company-employees/`)
         console.log('Обновляем список сотрудников после редактирования:', response.data)
         setCompanyEmployees(response.data)
       } catch (error) {
@@ -107,7 +108,7 @@ export default function About() {
     if (!confirm('Вы уверены, что хотите удалить этого сотрудника?')) return
     
     try {
-      await axios.delete(`http://localhost:8000/api/company-employees/${employeeId}`)
+      await axios.delete(`${getApiUrl()}/api/company-employees/${employeeId}`)
       // Обновляем список сотрудников без перезагрузки страницы
       setCompanyEmployees(prev => prev.filter(emp => emp.id !== employeeId))
     } catch (error) {
@@ -120,7 +121,7 @@ export default function About() {
     if (!confirm('Вы уверены, что хотите удалить этот отдел?')) return
     
     try {
-      await axios.delete(`http://localhost:8000/api/departments/${departmentId}`)
+      await axios.delete(`${getApiUrl()}/api/departments/${departmentId}`)
       // Обновляем список отделов без перезагрузки страницы
       setDepartments(prev => prev.filter(dept => dept.id !== departmentId))
     } catch (error) {
