@@ -29,28 +29,51 @@ app = FastAPI(
 
 # Подключение основных роутеров
 try:
-    from routers import users, auth, news, events, departments, company_employees, ved_passports
-    # TODO: Добавить роуты чата после создания модели ChatRoomParticipant
-    # from routers import chat, chat_folders
+    from routers import (
+        auth_router, users_router, departments_router, company_employees_router,
+        news_router, events_router, chat_router, chat_folders_router
+    )
+    from routers.ved_passports import router as ved_passports_router
 
     # Подключаем роутеры с правильными путями
-    app.include_router(users.router, prefix="/api/users", tags=["users"])
-    app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
-    app.include_router(news.router, prefix="/api/news", tags=["news"])
-    app.include_router(events.router, prefix="/api/events", tags=["events"])
-    app.include_router(departments.router, prefix="/api/departments", tags=["departments"])
-    app.include_router(company_employees.router, prefix="/api/company-employees", tags=["company_employees"])
-    app.include_router(ved_passports.router, prefix="/api/ved-passports", tags=["ved_passports"])
-    # TODO: Раскомментировать после создания модели ChatRoomParticipant
-    # app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
-    # app.include_router(chat_folders.router, prefix="/api/chat/folders", tags=["chat_folders"])
+    app.include_router(users_router, prefix="/api/users", tags=["users"])
+    app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+    app.include_router(news_router, prefix="/api/news", tags=["news"])
+    app.include_router(events_router, prefix="/api/events", tags=["events"])
+    app.include_router(departments_router, prefix="/api/departments", tags=["departments"])
+    app.include_router(company_employees_router, prefix="/api/company-employees", tags=["company_employees"])
+    app.include_router(ved_passports_router, prefix="/api/ved-passports", tags=["ved_passports"])
+    app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
+    app.include_router(chat_folders_router, prefix="/api/chat/folders", tags=["chat_folders"])
 
     print("✅ Все основные роутеры успешно подключены!")
-    
+
 except Exception as e:
     print(f"❌ Ошибка при подключении основных роутеров: {e}")
     import traceback
     traceback.print_exc()
+
+    # Если чат роутеры не загрузились, попробуем загрузить без них
+    try:
+        from routers import (
+            auth_router, users_router, departments_router, company_employees_router,
+            news_router, events_router
+        )
+        from routers.ved_passports import router as ved_passports_router
+
+        app.include_router(users_router, prefix="/api/users", tags=["users"])
+        app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+        app.include_router(news_router, prefix="/api/news", tags=["news"])
+        app.include_router(events_router, prefix="/api/events", tags=["events"])
+        app.include_router(departments_router, prefix="/api/departments", tags=["departments"])
+        app.include_router(company_employees_router, prefix="/api/company-employees", tags=["company_employees"])
+        app.include_router(ved_passports_router, prefix="/api/ved-passports", tags=["ved_passports"])
+
+        print("⚠️ Основные роутеры загружены без чата")
+    except Exception as e2:
+        print(f"❌ Критическая ошибка загрузки роутеров: {e2}")
+        import traceback
+        traceback.print_exc()
 
 @app.get("/api/health")
 async def health_check():
@@ -73,10 +96,9 @@ async def api_root():
             "events": "/api/events",
             "departments": "/api/departments",
             "company_employees": "/api/company-employees",
-            "ved_passports": "/api/ved-passports"
-            # TODO: Добавить endpoints чата после создания модели ChatRoomParticipant
-            # "chat": "/api/chat",
-            # "chat_folders": "/api/chat/folders"
+            "ved_passports": "/api/ved-passports",
+            "chat": "/api/chat",
+            "chat_folders": "/api/chat/folders"
         }
     }
 
