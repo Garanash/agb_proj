@@ -586,7 +586,7 @@ class ChatRoomDetailResponse(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
-    creator_id: int
+    created_by: int
     is_private: bool
     is_active: bool
     created_at: datetime
@@ -601,7 +601,7 @@ class ChatRoomDetailResponse(BaseModel):
 class ChatRoom(ChatRoomBase):
     id: int
     description: Optional[str] = None
-    creator_id: int
+    created_by: int
     is_private: bool
     is_active: bool
     created_at: datetime
@@ -621,7 +621,7 @@ class ChatRoomCreateResponse(BaseModel):
     is_private: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    creator_id: int
+    created_by: int
     folders: List[ChatRoomFolder] = []  # Добавляем папки
 
     class Config:

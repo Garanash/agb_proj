@@ -11,7 +11,7 @@ async def test_api_endpoints():
     print("🚀 ТЕСТИРОВАНИЕ API ENDPOINTS")
     print("=" * 50)
 
-    base_url = "http://localhost:8000"
+    base_url = "http://localhost"
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:

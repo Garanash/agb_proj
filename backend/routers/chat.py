@@ -116,7 +116,7 @@ async def create_chat_room(
             id=db_room.id,
             name=db_room.name,
             description=db_room.description,
-            creator_id=db_room.creator_id,
+            created_by=db_room.created_by,
             is_private=db_room.is_private,
             is_active=db_room.is_active,
             created_at=db_room.created_at,
@@ -148,22 +148,19 @@ async def get_user_chat_rooms(
     # Для каждого чата загружаем только папки текущего пользователя
     rooms_with_user_folders = []
     for room in rooms:
-        # Получаем папки для этого чата только для текущего пользователя
+        # Получаем папки для этого чата (пока что все папки)
         folder_result = await db.execute(
             select(ChatRoomFolder)
-            .where(and_(
-                ChatRoomFolder.room_id == room.id,
-                ChatRoomFolder.user_id == current_user.id
-            ))
+            .where(ChatRoomFolder.room_id == room.id)
         )
         user_folders = folder_result.scalars().all()
-        
+
         # Создаем копию чата с папками только для текущего пользователя
         room_copy = ChatRoomCreateResponse(
             id=room.id,
             name=room.name,
             description=room.description,
-            creator_id=room.creator_id,
+            created_by=room.created_by,
             is_private=room.is_private,
             created_at=room.created_at,
             updated_at=room.updated_at,
@@ -225,7 +222,7 @@ async def get_chat_room(
         id=room.id,
         name=room.name,
         description=room.description,
-        creator_id=room.creator_id,
+        created_by=room.created_by,
         is_private=room.is_private,
         is_active=room.is_active,
         created_at=room.created_at,

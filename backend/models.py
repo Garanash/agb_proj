@@ -70,7 +70,9 @@ class CompanyEmployee(Base):
     __tablename__ = "company_employees"
 
     id = Column(Integer, primary_key=True, index=True)
-    full_name = Column(String, nullable=False)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    middle_name = Column(String, nullable=True)
     position = Column(String, nullable=False)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     email = Column(String, nullable=True)
@@ -82,6 +84,13 @@ class CompanyEmployee(Base):
 
     # Связи
     department = relationship("Department", lazy="selectin")
+
+    @property
+    def full_name(self) -> str:
+        """Полное имя сотрудника"""
+        if self.middle_name:
+            return f"{self.last_name} {self.first_name} {self.middle_name}"
+        return f"{self.last_name} {self.first_name}"
 
 class EventType(str, enum.Enum):
     MEETING = "meeting"
@@ -178,12 +187,14 @@ class ChatRoom(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_private = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    folders = relationship("ChatRoomFolder", lazy="selectin")
 
 class ChatMessage(Base):
     """Сообщения в чате"""

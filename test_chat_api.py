@@ -11,7 +11,7 @@ async def test_chat_api():
     print("🔍 ТЕСТИРОВАНИЕ API ЧАТОВ")
     print("=" * 50)
 
-    base_url = "http://localhost:8000"
+    base_url = "http://localhost"
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         try:
@@ -47,11 +47,12 @@ async def test_chat_api():
             # 3. Проверяем список пользователей
             print("\n👥 3. Получение списка пользователей...")
             users_response = await client.get(
-                f"{base_url}/api/users/chat-users/",
+                f"{base_url}/api/users/list",
                 headers=headers,
                 timeout=10.0
             )
 
+            users = []
             if users_response.status_code == 200:
                 users = users_response.json()
                 print(f"✅ Пользователи получены: {len(users)} пользователей")
@@ -95,12 +96,14 @@ async def test_chat_api():
 
             # 6. Пытаемся создать чат
             print("\n💬 6. Попытка создания чата...")
-            if users:
+            if len(users) > 1:
                 # Берем первого пользователя кроме текущего
                 participants = []
                 for user in users[:2]:  # Берем первых 2 пользователей
                     if user['id'] != user['id']:  # Исключаем текущего пользователя
                         participants.append(user['id'])
+                    if len(participants) >= 1:  # Минимум 1 участник для теста
+                        break
 
                 chat_data = {
                     "name": "Тестовый чат API",
@@ -125,7 +128,7 @@ async def test_chat_api():
                     print(f"❌ Ошибка создания чата: {create_response.status_code}")
                     print(f"   Ответ: {create_response.text}")
             else:
-                print("⚠️  Нет пользователей для создания чата")
+                print("⚠️  Недостаточно пользователей для создания чата")
 
         except Exception as e:
             print(f"❌ Ошибка при тестировании: {e}")
