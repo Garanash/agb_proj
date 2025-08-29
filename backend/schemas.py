@@ -518,7 +518,7 @@ class ChatMessageUpdate(BaseModel):
 
 class ChatMessage(ChatMessageBase):
     id: int
-    chat_room_id: int
+    room_id: int
     sender_id: Optional[int] = None
     bot_id: Optional[int] = None
     is_edited: bool
@@ -531,7 +531,7 @@ class ChatMessage(ChatMessageBase):
 
 class ChatMessageResponse(BaseModel):
     id: int
-    chat_room_id: int
+    room_id: int
     sender_id: Optional[int] = None
     bot_id: Optional[int] = None
     content: str
