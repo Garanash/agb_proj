@@ -108,6 +108,8 @@ export default function Users() {
         return 'Менеджер'
       case 'employee':
         return 'Сотрудник'
+      case 'ved_passport':
+        return 'ВЭД Паспорт'
       default:
         return role
     }
@@ -231,6 +233,7 @@ export default function Users() {
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                             userItem.role === 'admin' ? 'bg-red-100 text-red-800' :
                             userItem.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                            userItem.role === 'ved_passport' ? 'bg-purple-100 text-purple-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {getRoleName(userItem.role)}
