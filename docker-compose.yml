@@ -61,7 +61,7 @@ services:
       dockerfile: Dockerfile
     container_name: agb_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXT_PUBLIC_API_URL=
       - NODE_ENV=production
     depends_on:
       - backend

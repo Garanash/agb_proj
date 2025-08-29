@@ -14,6 +14,8 @@ cp backend/test_login_after_fix.py /tmp/login_fix/
 cp diagnose_login_issue.sh /tmp/login_fix/
 cp fix_login_issue.sh /tmp/login_fix/
 cp FIX_LOGIN_README.md /tmp/login_fix/
+cp docker-compose.yml /tmp/login_fix/
+cp fix_frontend_api.sh /tmp/login_fix/
 
 echo "✅ Файлы подготовлены в /tmp/login_fix/"
 echo ""
@@ -29,4 +31,11 @@ echo ""
 echo "🎯 После копирования на сервере выполните:"
 echo "cd /root/agb_proj"
 echo "chmod +x *.sh"
-echo "./fix_login_issue.sh"
+echo ""
+echo "📋 Доступные варианты исправления:"
+echo "1. Полное исправление логина: ./fix_login_issue.sh"
+echo "2. Исправление API URL фронтенда: ./fix_frontend_api.sh"
+echo "3. Только диагностика: ./diagnose_login_issue.sh"
+echo ""
+echo "🔧 Рекомендуется выполнить:"
+echo "./fix_frontend_api.sh"
