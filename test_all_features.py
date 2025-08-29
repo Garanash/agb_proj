@@ -210,6 +210,10 @@ class PlatformTester:
                     print(f"✅ Событие создано: {event['title']}")
                     print(f"   ID: {event['id']}")
                     print(f"   Участники: {len(event.get('participants', []))}")
+
+                    # Проверяем, что участники действительно добавлены
+                    if len(event.get('participants', [])) != len(participants) + 1:  # +1 для создателя
+                        print(f"⚠️  Предупреждение: Ожидалось {len(participants) + 1} участников, получено {len(event.get('participants', []))}")
                     return True
                 else:
                     print(f"❌ Ошибка создания события: {response.status_code}")
@@ -247,6 +251,133 @@ class PlatformTester:
                     return False
         except Exception as e:
             print(f"❌ Ошибка при получении чат-комнат: {e}")
+            return False
+
+    async def test_chat_creation(self) -> bool:
+        """Тест создания чата с участниками"""
+        print("💬 Тест создания чата с участниками")
+
+        if not self.token or not self.user:
+            print("❌ Нет токена или данных пользователя")
+            return False
+
+        try:
+            async with httpx.AsyncClient() as client:
+                # Получаем пользователей для участников
+                users_response = await client.get(
+                    f"{self.base_url}/api/users/chat-users",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=10.0
+                )
+
+                if users_response.status_code != 200:
+                    print("❌ Не удалось получить список пользователей")
+                    return False
+
+                users = users_response.json()
+                # Берем первых 2 пользователей как участников (кроме текущего)
+                participants = []
+                for user in users[:3]:  # Берем первых 3 пользователей
+                    if user['id'] != self.user['id']:
+                        participants.append(user['id'])
+                        if len(participants) >= 2:  # Максимум 2 участника для теста
+                            break
+
+                if len(participants) == 0:
+                    print("⚠️  Недостаточно пользователей для создания чата с участниками")
+                    participants = []
+
+                # Создаем тестовый чат
+                chat_data = {
+                    "name": f"Тестовый чат {len(participants)} участников",
+                    "description": "Создан автоматическим тестом",
+                    "is_private": False,
+                    "participants": participants,
+                    "bots": []
+                }
+
+                print(f"   Создание чата с {len(participants)} участниками...")
+
+                response = await client.post(
+                    f"{self.base_url}/api/chat/rooms/",
+                    json=chat_data,
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=15.0
+                )
+
+                if response.status_code == 200:
+                    chat = response.json()
+                    print(f"✅ Чат создан: {chat['name']}")
+                    print(f"   ID: {chat['id']}")
+                    return True
+                else:
+                    print(f"❌ Ошибка создания чата: {response.status_code}")
+                    print(f"   Ответ: {response.text}")
+                    return False
+        except Exception as e:
+            print(f"❌ Ошибка при создании чата: {e}")
+            return False
+
+    async def test_employee_creation(self) -> bool:
+        """Тест создания сотрудника компании"""
+        print("👷 Тест создания сотрудника компании")
+
+        if not self.token:
+            print("❌ Нет токена авторизации")
+            return False
+
+        try:
+            async with httpx.AsyncClient() as client:
+                # Сначала получим список отделов
+                dept_response = await client.get(
+                    f"{self.base_url}/api/departments/list",
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=10.0
+                )
+
+                if dept_response.status_code != 200:
+                    print("❌ Не удалось получить список отделов")
+                    return False
+
+                departments = dept_response.json()
+                if len(departments) == 0:
+                    print("⚠️  Нет доступных отделов для создания сотрудника")
+                    return True  # Не считаем ошибкой, если нет отделов
+
+                department_id = departments[0]['id']
+
+                # Создаем тестового сотрудника
+                employee_data = {
+                    "first_name": "Тестовый",
+                    "last_name": "Сотрудник",
+                    "middle_name": "Автоматический",
+                    "position": "Тестер",
+                    "department_id": department_id,
+                    "email": "test@example.com",
+                    "phone": "+7-999-999-99-99",
+                    "is_active": True
+                }
+
+                print(f"   Создание сотрудника в отделе: {departments[0]['name']}")
+
+                response = await client.post(
+                    f"{self.base_url}/api/company-employees/",
+                    json=employee_data,
+                    headers={"Authorization": f"Bearer {self.token}"},
+                    timeout=15.0
+                )
+
+                if response.status_code == 200:
+                    employee = response.json()
+                    print(f"✅ Сотрудник создан: {employee['first_name']} {employee['last_name']}")
+                    print(f"   Должность: {employee['position']}")
+                    return True
+                else:
+                    print(f"❌ Ошибка создания сотрудника: {response.status_code}")
+                    print(f"   Ответ: {response.text}")
+                    return False
+        except Exception as e:
+            print(f"❌ Ошибка при создании сотрудника: {e}")
             return False
 
     async def test_bots_api(self) -> bool:
@@ -302,21 +433,29 @@ class PlatformTester:
             # 5. Тест сотрудников
             results['employees_api'] = await self.test_employees_api()
 
-            # 6. Тест создания событий
+            # 6. Тест создания сотрудников
+            results['employee_creation'] = await self.test_employee_creation()
+
+            # 7. Тест создания событий
             results['event_creation'] = await self.test_event_creation()
 
-            # 7. Тест чат-комнат
+            # 8. Тест чат-комнат
             results['chat_rooms'] = await self.test_chat_rooms()
 
-            # 8. Тест ботов
+            # 9. Тест создания чатов
+            results['chat_creation'] = await self.test_chat_creation()
+
+            # 10. Тест ботов
             results['bots_api'] = await self.test_bots_api()
         else:
             # Если авторизация не прошла, остальные тесты не имеют смысла
             results['users_api'] = False
             results['departments_api'] = False
             results['employees_api'] = False
+            results['employee_creation'] = False
             results['event_creation'] = False
             results['chat_rooms'] = False
+            results['chat_creation'] = False
             results['bots_api'] = False
 
         # Вывод результатов

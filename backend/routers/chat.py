@@ -81,13 +81,35 @@ async def create_chat_room(
         await db.flush()
 
         # Добавляем создателя как участника и администратора
-        participant = ChatRoomParticipant(
+        creator_participant = ChatRoomParticipant(
             chat_room_id=db_room.id,
             user_id=current_user.id,
             bot_id=None,
             is_admin=True
         )
-        db.add(participant)
+        db.add(creator_participant)
+
+        # Добавляем выбранных участников
+        for user_id in getattr(room, 'participants', []):
+            if user_id != current_user.id:  # Пропускаем создателя, если он уже добавлен
+                participant = ChatRoomParticipant(
+                    chat_room_id=db_room.id,
+                    user_id=user_id,
+                    bot_id=None,
+                    is_admin=False
+                )
+                db.add(participant)
+
+        # Добавляем выбранных ботов
+        for bot_id in getattr(room, 'bots', []):
+            bot_participant = ChatRoomParticipant(
+                chat_room_id=db_room.id,
+                user_id=None,
+                bot_id=bot_id,
+                is_admin=False
+            )
+            db.add(bot_participant)
+
         await db.commit()
         await db.refresh(db_room)
         

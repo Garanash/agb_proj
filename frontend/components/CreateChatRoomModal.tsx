@@ -109,17 +109,19 @@ export default function CreateChatRoomModal({
     setError(null);
 
     try {
-      // Создаем чат
+      // Создаем чат с участниками
       const createRoomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name,
           description: '', // Можно добавить поле для описания в будущем
-          is_private: false
+          is_private: false,
+          participants: Array.from(selectedParticipants),
+          bots: Array.from(selectedBots)
         }),
       });
 
@@ -129,48 +131,6 @@ export default function CreateChatRoomModal({
       }
       
       const roomData = await createRoomResponse.json();
-
-      // Добавляем участников (если выбраны)
-      if (selectedParticipants.size > 0) {
-        const participantPromises = Array.from(selectedParticipants).map(userId =>
-          fetch(`${getApiUrl()}/api/chat/rooms/${roomData.id}/participants/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ user_id: userId }),
-          })
-        );
-
-        const participantResponses = await Promise.all(participantPromises);
-        const failedParticipants = participantResponses.filter(r => !r.ok);
-        
-        if (failedParticipants.length > 0) {
-          console.warn(`Не удалось добавить ${failedParticipants.length} участников`);
-        }
-      }
-
-      // Добавляем ботов (если выбраны)
-      if (selectedBots.size > 0) {
-        const botPromises = Array.from(selectedBots).map(botId =>
-          fetch(`${getApiUrl()}/api/chat/rooms/${roomData.id}/participants/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ bot_id: botId }),
-          })
-        );
-
-        const botResponses = await Promise.all(botPromises);
-        const failedBots = botResponses.filter(r => !r.ok);
-        
-        if (failedBots.length > 0) {
-          console.warn(`Не удалось добавить ${failedBots.length} ботов`);
-        }
-      }
 
       onRoomCreated();
       onClose();

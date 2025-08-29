@@ -477,6 +477,8 @@ class ChatRoomBase(BaseModel):
 class ChatRoomCreate(ChatRoomBase):
     description: Optional[str] = None
     is_private: Optional[bool] = False
+    participants: Optional[List[int]] = []  # Список ID пользователей для добавления
+    bots: Optional[List[int]] = []  # Список ID ботов для добавления
 
 
 class ChatRoomUpdate(BaseModel):
