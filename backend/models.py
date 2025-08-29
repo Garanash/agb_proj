@@ -236,12 +236,16 @@ class ChatFolder(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    user = relationship("User", foreign_keys=[user_id], lazy="selectin")
+    room = relationship("ChatRoom", foreign_keys=[room_id], lazy="selectin")
 
 class ChatRoomFolder(Base):
     """Связь чат-комнат с папками"""
