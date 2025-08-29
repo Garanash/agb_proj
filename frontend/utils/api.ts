@@ -6,10 +6,7 @@
 export const getApiUrl = (): string => {
   // На клиенте используем текущий origin
   if (typeof window !== 'undefined') {
-    // Для сервера 37.252.20.46 используем правильный URL
-    if (window.location.hostname === '37.252.20.46') {
-      return 'http://37.252.20.46';
-    }
+    // Всегда используем текущий origin - это универсально для любого сервера
     return window.location.origin;
   }
 

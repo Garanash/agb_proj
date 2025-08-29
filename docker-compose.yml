@@ -3,10 +3,12 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: agb_postgres
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: agb_felix
-      POSTGRES_USER: felix_user
-      POSTGRES_PASSWORD: felix_password
+      POSTGRES_DB: ${POSTGRES_DB:-agb_felix}
+      POSTGRES_USER: ${POSTGRES_USER:-felix_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-felix_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -17,7 +19,7 @@ services:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U felix_user -d agb_felix"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-felix_user} -d ${POSTGRES_DB:-agb_felix}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,17 +30,18 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: agb_backend
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://felix_user:felix_password@postgres:5432/agb_felix
-      - PYTHONWARNINGS=ignore:Unverified HTTPS request
-      - SECRET_KEY=your-super-secret-key-change-this-in-production-2024
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=admin123
-      - ADMIN_EMAIL=admin@almazgeobur.ru
-      - ADMIN_FIRST_NAME=Администратор
-      - ADMIN_LAST_NAME=Системы
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-felix_user}:${POSTGRES_PASSWORD:-felix_password}@postgres:5432/${POSTGRES_DB:-agb_felix}
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this-in-production}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@localhost}
+      - ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Администратор}
+      - ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-Системы}
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,9 +63,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: agb_frontend
+    env_file:
+      - .env
     environment:
-      - NEXT_PUBLIC_API_URL=
-      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-}
+      - NODE_ENV=${NODE_ENV:-production}
     depends_on:
       - backend
     volumes:
