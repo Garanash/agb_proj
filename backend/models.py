@@ -178,12 +178,12 @@ class ChatRoom(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_private = Column(Boolean, default=False)
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
-    creator = relationship("User", foreign_keys=[creator_id], lazy="selectin")
+    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
 
 class ChatMessage(Base):
     """Сообщения в чате"""

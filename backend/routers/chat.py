@@ -74,7 +74,7 @@ async def create_chat_room(
         db_room = ChatRoom(
             name=room.name,
             description=getattr(room, 'description', None),
-            creator_id=current_user.id,
+            created_by=current_user.id,
             is_private=getattr(room, 'is_private', False)
         )
         db.add(db_room)
