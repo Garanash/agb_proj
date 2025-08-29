@@ -486,7 +486,7 @@ class ChatRoomUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-class ChatRoomParticipantBase(BaseModel):
+class ChatParticipantBase(BaseModel):
     user_id: Optional[int] = None
     bot_id: Optional[int] = None
     is_admin: bool = False
@@ -500,7 +500,7 @@ class ChatRoomParticipantBase(BaseModel):
         return v
 
 
-class ChatRoomParticipantCreate(ChatRoomParticipantBase):
+class ChatParticipantCreate(ChatParticipantBase):
     pass
 
 
@@ -554,9 +554,9 @@ class SystemMessage(BaseModel):
         from_attributes = True
 
 
-class ChatRoomParticipant(ChatRoomParticipantBase):
+class ChatParticipant(ChatParticipantBase):
     id: int
-    chat_room_id: int
+    room_id: int
     user_id: Optional[int] = None
     bot_id: Optional[int] = None
     is_admin: bool
@@ -567,9 +567,9 @@ class ChatRoomParticipant(ChatRoomParticipantBase):
         from_attributes = True
 
 
-class ChatRoomParticipantResponse(BaseModel):
+class ChatParticipantResponse(BaseModel):
     id: int
-    chat_room_id: int
+    room_id: int
     user_id: Optional[int] = None
     bot_id: Optional[int] = None
     is_admin: bool
@@ -591,7 +591,7 @@ class ChatRoomDetailResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
-    participants: List[ChatRoomParticipantResponse] = []  # Используем правильную схему
+    participants: List[ChatParticipantResponse] = []  # Используем правильную схему
     messages: List[ChatMessageResponse] = []
 
     class Config:
@@ -607,7 +607,7 @@ class ChatRoom(ChatRoomBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     creator: User
-    participants: List[ChatRoomParticipantResponse] = []  # Используем правильную схему
+    participants: List[ChatParticipantResponse] = []  # Используем правильную схему
     messages: List[ChatMessageResponse] = []  # Используем правильную схему
 
     class Config:

@@ -178,12 +178,12 @@ class ChatRoom(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     is_private = Column(Boolean, default=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
-    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    creator = relationship("User", foreign_keys=[creator_id], lazy="selectin")
 
 class ChatMessage(Base):
     """Сообщения в чате"""
@@ -207,13 +207,16 @@ class ChatParticipant(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)
+    is_admin = Column(Boolean, default=False)
     joined_at = Column(DateTime(timezone=True), server_default=func.now())
     last_read_at = Column(DateTime(timezone=True), nullable=True)
 
     # Связи
     room = relationship("ChatRoom", lazy="selectin")
     user = relationship("User", lazy="selectin")
+    bot = relationship("ChatBot", lazy="selectin")
 
 class ChatFolder(Base):
     """Папки для организации чатов"""

@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload, joinedload
 from typing import List
 import aiohttp
 from database import get_db
-from models import ChatRoom, ChatRoomParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder
+from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder
 from schemas import (
     ChatRoom as ChatRoomSchema,
     ChatRoomCreate,
@@ -15,9 +15,9 @@ from schemas import (
     ChatMessage as ChatMessageSchema,
     ChatMessageCreate,
     ChatMessageResponse,
-    ChatRoomParticipant as ChatRoomParticipantSchema,
-    ChatRoomParticipantCreate,
-    ChatRoomParticipantResponse,
+    ChatParticipant as ChatParticipantSchema,
+    ChatParticipantCreate,
+    ChatParticipantResponse as ChatParticipantResponse,
     ChatBot as ChatBotSchema,
     ChatBotCreate,
     ChatBotUpdate,
@@ -81,10 +81,9 @@ async def create_chat_room(
         await db.flush()
 
         # Добавляем создателя как участника и администратора
-        creator_participant = ChatRoomParticipant(
-            chat_room_id=db_room.id,
+        creator_participant = ChatParticipant(
+            room_id=db_room.id,
             user_id=current_user.id,
-            bot_id=None,
             is_admin=True
         )
         db.add(creator_participant)
@@ -92,18 +91,17 @@ async def create_chat_room(
         # Добавляем выбранных участников
         for user_id in getattr(room, 'participants', []):
             if user_id != current_user.id:  # Пропускаем создателя, если он уже добавлен
-                participant = ChatRoomParticipant(
-                    chat_room_id=db_room.id,
+                participant = ChatParticipant(
+                    room_id=db_room.id,
                     user_id=user_id,
-                    bot_id=None,
                     is_admin=False
                 )
                 db.add(participant)
 
         # Добавляем выбранных ботов
         for bot_id in getattr(room, 'bots', []):
-            bot_participant = ChatRoomParticipant(
-                chat_room_id=db_room.id,
+            bot_participant = ChatParticipant(
+                room_id=db_room.id,
                 user_id=None,
                 bot_id=bot_id,
                 is_admin=False
@@ -138,10 +136,10 @@ async def get_user_chat_rooms(
     """Получение списка бесед пользователя"""
     result = await db.execute(
         select(ChatRoom)
-        .join(ChatRoomParticipant, ChatRoom.id == ChatRoomParticipant.chat_room_id)
+        .join(ChatParticipant, ChatRoom.id == ChatParticipant.room_id)
         .options(selectinload(ChatRoom.folders))
         .where(and_(
-            ChatRoomParticipant.user_id == current_user.id,
+            ChatParticipant.user_id == current_user.id,
             ChatRoom.is_active == True
         ))
     )
@@ -190,9 +188,9 @@ async def get_chat_room(
     
     # Проверяем, является ли пользователь участником беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -201,12 +199,12 @@ async def get_chat_room(
     
     # Загружаем участников с полной информацией о пользователях и ботах
     result = await db.execute(
-        select(ChatRoomParticipant)
+        select(ChatParticipant)
         .options(
-            joinedload(ChatRoomParticipant.user),
-            joinedload(ChatRoomParticipant.bot)
+            joinedload(ChatParticipant.user),
+            joinedload(ChatParticipant.bot)
         )
-        .where(ChatRoomParticipant.chat_room_id == room_id)
+        .where(ChatParticipant.room_id == room_id)
     )
     participants = result.scalars().all()
     
@@ -217,7 +215,7 @@ async def get_chat_room(
             joinedload(ChatMessage.sender),
             joinedload(ChatMessage.bot)
         )
-        .where(ChatMessage.chat_room_id == room_id)
+        .where(ChatMessage.room_id == room_id)
         .order_by(ChatMessage.created_at)
     )
     messages = result.scalars().all()
@@ -252,10 +250,10 @@ async def update_chat_room(
     
     # Проверяем, является ли пользователь администратором беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id,
-            ChatRoomParticipant.is_admin == True
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id,
+            ChatParticipant.is_admin == True
         ))
     )
     admin = result.scalar_one_or_none()
@@ -270,10 +268,10 @@ async def update_chat_room(
     return room
 
 
-@router.post("/rooms/{room_id}/participants/", response_model=ChatRoomParticipantResponse)
+@router.post("/rooms/{room_id}/participants/", response_model=ChatParticipantResponse)
 async def add_chat_participant(
     room_id: int,
-    participant: ChatRoomParticipantCreate,
+    participant: ChatParticipantCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -285,10 +283,10 @@ async def add_chat_participant(
     
     # Проверяем, является ли текущий пользователь администратором беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id,
-            ChatRoomParticipant.is_admin == True
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id,
+            ChatParticipant.is_admin == True
         ))
     )
     admin = result.scalar_one_or_none()
@@ -305,9 +303,9 @@ async def add_chat_participant(
         
         # Проверяем, не является ли пользователь уже участником
         result = await db.execute(
-            select(ChatRoomParticipant).where(and_(
-                ChatRoomParticipant.chat_room_id == room_id,
-                ChatRoomParticipant.user_id == participant.user_id
+            select(ChatParticipant).where(and_(
+                ChatParticipant.room_id == room_id,
+                ChatParticipant.user_id == participant.user_id
             ))
         )
         existing_participant = result.scalar_one_or_none()
@@ -322,9 +320,9 @@ async def add_chat_participant(
         
         # Проверяем, не является ли бот уже участником
         result = await db.execute(
-            select(ChatRoomParticipant).where(and_(
-                ChatRoomParticipant.chat_room_id == room_id,
-                ChatRoomParticipant.bot_id == participant.bot_id
+            select(ChatParticipant).where(and_(
+                ChatParticipant.room_id == room_id,
+                ChatParticipant.bot_id == participant.bot_id
             ))
         )
         existing_participant = result.scalar_one_or_none()
@@ -333,8 +331,8 @@ async def add_chat_participant(
     else:
         raise HTTPException(status_code=400, detail="Необходимо указать либо user_id, либо bot_id")
     
-    new_participant = ChatRoomParticipant(
-        chat_room_id=room_id,
+    new_participant = ChatParticipant(
+        room_id=room_id,
         user_id=participant.user_id,
         bot_id=participant.bot_id,
         is_admin=participant.is_admin
@@ -360,17 +358,17 @@ async def remove_chat_participant(
     
     # Проверяем, является ли текущий пользователь администратором беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id,
-            ChatRoomParticipant.is_admin == True
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id,
+            ChatParticipant.is_admin == True
         ))
     )
     admin = result.scalar_one_or_none()
     
     # Получаем участника
     result = await db.execute(
-        select(ChatRoomParticipant).where(ChatRoomParticipant.id == participant_id)
+        select(ChatParticipant).where(ChatParticipant.id == participant_id)
     )
     participant = result.scalar_one_or_none()
     if not participant:
@@ -396,10 +394,10 @@ async def toggle_participant_admin(
     """Переключение прав администратора участника беседы"""
     # Проверяем, является ли текущий пользователь администратором беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id,
-            ChatRoomParticipant.is_admin == True
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id,
+            ChatParticipant.is_admin == True
         ))
     )
     admin = result.scalar_one_or_none()
@@ -408,14 +406,14 @@ async def toggle_participant_admin(
     
     # Получаем участника
     result = await db.execute(
-        select(ChatRoomParticipant).where(ChatRoomParticipant.id == participant_id)
+        select(ChatParticipant).where(ChatParticipant.id == participant_id)
     )
     participant = result.scalar_one_or_none()
     if not participant:
         raise HTTPException(status_code=404, detail="Участник не найден")
     
     # Проверяем, что участник принадлежит к этой беседе
-    if participant.chat_room_id != room_id:
+    if participant.room_id != room_id:
         raise HTTPException(status_code=400, detail="Участник не принадлежит к этой беседе")
     
     # Обновляем права администратора
@@ -437,9 +435,9 @@ async def get_chat_messages(
     """Получение сообщений беседы"""
     # Проверяем, является ли пользователь участником беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -448,7 +446,7 @@ async def get_chat_messages(
     
     result = await db.execute(
         select(ChatMessage)
-        .where(ChatMessage.chat_room_id == room_id)
+        .where(ChatMessage.room_id == room_id)
         .order_by(ChatMessage.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -468,9 +466,9 @@ async def create_chat_message(
     """Создание нового сообщения"""
     # Проверяем, является ли пользователь участником беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -478,7 +476,7 @@ async def create_chat_message(
         raise HTTPException(status_code=403, detail="У вас нет доступа к этой беседе")
     
     db_message = ChatMessage(
-        chat_room_id=room_id,
+        room_id=room_id,
         sender_id=current_user.id,
         content=message.content
     )
@@ -535,9 +533,9 @@ async def create_chat_message(
     
     # Проверяем, есть ли боты в чате и отправляем им сообщения
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.bot_id.isnot(None)
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.bot_id.isnot(None)
         ))
     )
     bots = result.scalars().all()
@@ -647,9 +645,9 @@ async def leave_chat_room(
     try:
         # Проверяем, является ли пользователь участником беседы
         result = await db.execute(
-            select(ChatRoomParticipant).where(and_(
-                ChatRoomParticipant.chat_room_id == room_id,
-                ChatRoomParticipant.user_id == current_user.id
+            select(ChatParticipant).where(and_(
+                ChatParticipant.room_id == room_id,
+                ChatParticipant.user_id == current_user.id
             ))
         )
         participant = result.scalar_one_or_none()
@@ -661,7 +659,7 @@ async def leave_chat_room(
         
         # Создаем системное сообщение о выходе
         system_message = ChatMessage(
-            chat_room_id=room_id,
+            room_id=room_id,
             content=f"{current_user.first_name} {current_user.last_name} покинул беседу",
             sender_id=SYSTEM_USER_ID,  # ID системного пользователя
             bot_id=None,
@@ -682,7 +680,7 @@ async def leave_chat_room(
                     "id": system_message.id,
                     "content": system_message.content,
                     "created_at": system_message.created_at.isoformat(),
-                    "chat_room_id": room_id
+                    "room_id": room_id
                 }
             }
             
@@ -755,9 +753,9 @@ async def websocket_endpoint(
         
         # Проверяем, является ли пользователь участником беседы
         result = await db.execute(
-            select(ChatRoomParticipant).where(and_(
-                ChatRoomParticipant.chat_room_id == room_id,
-                ChatRoomParticipant.user_id == current_user.id
+            select(ChatParticipant).where(and_(
+                ChatParticipant.room_id == room_id,
+                ChatParticipant.user_id == current_user.id
             ))
         )
         participant = result.scalar_one_or_none()
@@ -793,7 +791,7 @@ async def websocket_endpoint(
                 if data["type"] == "message":
                     # Создаем новое сообщение в базе данных
                     db_message = ChatMessage(
-                        chat_room_id=room_id,
+                        room_id=room_id,
                         sender_id=current_user.id,
                         content=data["content"]
                     )
@@ -893,7 +891,7 @@ async def send_notification_to_room_participants(room_id: int, message_data: dic
     try:
         # Получаем всех участников чата
         result = await db.execute(
-            select(ChatRoomParticipant).where(ChatRoomParticipant.chat_room_id == room_id)
+            select(ChatParticipant).where(ChatParticipant.room_id == room_id)
         )
         participants = result.scalars().all()
         
@@ -934,7 +932,7 @@ async def process_bot_responses(room_id: int, bots: list, db: AsyncSession):
             
             result = await db.execute(
                 select(ChatMessage).where(and_(
-                    ChatMessage.chat_room_id == room_id,
+                    ChatMessage.room_id == room_id,
                     ChatMessage.created_at >= five_minutes_ago,
                     ChatMessage.bot_id.is_(None),  # Только сообщения от пользователей
                     ChatMessage.sender_id.isnot(None)  # Не системные сообщения
@@ -979,7 +977,7 @@ async def process_bot_responses(room_id: int, bots: list, db: AsyncSession):
                                 
                                 # Сохраняем ответ бота
                                 db_bot_message = ChatMessage(
-                                    chat_room_id=room_id,
+                                    room_id=room_id,
                                     bot_id=bot.id,
                                     content=bot_message
                                 )
@@ -1116,9 +1114,9 @@ async def add_room_to_folder(
     
     # Проверяем, является ли пользователь участником чата
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -1195,9 +1193,9 @@ async def get_unread_count(
     """Получение количества непрочитанных сообщений в чате"""
     # Проверяем, является ли пользователь участником беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -1210,7 +1208,7 @@ async def get_unread_count(
     # Подсчитываем непрочитанные сообщения
     result = await db.execute(
         select(ChatMessage).where(and_(
-            ChatMessage.chat_room_id == room_id,
+            ChatMessage.room_id == room_id,
             ChatMessage.created_at > last_read,
             ChatMessage.sender_id != current_user.id,  # Исключаем собственные сообщения
             ChatMessage.bot_id.is_(None)  # Исключаем сообщения от ботов
@@ -1230,9 +1228,9 @@ async def mark_messages_as_read(
     """Отметить сообщения в чате как прочитанные"""
     # Проверяем, является ли пользователь участником беседы
     result = await db.execute(
-        select(ChatRoomParticipant).where(and_(
-            ChatRoomParticipant.chat_room_id == room_id,
-            ChatRoomParticipant.user_id == current_user.id
+        select(ChatParticipant).where(and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         ))
     )
     participant = result.scalar_one_or_none()
@@ -1254,9 +1252,9 @@ async def get_unread_summary(
     """Получение сводки непрочитанных сообщений по всем чатам пользователя"""
     # Получаем все чаты пользователя
     result = await db.execute(
-        select(ChatRoomParticipant)
-        .options(selectinload(ChatRoomParticipant.chat_room))
-        .where(ChatRoomParticipant.user_id == current_user.id)
+        select(ChatParticipant)
+        .options(selectinload(ChatParticipant.chat_room))
+        .where(ChatParticipant.user_id == current_user.id)
     )
     participants = result.scalars().all()
     
@@ -1272,7 +1270,7 @@ async def get_unread_summary(
         # Подсчитываем непрочитанные сообщения
         result = await db.execute(
             select(ChatMessage).where(and_(
-                ChatMessage.chat_room_id == participant.chat_room_id,
+                ChatMessage.room_id == participant.room_id,
                 ChatMessage.created_at > last_read,
                 ChatMessage.sender_id != current_user.id,
                 ChatMessage.bot_id.is_(None)
@@ -1282,7 +1280,7 @@ async def get_unread_summary(
         
         if unread_count > 0:
             unread_summary.append({
-                "room_id": participant.chat_room_id,
+                "room_id": participant.room_id,
                 "room_name": participant.chat_room.name,
                 "unread_count": unread_count
             })
