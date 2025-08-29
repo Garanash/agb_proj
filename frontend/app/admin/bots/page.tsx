@@ -40,7 +40,7 @@ const BotsPage = () => {
       if (!token) return;
       
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+        const apiUrl = getApiUrl();
         const response = await fetch(`${apiUrl}/api/chat/bots/`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -189,7 +189,7 @@ const BotsPage = () => {
         onBotUpdated={async () => {
           // Перезагружаем список ботов
           try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+            const apiUrl = getApiUrl();
         const response = await fetch(`${apiUrl}/api/chat/bots/`, {
               headers: {
                 'Authorization': `Bearer ${token}`

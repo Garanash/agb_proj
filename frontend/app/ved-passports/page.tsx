@@ -41,7 +41,7 @@ export default function VEDPassportsPage() {
     
     setIsLoading(true)
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/ved-passports/archive/`, {
         headers: {
           'Authorization': `Bearer ${token}`

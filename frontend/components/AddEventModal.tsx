@@ -59,7 +59,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         console.log('Загружаем пользователей и отделы...')
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost';
+        const apiUrl = getApiUrl();
         const [usersResponse, departmentsResponse] = await Promise.all([
           axios.get(`${apiUrl}/api/users/chat-users/`),
           axios.get(`${apiUrl}/api/departments/list`)
