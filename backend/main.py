@@ -18,14 +18,14 @@ app = FastAPI(
     redirect_slashes=False
 )
 
-# CORS настройки
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Разрешаем все origins для production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS настройки отключены - обрабатываются в nginx
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # Разрешаем все origins для production
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 
 # Подключение основных роутеров
 try:
