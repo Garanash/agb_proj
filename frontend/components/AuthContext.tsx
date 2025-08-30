@@ -78,7 +78,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const apiUrl = getApiUrl()
-      console.log('API URL for login:', apiUrl)
       const response = await axios.post(`${apiUrl}/api/auth/login`, {
         username,
         password
@@ -93,8 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(userData)
       return true
-    } catch (error) {
-      console.error('Login error:', error)
+    } catch (error: any) {
+      console.error('Login error:', error.message)
       return false
     }
   }

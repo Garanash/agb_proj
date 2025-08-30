@@ -71,7 +71,7 @@ export default function CreateChatRoomModal({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/users/chat-users/`, {
+      const response = await fetch(`${getApiUrl()}/api/users/chat-users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

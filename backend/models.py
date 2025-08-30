@@ -230,7 +230,7 @@ class ChatParticipant(Base):
     room = relationship("ChatRoom", lazy="selectin")
     user = relationship("User", lazy="selectin")
     bot = relationship("ChatBot", lazy="selectin")
-    chat_room = relationship("ChatRoom", foreign_keys=[room_id], lazy="selectin")
+    chat_room = relationship("ChatRoom", foreign_keys=[room_id], lazy="selectin", overlaps="room")
 
 class ChatFolder(Base):
     """Папки для организации чатов"""
@@ -260,7 +260,7 @@ class ChatRoomFolder(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Связи
-    room = relationship("ChatRoom", lazy="selectin")
+    room = relationship("ChatRoom", lazy="selectin", overlaps="folders")
     folder = relationship("ChatFolder", lazy="selectin")
 
 class ChatBot(Base):

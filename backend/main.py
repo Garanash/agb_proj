@@ -8,7 +8,15 @@ async def lifespan(app: FastAPI):
     # Создание таблиц при запуске
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     yield
+
+    # Инициализация данных после запуска приложения
+    try:
+        from init_data import init_data_if_needed
+        await init_data_if_needed()
+    except Exception as e:
+        print(f"⚠️  Ошибка инициализации данных: {e}")
 
 app = FastAPI(
     title="Felix - Алмазгеобур Platform",
