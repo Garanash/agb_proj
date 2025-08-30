@@ -4,13 +4,24 @@
 
 // Базовый URL API
 export const getApiUrl = (): string => {
-  // На клиенте используем текущий origin
+  // На клиенте - в Docker контейнере backend доступен по имени сервиса
   if (typeof window !== 'undefined') {
-    // Всегда используем текущий origin - это универсально для любого сервера
-    return window.location.origin;
+    // Проверяем, работаем ли мы в Docker контейнере
+    const isDocker = window.location.hostname === 'localhost' ||
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('agb') ||
+                     process.env.NODE_ENV === 'production';
+
+    if (isDocker) {
+      // В Docker используем имя сервиса backend
+      return 'http://backend:8000';
+    } else {
+      // На внешнем сервере используем текущий origin
+      return window.location.origin;
+    }
   }
 
-  // На сервере используем переменную окружения или fallback
+  // На сервере используем переменную окружения или Docker сервис
   return process.env.NEXT_PUBLIC_API_URL || 'http://backend:8000';
 };
 

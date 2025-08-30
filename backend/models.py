@@ -202,7 +202,8 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    bot_id = Column(Integer, ForeignKey("chat_bots.id"), nullable=True)
     content = Column(String, nullable=False)
     is_edited = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -211,6 +212,7 @@ class ChatMessage(Base):
     # Связи
     room = relationship("ChatRoom", lazy="selectin")
     sender = relationship("User", foreign_keys=[sender_id], lazy="selectin")
+    bot = relationship("ChatBot", lazy="selectin")
 
 class ChatParticipant(Base):
     """Участники чата"""
@@ -228,6 +230,7 @@ class ChatParticipant(Base):
     room = relationship("ChatRoom", lazy="selectin")
     user = relationship("User", lazy="selectin")
     bot = relationship("ChatBot", lazy="selectin")
+    chat_room = relationship("ChatRoom", foreign_keys=[room_id], lazy="selectin")
 
 class ChatFolder(Base):
     """Папки для организации чатов"""

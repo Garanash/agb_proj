@@ -1250,7 +1250,7 @@ async def get_unread_summary(
     # Получаем все чаты пользователя
     result = await db.execute(
         select(ChatParticipant)
-        .options(selectinload(ChatParticipant.chat_room))
+        .options(joinedload(ChatParticipant.room))
         .where(ChatParticipant.user_id == current_user.id)
     )
     participants = result.scalars().all()
