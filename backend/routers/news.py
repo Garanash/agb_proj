@@ -178,7 +178,7 @@ async def delete_news(
         raise HTTPException(status_code=404, detail="Новость не найдена")
     
     # Проверяем права: автор может удалять свои новости, админы и менеджеры - любые
-    if news.author_id != current_user.id and current_user.role not in [UserRole.admin, UserRole.manager]:
+    if news.author_id != current_user.id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Недостаточно прав для удаления этой новости"

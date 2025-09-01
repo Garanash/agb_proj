@@ -133,7 +133,7 @@ const ChatPage = () => {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/users/chat-users/`, {
+          fetch(`${getApiUrl()}/api/users/chat-users`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

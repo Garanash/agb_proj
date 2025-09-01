@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Bulk API для паспортов ВЭД</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Тест Bulk API для создания паспортов ВЭД</h1>
+        <p>Этот тест проверяет работу нового bulk API для массового создания паспортов.</p>
+
+        <div class="form-group">
+            <label for="token">Authorization Token:</label>
+            <input type="text" id="token" placeholder="Bearer eyJ...">
+        </div>
+
+        <div class="form-group">
+            <label for="orderNumber">Номер заказа:</label>
+            <input type="text" id="orderNumber" value="TEST-ORDER-001">
+        </div>
+
+        <div class="form-group">
+            <label for="bulkData">Данные для bulk создания (JSON):</label>
+            <textarea id="bulkData" rows="10">{
+  "order_number": "TEST-ORDER-001",
+  "title": "Тестовое массовое создание паспортов",
+  "items": [
+    {
+      "code_1c": "NQ-05-07-001",
+      "quantity": 3
+    },
+    {
+      "code_1c": "NQ-07-10-002",
+      "quantity": 2
+    }
+  ]
+}</textarea>
+        </div>
+
+        <button onclick="testBulkAPI()">Тестировать Bulk API</button>
+        <button onclick="testSingleAPI()">Тестировать обычный API</button>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testBulkAPI() {
+            const token = document.getElementById('token').value;
+            const bulkData = document.getElementById('bulkData').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!token) {
+                showResult('Ошибка: Укажите Authorization Token', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost/api/ved-passports/bulk/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: bulkData
+                });
+
+                const result = await response.text();
+                const status = response.status;
+
+                if (response.ok) {
+                    showResult(`✅ Bulk API работает!\nСтатус: ${status}\n\nОтвет:\n${result}`, 'success');
+                } else {
+                    showResult(`❌ Ошибка Bulk API\nСтатус: ${status}\n\nОтвет:\n${result}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Сетевая ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSingleAPI() {
+            const token = document.getElementById('token').value;
+            const orderNumber = document.getElementById('orderNumber').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!token) {
+                showResult('Ошибка: Укажите Authorization Token', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost/api/ved-passports/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: JSON.stringify({
+                        order_number: orderNumber,
+                        nomenclature_id: 1,
+                        quantity: 1
+                    })
+                });
+
+                const result = await response.text();
+                const status = response.status;
+
+                if (response.ok) {
+                    showResult(`✅ Обычный API работает!\nСтатус: ${status}\n\nОтвет:\n${result}`, 'success');
+                } else {
+                    showResult(`❌ Ошибка обычного API\nСтатус: ${status}\n\nОтвет:\n${result}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Сетевая ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

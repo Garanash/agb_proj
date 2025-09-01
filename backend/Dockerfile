@@ -23,5 +23,5 @@ COPY . .
 # Открываем порт
 EXPOSE 8000
 
-# Запускаем приложение
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Запускаем приложение с оптимизированными настройками
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--workers", "2", "--loop", "uvloop", "--http", "httptools", "--access-log", "--log-level", "info"]

@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { getApiUrl } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  HomeIcon, 
-  InformationCircleIcon, 
+import {
+  HomeIcon,
+  InformationCircleIcon,
   Cog6ToothIcon,
   UserGroupIcon,
   DocumentTextIcon,
@@ -15,7 +15,10 @@ import {
   DocumentIcon,
   ArchiveBoxIcon,
   ChevronDownIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  ClipboardDocumentListIcon,
+  ArchiveBoxIcon as ArchiveIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from './AuthContext'
@@ -42,11 +45,41 @@ const navigation: NavigationItem[] = [
     icon: InformationCircleIcon, 
     roles: ['admin', 'manager', 'employee', 'ved_passport'] 
   },
-  { 
-    name: 'Управление пользователями', 
-    href: '/users', 
-    icon: UserGroupIcon, 
-    roles: ['admin'] 
+  {
+    name: 'Управление пользователями',
+    href: '/users',
+    icon: UserGroupIcon,
+    roles: ['admin']
+  },
+  {
+    name: 'Новая заявка',
+    href: '/dashboard/customer?tab=create',
+    icon: ClipboardDocumentListIcon,
+    roles: ['customer']
+  },
+  {
+    name: 'Выполненные заявки',
+    href: '/dashboard/customer?tab=requests',
+    icon: ArchiveIcon,
+    roles: ['customer']
+  },
+  {
+    name: 'Доступные заявки',
+    href: '/dashboard/contractor?tab=requests',
+    icon: ClipboardDocumentListIcon,
+    roles: ['contractor']
+  },
+  {
+    name: 'Архив заявок',
+    href: '/dashboard/contractor?tab=archive',
+    icon: ArchiveIcon,
+    roles: ['contractor']
+  },
+  {
+    name: 'Мой профиль',
+    href: '/dashboard/contractor?tab=profile',
+    icon: UserGroupIcon,
+    roles: ['contractor']
   },
   { 
     name: 'Новости', 
@@ -82,17 +115,35 @@ const navigation: NavigationItem[] = [
       { name: 'Архив паспортов', href: '/ved-passports/archive', icon: ArchiveBoxIcon }
     ]
   },
-  { 
-    name: 'Управление ботами', 
-    href: '/admin/bots', 
-    icon: ChatBubbleLeftRightIcon, 
-    roles: ['admin'] 
+  {
+    name: 'Управление ботами',
+    href: '/admin/bots',
+    icon: ChatBubbleLeftRightIcon,
+    roles: ['admin']
   },
-  { 
-    name: 'Настройки', 
-    href: '/settings', 
-    icon: Cog6ToothIcon, 
-    roles: ['admin', 'manager', 'employee', 'ved_passport'] 
+  {
+    name: 'Текущие заявки',
+    href: '/dashboard/service-engineer?tab=current',
+    icon: ClipboardDocumentListIcon,
+    roles: ['service_engineer']
+  },
+  {
+    name: 'Архив заявок',
+    href: '/dashboard/service-engineer?tab=archive',
+    icon: ArchiveIcon,
+    roles: ['service_engineer']
+  },
+  {
+    name: 'Наши исполнители',
+    href: '/dashboard/service-engineer?tab=contractors',
+    icon: WrenchScrewdriverIcon,
+    roles: ['service_engineer']
+  },
+  {
+    name: 'Настройки',
+    href: '/settings',
+    icon: Cog6ToothIcon,
+    roles: ['admin', 'manager', 'employee', 'ved_passport', 'customer', 'contractor']
   },
 ]
 
@@ -101,8 +152,33 @@ export default function Sidebar() {
   const router = useRouter()
   const { user } = useAuth()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const [currentUrl, setCurrentUrl] = useState(window.location.href)
 
   console.log('Sidebar rendered:', { pathname, user: !!user })
+
+  // Отслеживаем изменения URL
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentUrl(window.location.href)
+    }
+
+    // Слушаем изменения URL
+    window.addEventListener('popstate', handleLocationChange)
+
+    // Также проверяем изменения через интервал для SPA навигации
+    const checkUrlChange = () => {
+      if (window.location.href !== currentUrl) {
+        setCurrentUrl(window.location.href)
+      }
+    }
+
+    const interval = setInterval(checkUrlChange, 100)
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+      clearInterval(interval)
+    }
+  }, [currentUrl])
 
   // Мемоизируем отфильтрованную навигацию
   const filteredNavigation = useMemo(() => {
@@ -113,12 +189,30 @@ export default function Sidebar() {
 
   // Проверяем, активен ли текущий путь
   const isItemActive = useCallback((item: NavigationItem) => {
+    // Для пунктов сервисного инженера проверяем и путь и параметр tab
+    if (item.roles.includes('service_engineer')) {
+      if (pathname === '/dashboard/service-engineer') {
+        const url = new URL(currentUrl)
+        const tab = url.searchParams.get('tab')
+
+        // Извлекаем tab из href элемента
+        const itemUrl = new URL(item.href, window.location.origin)
+        const itemTab = itemUrl.searchParams.get('tab')
+
+        // Сравниваем tabs: точное совпадение или current по умолчанию
+        if (itemTab === tab || (itemTab === 'current' && !tab)) {
+          return true
+        }
+      }
+      return false
+    }
+
     if (pathname === item.href) return true
     if (item.children) {
       return item.children.some(child => pathname === child.href)
     }
     return false
-  }, [pathname])
+  }, [pathname, currentUrl])
 
   // Переключение состояния подпунктов
   const toggleExpanded = useCallback((itemName: string) => {

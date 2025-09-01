@@ -705,6 +705,7 @@ class VedPassportWithCreator(VedPassport):
 
 
 class BulkPassportCreate(BaseModel):
+    title: Optional[str] = None  # Заголовок для паспортов
     order_number: str
     items: List[dict]  # Список позиций с кодом 1С и количеством
 
@@ -714,3 +715,363 @@ class PassportGenerationResult(BaseModel):
     message: str
     passports: List[VedPassport] = []
     errors: List[str] = []
+
+
+# Новые схемы для системы заказов и исполнителей
+
+class CustomerProfileBase(BaseModel):
+    company_name: str
+    contact_person: str
+    phone: str
+    email: str
+    address: Optional[str] = None
+    inn: Optional[str] = None
+    kpp: Optional[str] = None
+    ogrn: Optional[str] = None
+
+
+class CustomerProfileCreate(CustomerProfileBase):
+    pass
+
+
+class CustomerProfileUpdate(BaseModel):
+    company_name: Optional[str] = None
+    contact_person: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    inn: Optional[str] = None
+    kpp: Optional[str] = None
+    ogrn: Optional[str] = None
+
+
+class CustomerProfile(CustomerProfileBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProfessionalInfoItem(BaseModel):
+    specialization: str
+    experience_years: Optional[int] = None
+    skills: Optional[str] = None
+    description: Optional[str] = None
+
+
+class EducationItem(BaseModel):
+    institution: str
+    degree: str
+    field_of_study: Optional[str] = None
+    graduation_year: Optional[int] = None
+    description: Optional[str] = None
+
+
+class FileInfo(BaseModel):
+    name: str
+    path: str
+    size: int
+    url: str
+
+
+class ContractorProfileBase(BaseModel):
+    # Личные данные
+    last_name: Optional[str] = None
+    first_name: Optional[str] = None
+    patronymic: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+
+    # Профессиональная информация
+    professional_info: List[ProfessionalInfoItem] = []
+
+    # Образование
+    education: List[EducationItem] = []
+
+    # Банковские данные
+    bank_name: Optional[str] = None
+    bank_account: Optional[str] = None
+    bank_bik: Optional[str] = None
+
+    # Контакты
+    telegram_username: Optional[str] = None
+    website: Optional[str] = None
+
+    # Общее описание
+    general_description: Optional[str] = None
+
+    # Файлы
+    profile_photo_url: Optional[str] = None
+    portfolio_files: List[FileInfo] = []
+    document_files: List[FileInfo] = []
+
+
+class ContractorProfileCreate(ContractorProfileBase):
+    pass
+
+
+class ContractorProfileUpdate(ContractorProfileBase):
+    pass
+
+
+class ContractorProfile(ContractorProfileBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RepairRequestBase(BaseModel):
+    title: str
+    description: str
+    urgency: Optional[str] = None
+    preferred_date: Optional[datetime] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+
+
+class RepairRequestCreate(RepairRequestBase):
+    pass
+
+
+class RepairRequestUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    urgency: Optional[str] = None
+    preferred_date: Optional[datetime] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    region: Optional[str] = None
+    equipment_type: Optional[str] = None
+    equipment_brand: Optional[str] = None
+    equipment_model: Optional[str] = None
+    problem_description: Optional[str] = None
+    estimated_cost: Optional[int] = None
+    status: Optional[str] = None
+    service_engineer_id: Optional[int] = None
+    assigned_contractor_id: Optional[int] = None
+
+
+class RepairRequest(RepairRequestBase):
+    id: int
+    customer_id: int
+    equipment_type: Optional[str] = None
+    equipment_brand: Optional[str] = None
+    equipment_model: Optional[str] = None
+    problem_description: Optional[str] = None
+    estimated_cost: Optional[int] = None
+    status: str
+    service_engineer_id: Optional[int] = None
+    assigned_contractor_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    processed_at: Optional[datetime] = None
+    assigned_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ContractorResponseBase(BaseModel):
+    proposed_cost: Optional[int] = None
+    estimated_days: Optional[int] = None
+    comment: Optional[str] = None
+
+
+class ContractorResponseCreate(ContractorResponseBase):
+    pass
+
+
+class ContractorResponseUpdate(BaseModel):
+    proposed_cost: Optional[int] = None
+    estimated_days: Optional[int] = None
+    comment: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ContractorResponse(ContractorResponseBase):
+    id: int
+    request_id: int
+    contractor_id: int
+    status: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    reviewed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CustomerRegistration(BaseModel):
+    # Данные пользователя
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    middle_name: Optional[str] = None
+    phone: Optional[str] = None
+
+    # Данные компании
+    company_name: str
+    contact_person: str
+    company_phone: str
+    company_email: str
+    address: Optional[str] = None
+    inn: Optional[str] = None
+    kpp: Optional[str] = None
+    ogrn: Optional[str] = None
+
+
+class ContractorRegistration(BaseModel):
+    # Данные пользователя
+    email: str
+    password: str
+    first_name: str
+    last_name: str
+    middle_name: Optional[str] = None
+    phone: Optional[str] = None
+
+    # Паспортные данные
+    passport_series: Optional[str] = None
+    passport_number: Optional[str] = None
+    passport_issued_by: Optional[str] = None
+    passport_issued_date: Optional[datetime] = None
+    passport_division_code: Optional[str] = None
+
+    # Адрес
+    registration_address: Optional[str] = None
+
+    # Профессиональные данные
+    specialization: Optional[str] = None
+    experience_years: Optional[int] = None
+    skills: Optional[str] = None
+
+
+class TelegramNotificationBase(BaseModel):
+    notification_type: str
+    message: str
+
+
+class TelegramNotificationCreate(TelegramNotificationBase):
+    user_id: int
+    request_id: Optional[int] = None
+    response_id: Optional[int] = None
+
+
+class TelegramNotification(TelegramNotificationBase):
+    id: int
+    user_id: int
+    request_id: Optional[int] = None
+    response_id: Optional[int] = None
+    sent: bool
+    created_at: datetime
+    sent_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# Схемы для Telegram бота
+class TelegramBotBase(BaseModel):
+    name: str
+    token: str
+    is_active: bool = True
+    webhook_url: Optional[str] = None
+
+
+class TelegramBotCreate(TelegramBotBase):
+    pass
+
+
+class TelegramBotUpdate(BaseModel):
+    name: Optional[str] = None
+    token: Optional[str] = None
+    is_active: Optional[bool] = None
+    webhook_url: Optional[str] = None
+
+
+class TelegramBot(TelegramBotBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TelegramUserBase(BaseModel):
+    user_id: int
+    telegram_id: int
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    is_bot_user: bool = False
+
+
+class TelegramUserCreate(TelegramUserBase):
+    pass
+
+
+class TelegramUserUpdate(BaseModel):
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    is_bot_user: Optional[bool] = None
+
+
+class TelegramUser(TelegramUserBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    user: User
+
+    class Config:
+        from_attributes = True
+
+
+class TelegramNotificationBase(BaseModel):
+    telegram_user_id: int
+    message_type: str
+    message_text: str
+    message_id: Optional[int] = None
+    chat_id: int
+    repair_request_id: Optional[int] = None
+    is_read: bool = False
+
+
+class TelegramNotificationCreate(TelegramNotificationBase):
+    pass
+
+
+class TelegramNotificationUpdate(BaseModel):
+    message_id: Optional[int] = None
+    is_read: Optional[bool] = None
+
+
+class TelegramNotification(TelegramNotificationBase):
+    id: int
+    created_at: datetime
+    telegram_user: TelegramUser
+    repair_request: Optional[RepairRequest] = None
+
+    class Config:
+        from_attributes = True
+
+
+class TelegramWebhookUpdate(BaseModel):
+    """Схема для обновления webhook"""
+    url: str
+
+
+class TelegramBotCommand(BaseModel):
+    """Схема для команд бота"""
+    command: str
+    description: str

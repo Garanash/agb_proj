@@ -33,11 +33,11 @@ interface EventParticipant {
 interface Event {
   id: string
   title: string
-  start_datetime: string
-  end_datetime: string
+  start_date: string
+  end_date: string
   description?: string
   event_type: 'meeting' | 'call' | 'briefing' | 'conference' | 'other'
-  creator_id: number
+  organizer_id: number
   is_public: boolean
   is_active: boolean
   created_at: string
@@ -91,7 +91,7 @@ const Calendar: React.FC = () => {
   // Получение событий для определенной даты
   const getEventsForDate = (date: moment.Moment) => {
     return events.filter(event => {
-      const eventDate = moment(event.start_datetime)
+      const eventDate = moment(event.start_date)
       return eventDate.format('YYYY-MM-DD') === date.format('YYYY-MM-DD')
     })
   }
@@ -172,7 +172,7 @@ const Calendar: React.FC = () => {
   // Проверка прав на редактирование/удаление события
   const canEditEvent = (event: Event) => {
     if (!user) return false
-    return user.role === 'admin' || event.creator_id === user.id
+    return user.role === 'admin' || event.organizer_id === user.id
   }
 
   // Функции для определения дат в календаре
@@ -350,7 +350,7 @@ const Calendar: React.FC = () => {
                               )}
                             </div>
                             <p className="text-sm text-gray-600 mt-1">
-                              {moment(event.start_datetime).format('HH:mm')} - {moment(event.end_datetime).format('HH:mm')}
+                              {moment(event.start_date).format('HH:mm')} - {moment(event.end_date).format('HH:mm')}
                             </p>
                             {event.description && (
                               <p className="text-sm text-gray-700 mt-2">{event.description}</p>

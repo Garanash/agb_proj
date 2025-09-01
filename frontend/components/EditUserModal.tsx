@@ -38,7 +38,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     first_name: '',
     last_name: '',
     middle_name: '',
-    role: 'employee' as 'admin' | 'manager' | 'employee',
+    role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
     is_active: true,
     phone: '',
     department_id: null as number | null,
@@ -58,7 +58,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         first_name: user.first_name,
         last_name: user.last_name,
         middle_name: user.middle_name || '',
-        role: user.role as 'admin' | 'manager' | 'employee',
+        role: user.role as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
         is_active: user.is_active,
         phone: user.phone || '',
         department_id: user.department_id || null,
@@ -233,6 +233,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               >
                 <option value="employee">Сотрудник</option>
                 <option value="manager">Менеджер</option>
+                <option value="ved_passport">Сотрудник ВЭД</option>
+                <option value="customer">Заказчик</option>
+                <option value="contractor">Исполнитель</option>
+                <option value="service_engineer">Сервисный инженер</option>
                 <option value="admin">Администратор</option>
               </select>
             </div>

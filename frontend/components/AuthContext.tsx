@@ -11,11 +11,13 @@ interface User {
   first_name: string
   last_name: string
   middle_name?: string
-  role: 'admin' | 'manager' | 'employee' | 'ved_passport'
+  role: 'admin' | 'manager' | 'employee' | 'ved_passport' | 'customer' | 'contractor' | 'service_engineer'
   is_active: boolean
   created_at: string
   avatar_url?: string | null
   department_id?: number | null
+  phone?: string | null
+  position?: string | null
 }
 
 interface AuthContextType {

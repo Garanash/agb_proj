@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload, joinedload
 from typing import List
 import aiohttp
 from database import get_db
-from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder
+from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder, UserRole
 from schemas import (
     ChatRoom as ChatRoomSchema,
     ChatRoomCreate,
@@ -553,7 +553,7 @@ async def create_chat_bot(
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нового бота"""
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Только администраторы могут создавать ботов")
     
     db_bot = ChatBot(**bot.dict())
@@ -596,7 +596,7 @@ async def update_chat_bot(
     db: AsyncSession = Depends(get_db)
 ):
     """Обновление информации о боте"""
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Только администраторы могут обновлять ботов")
     
     result = await db.execute(select(ChatBot).where(ChatBot.id == bot_id))
@@ -619,7 +619,7 @@ async def delete_chat_bot(
     db: AsyncSession = Depends(get_db)
 ):
     """Удаление бота"""
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Только администраторы могут удалять ботов")
     
     result = await db.execute(select(ChatBot).where(ChatBot.id == bot_id))
@@ -865,7 +865,7 @@ async def get_websocket_stats(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение статистики WebSocket подключений"""
-    if current_user.role != "admin":
+    if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Только администраторы могут просматривать статистику")
     
     stats = {

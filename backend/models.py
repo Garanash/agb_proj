@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, select
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, select, BigInteger
+from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +14,9 @@ class UserRole(str, enum.Enum):
     MANAGER = "manager"
     EMPLOYEE = "employee"
     VED_PASSPORT = "ved_passport"
+    CUSTOMER = "customer"  # Заказчик (компания)
+    CONTRACTOR = "contractor"  # Исполнитель (физлицо)
+    SERVICE_ENGINEER = "service_engineer"  # Сервисный инженер
 
 class NewsCategory(str, enum.Enum):
     GENERAL = "general"
@@ -26,9 +30,23 @@ class Permission(str, enum.Enum):
     DELETE = "delete"
     ADMIN = "admin"
 
+class RequestStatus(str, enum.Enum):
+    NEW = "new"  # Новая заявка
+    PROCESSING = "processing"  # В обработке
+    ASSIGNED = "assigned"  # Назначен исполнитель
+    COMPLETED = "completed"  # Завершена
+    CANCELLED = "cancelled"  # Отменена
+
+class ResponseStatus(str, enum.Enum):
+    PENDING = "pending"  # Ожидает рассмотрения
+    ACCEPTED = "accepted"  # Принята менеджером
+    REJECTED = "rejected"  # Отклонена менеджером
+    ASSIGNED = "assigned"  # Исполнитель назначен на заявку
+
 class User(Base):
     """Пользователи системы"""
     __tablename__ = "users"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, nullable=False, index=True)
@@ -48,10 +66,13 @@ class User(Base):
 
     # Связи
     department = relationship("Department", foreign_keys=[department_id], back_populates="employees", lazy="selectin")
+    customer_profile = relationship("CustomerProfile", back_populates="user", lazy="selectin", uselist=False)
+    contractor_profile = relationship("ContractorProfile", back_populates="user", lazy="selectin", uselist=False)
 
 class Department(Base):
     """Подразделения компании"""
     __tablename__ = "departments"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -68,6 +89,7 @@ class Department(Base):
 class CompanyEmployee(Base):
     """Сотрудники компании"""
     __tablename__ = "company_employees"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String, nullable=False)
@@ -103,6 +125,7 @@ class EventType(str, enum.Enum):
 class Event(Base):
     """События и мероприятия"""
     __tablename__ = "events"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
@@ -124,6 +147,7 @@ class Event(Base):
 class EventParticipant(Base):
     """Участники событий"""
     __tablename__ = "event_participants"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
@@ -138,6 +162,7 @@ class EventParticipant(Base):
 class News(Base):
     """Новости и объявления"""
     __tablename__ = "news"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
@@ -156,6 +181,7 @@ class News(Base):
 class Team(Base):
     """Команды проекта"""
     __tablename__ = "teams"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -168,6 +194,7 @@ class Team(Base):
 class TeamMember(Base):
     """Участники команды"""
     __tablename__ = "team_members"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
@@ -182,6 +209,7 @@ class TeamMember(Base):
 class ChatRoom(Base):
     """Чат-комнаты"""
     __tablename__ = "chat_rooms"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
@@ -199,6 +227,7 @@ class ChatRoom(Base):
 class ChatMessage(Base):
     """Сообщения в чате"""
     __tablename__ = "chat_messages"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=False)
@@ -242,6 +271,7 @@ class ChatFolder(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     room_id = Column(Integer, ForeignKey("chat_rooms.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    order_index = Column(Integer, default=0)
     is_default = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -338,13 +368,14 @@ class VedPassport(Base):
                 suffix=current_year_suffix
             )
             db.add(counter)
-            await db.commit()
-            await db.refresh(counter)
+            # Убираем лишний коммит - пусть будет одна транзакция
+            await db.flush()
             print(f"DEBUG: Created new counter for year {current_year}")
 
         # Увеличиваем счетчик
         counter.current_value += 1
-        await db.commit()
+        # Убираем лишний коммит - пусть будет одна транзакция
+        await db.flush()
 
         # Форматируем серийный номер с ведущими нулями
         serial_number = str(counter.current_value).zfill(6)
@@ -380,3 +411,227 @@ class PassportCounter(Base):
     suffix = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# Новые модели для системы заказов и исполнителей
+
+class CustomerProfile(Base):
+    """Профиль заказчика (компания)"""
+    __tablename__ = "customer_profiles"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Данные компании
+    company_name = Column(String, nullable=False)
+    contact_person = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    inn = Column(String, nullable=True)  # ИНН
+    kpp = Column(String, nullable=True)  # КПП
+    ogrn = Column(String, nullable=True)  # ОГРН
+
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User", back_populates="customer_profile", lazy="selectin")
+    requests = relationship("RepairRequest", back_populates="customer", lazy="selectin")
+
+
+class ContractorProfile(Base):
+    """Профиль исполнителя (физлицо)"""
+    __tablename__ = "contractor_profiles"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
+
+    # Личные данные (используем существующие поля)
+    last_name = Column(String, nullable=True, default=None)
+    first_name = Column(String, nullable=True, default=None)
+    patronymic = Column(String, nullable=True, default=None)
+    phone = Column(String, nullable=True, default=None)
+    email = Column(String, nullable=True, default=None)
+
+    # Профессиональная информация (JSON массив)
+    professional_info = Column(JSON, nullable=True, default=list)
+
+    # Образование (JSON массив)
+    education = Column(JSON, nullable=True, default=list)
+
+    # Банковские данные
+    bank_name = Column(String, nullable=True)
+    bank_account = Column(String, nullable=True)
+    bank_bik = Column(String, nullable=True)
+
+    # Контакты
+    telegram_username = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+
+    # Общее описание
+    general_description = Column(String, nullable=True, default=None)
+
+    # Файлы
+    profile_photo_path = Column(String, nullable=True, default=None)  # Путь к фото профиля
+    portfolio_files = Column(JSON, nullable=True, default=list)  # Массив файлов портфолио
+    document_files = Column(JSON, nullable=True, default=list)  # Массив документов
+
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User", back_populates="contractor_profile", lazy="selectin")
+    responses = relationship("ContractorResponse", back_populates="contractor", lazy="selectin")
+
+
+class RepairRequest(Base):
+    """Заявка на ремонт"""
+    __tablename__ = "repair_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customer_profiles.id"), nullable=False)
+
+    # Основная информация
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    urgency = Column(String, nullable=True)  # срочно, средне, не срочно
+    preferred_date = Column(DateTime, nullable=True)
+
+    # Местоположение
+    address = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    region = Column(String, nullable=True)
+
+    # Технические детали (заполняются сервисным инженером)
+    equipment_type = Column(String, nullable=True)
+    equipment_brand = Column(String, nullable=True)
+    equipment_model = Column(String, nullable=True)
+    problem_description = Column(String, nullable=True)
+    estimated_cost = Column(Integer, nullable=True)  # в рублях
+
+    # Статусы
+    status = Column(String, default=RequestStatus.NEW)
+    service_engineer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    assigned_contractor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    processed_at = Column(DateTime(timezone=True), nullable=True)  # Когда обработал инженер
+    assigned_at = Column(DateTime(timezone=True), nullable=True)  # Когда назначен исполнитель
+    completed_at = Column(DateTime(timezone=True), nullable=True)  # Когда завершена
+
+    # Связи
+    customer = relationship("CustomerProfile", back_populates="requests", lazy="selectin")
+    service_engineer = relationship("User", foreign_keys=[service_engineer_id], lazy="selectin")
+    assigned_contractor = relationship("User", foreign_keys=[assigned_contractor_id], lazy="selectin")
+    responses = relationship("ContractorResponse", back_populates="request", lazy="selectin")
+
+
+class ContractorResponse(Base):
+    """Отклик исполнителя на заявку"""
+    __tablename__ = "contractor_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=False)
+    contractor_id = Column(Integer, ForeignKey("contractor_profiles.id"), nullable=False)
+
+    # Отклик
+    proposed_cost = Column(Integer, nullable=True)  # Предлагаемая стоимость
+    estimated_days = Column(Integer, nullable=True)  # Ожидаемое время выполнения
+    comment = Column(String, nullable=True)  # Комментарий исполнителя
+
+    # Статус отклика
+    status = Column(String, default=ResponseStatus.PENDING)
+
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)  # Когда рассмотрел менеджер
+
+    # Связи
+    request = relationship("RepairRequest", back_populates="responses", lazy="selectin")
+    contractor = relationship("ContractorProfile", back_populates="responses", lazy="selectin")
+
+
+class TelegramNotification(Base):
+    """Уведомления в Telegram"""
+    __tablename__ = "telegram_notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=True)
+    response_id = Column(Integer, ForeignKey("contractor_responses.id"), nullable=True)
+
+    # Тип уведомления
+    notification_type = Column(String, nullable=False)  # new_request, response_received, assigned, completed
+    message = Column(String, nullable=False)
+    sent = Column(Boolean, default=False)
+
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Связи
+    user = relationship("User", lazy="selectin")
+    request = relationship("RepairRequest", lazy="selectin")
+    response = relationship("ContractorResponse", lazy="selectin")
+
+
+# Модели для Telegram бота
+class TelegramBot(Base):
+    """Настройки Telegram бота"""
+    __tablename__ = "telegram_bots"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    token = Column(String, nullable=False, unique=True)
+    is_active = Column(Boolean, default=True)
+    webhook_url = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class TelegramUser(Base):
+    """Связь пользователей с Telegram"""
+    __tablename__ = "telegram_users"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    telegram_id = Column(BigInteger, nullable=False, unique=True)
+    username = Column(String, nullable=True)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    is_bot_user = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User", lazy="selectin")
+
+
+class TelegramNotification(Base):
+    """Уведомления в Telegram"""
+    __tablename__ = "telegram_notifications"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_user_id = Column(Integer, ForeignKey("telegram_users.id"), nullable=False)
+    message_type = Column(String, nullable=False)  # 'new_request', 'response_received', etc.
+    message_text = Column(String, nullable=False)
+    message_id = Column(BigInteger, nullable=True)  # ID сообщения в Telegram
+    chat_id = Column(BigInteger, nullable=False)
+    repair_request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=True)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    telegram_user = relationship("TelegramUser", lazy="selectin")
+    repair_request = relationship("RepairRequest", foreign_keys=[repair_request_id], lazy="selectin")

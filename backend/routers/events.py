@@ -6,7 +6,7 @@ from datetime import datetime, date
 from typing import Optional, List
 
 from database import get_db
-from models import Event, User, EventParticipant
+from models import Event, User, EventParticipant, UserRole
 from schemas import EventResponse, EventCreate, EventUpdate
 from routers.auth import get_current_user
 
@@ -59,6 +59,10 @@ async def create_event(
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нового события"""
+    # Проверяем права: только администраторы и менеджеры могут создавать события
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Недостаточно прав для создания событий")
+
     # Проверяем корректность дат
     if event_data.end_date <= event_data.start_date:
         raise HTTPException(
@@ -164,15 +168,15 @@ async def update_event(
         raise HTTPException(status_code=404, detail="Событие не найдено")
     
     # Проверяем права: только создатель или администратор могут редактировать
-    if event.creator_id != current_user.id and current_user.role != "admin":
+    if event.organizer_id != current_user.id and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Недостаточно прав для редактирования")
-    
+
     # Обновляем поля
     update_data = event_data.dict(exclude_unset=True)
-    
+
     # Проверяем корректность дат если они обновляются
-    start_dt = update_data.get('start_datetime', event.start_datetime)
-    end_dt = update_data.get('end_datetime', event.end_datetime)
+    start_dt = update_data.get('start_date', event.start_date)
+    end_dt = update_data.get('end_date', event.end_date)
     
     if end_dt <= start_dt:
         raise HTTPException(
@@ -193,14 +197,14 @@ async def update_event(
         # Автоматически добавляем создателя события в список участников
         creator_participant = EventParticipant(
             event_id=event.id,
-            user_id=event.creator_id
+            user_id=event.organizer_id
         )
         db.add(creator_participant)
         
         # Добавляем остальных участников (если они есть)
         for user_id in update_data['participants']:
             # Пропускаем создателя, если он уже добавлен
-            if user_id == event.creator_id:
+            if user_id == event.organizer_id:
                 continue
                 
             # Проверяем существование пользователя
@@ -252,7 +256,7 @@ async def delete_event(
         raise HTTPException(status_code=404, detail="Событие не найдено")
     
     # Проверяем права: только создатель или администратор могут удалять
-    if event.organizer_id != current_user.id and current_user.role != "admin":
+    if event.organizer_id != current_user.id and current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Недостаточно прав для удаления")
     
     # Мягкое удаление

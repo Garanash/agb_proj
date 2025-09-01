@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 from models import (
     User, Department, CompanyEmployee, News, Event, EventParticipant,
     ChatBot, ChatRoom, ChatParticipant, ChatMessage, ChatFolder,
-    VEDNomenclature, VedPassport
+    VEDNomenclature, VedPassport,
+    CustomerProfile, ContractorProfile, RepairRequest, ContractorResponse,
+    UserRole, RequestStatus, ResponseStatus,
+    TelegramBot, TelegramUser
 )
 from database import get_db
 
@@ -501,10 +504,292 @@ async def init_database_data(db_session):
         print(f"   • {rooms_count} чат комнат")
         print(f"   • {messages_count} сообщений")
         print(f"   • {folders_count} папок чатов")
+        # 8. Создаем тестовых заказчиков (компании)
+        print("🏢 Создание тестовых заказчиков...")
+        customer_result = await db_session.execute(select(CustomerProfile))
+        existing_customers = customer_result.scalars().all()
+
+        if not existing_customers:
+            # Создаем пользователей-заказчиков
+            customer_users_data = [
+                {
+                    "username": "customer1",
+                    "email": "customer1@test.com",
+                    "first_name": "Иван",
+                    "last_name": "Иванов",
+                    "middle_name": "Иванович",
+                    "phone": "+7(999)123-45-67",
+                    "company_name": "ООО РемонтСервис",
+                    "contact_person": "Иван Иванович Иванов",
+                    "company_phone": "+7(999)123-45-67",
+                    "company_email": "info@remontservice.ru",
+                    "address": "г. Москва, ул. Ленина, 10"
+                },
+                {
+                    "username": "customer2",
+                    "email": "customer2@test.com",
+                    "first_name": "Петр",
+                    "last_name": "Петров",
+                    "middle_name": "Петрович",
+                    "phone": "+7(999)987-65-43",
+                    "company_name": "ИП Петров П.П.",
+                    "contact_person": "Петр Петрович Петров",
+                    "company_phone": "+7(999)987-65-43",
+                    "company_email": "petrov@individual.ru",
+                    "address": "г. Санкт-Петербург, ул. Невский, 25"
+                }
+            ]
+
+            customer_users = []
+            customer_profiles = []
+
+            for user_data in customer_users_data:
+                # Создаем пользователя
+                customer_user = User(
+                    username=user_data["username"],
+                    email=user_data["email"],
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    middle_name=user_data["middle_name"],
+                    hashed_password=get_password_hash("customer123"),
+                    role=UserRole.CUSTOMER,
+                    phone=user_data["phone"],
+                    is_active=True
+                )
+                db_session.add(customer_user)
+                customer_users.append(customer_user)
+
+                # Создаем профиль заказчика
+                customer_profile = CustomerProfile(
+                    user_id=customer_user.id,  # Будет установлено после flush
+                    company_name=user_data["company_name"],
+                    contact_person=user_data["contact_person"],
+                    phone=user_data["company_phone"],
+                    email=user_data["company_email"],
+                    address=user_data["address"]
+                )
+                customer_profiles.append(customer_profile)
+
+            await db_session.flush()
+
+            # Устанавливаем правильные user_id для профилей
+            for i, profile in enumerate(customer_profiles):
+                profile.user_id = customer_users[i].id
+                db_session.add(profile)
+
+            await db_session.flush()
+            customers_count = len(customer_users)
+        else:
+            customers_count = len(existing_customers)
+
+        # 9. Создаем тестовых исполнителей
+        print("👷 Создание тестовых исполнителей...")
+        contractor_result = await db_session.execute(select(ContractorProfile))
+        existing_contractors = contractor_result.scalars().all()
+
+        if not existing_contractors:
+            # Создаем пользователей-исполнителей
+            contractor_users_data = [
+                {
+                    "username": "contractor1",
+                    "email": "contractor1@test.com",
+                    "first_name": "Алексей",
+                    "last_name": "Сидоров",
+                    "middle_name": "Владимирович",
+                    "phone": "+7(999)111-22-33",
+                    "specialization": "Электрик",
+                    "experience_years": 5,
+                    "skills": "Ремонт бытовой техники, электромонтажные работы"
+                },
+                {
+                    "username": "contractor2",
+                    "email": "contractor2@test.com",
+                    "first_name": "Мария",
+                    "last_name": "Кузнецова",
+                    "middle_name": "Сергеевна",
+                    "phone": "+7(999)444-55-66",
+                    "specialization": "Сантехник",
+                    "experience_years": 7,
+                    "skills": "Установка сантехники, ремонт трубопроводов"
+                }
+            ]
+
+            contractor_users = []
+            contractor_profiles = []
+
+            for user_data in contractor_users_data:
+                # Создаем пользователя
+                contractor_user = User(
+                    username=user_data["username"],
+                    email=user_data["email"],
+                    first_name=user_data["first_name"],
+                    last_name=user_data["last_name"],
+                    middle_name=user_data["middle_name"],
+                    hashed_password=get_password_hash("contractor123"),
+                    role=UserRole.CONTRACTOR,
+                    phone=user_data["phone"],
+                    is_active=True
+                )
+                db_session.add(contractor_user)
+                contractor_users.append(contractor_user)
+
+                # Создаем профиль исполнителя
+                contractor_profile = ContractorProfile(
+                    user_id=contractor_user.id,  # Будет установлено после flush
+                    specialization=user_data["specialization"],
+                    experience_years=user_data["experience_years"],
+                    skills=user_data["skills"]
+                )
+                contractor_profiles.append(contractor_profile)
+
+            await db_session.flush()
+
+            # Устанавливаем правильные user_id для профилей
+            for i, profile in enumerate(contractor_profiles):
+                profile.user_id = contractor_users[i].id
+                db_session.add(profile)
+
+            await db_session.flush()
+            contractors_count = len(contractor_users)
+        else:
+            contractors_count = len(existing_contractors)
+
+        # 10. Создаем сервисного инженера
+        print("🔧 Создание сервисного инженера...")
+        service_engineer_result = await db_session.execute(
+            select(User).where(User.role == UserRole.SERVICE_ENGINEER)
+        )
+        existing_service_engineers = service_engineer_result.scalars().all()
+
+        if not existing_service_engineers:
+            service_engineer = User(
+                username="service_engineer",
+                email="engineer@almazgeobur.ru",
+                first_name="Анна",
+                last_name="Сервисова",
+                middle_name="Игоревна",
+                hashed_password=get_password_hash("engineer123"),
+                role=UserRole.SERVICE_ENGINEER,
+                phone="+7(999)777-88-99",
+                is_active=True,
+                position="Сервисный инженер"
+            )
+            db_session.add(service_engineer)
+            await db_session.flush()
+            service_engineers_count = 1
+        else:
+            service_engineers_count = len(existing_service_engineers)
+
+        # 11. Создаем тестовые заявки на ремонт
+        print("📋 Создание тестовых заявок...")
+        requests_result = await db_session.execute(select(RepairRequest))
+        existing_requests = requests_result.scalars().all()
+
+        if not existing_requests:
+            # Получаем профили заказчиков
+            customer_profiles_result = await db_session.execute(select(CustomerProfile).limit(2))
+            customer_profiles = customer_profiles_result.scalars().all()
+
+            if customer_profiles:
+                repair_requests_data = [
+                    {
+                        "title": "Ремонт электрики в офисе",
+                        "description": "Необходимо заменить розетки и выключатели в кабинете директора. Общая площадь - 25 кв.м.",
+                        "urgency": "средне",
+                        "address": "г. Москва, ул. Тверская, 15, офис 301",
+                        "city": "Москва",
+                        "region": "Московская область",
+                        "customer_profile": customer_profiles[0]
+                    },
+                    {
+                        "title": "Установка сантехники в квартире",
+                        "description": "Требуется установка унитаза, раковины и смесителя в санузле. Замена труб водоснабжения.",
+                        "urgency": "высокая",
+                        "address": "г. Санкт-Петербург, пр. Невский, 45, кв. 12",
+                        "city": "Санкт-Петербург",
+                        "region": "Ленинградская область",
+                        "customer_profile": customer_profiles[1] if len(customer_profiles) > 1 else customer_profiles[0]
+                    }
+                ]
+
+                repair_requests = []
+                for request_data in repair_requests_data:
+                    repair_request = RepairRequest(
+                        customer_id=request_data["customer_profile"].id,
+                        title=request_data["title"],
+                        description=request_data["description"],
+                        urgency=request_data["urgency"],
+                        address=request_data["address"],
+                        city=request_data["city"],
+                        region=request_data["region"],
+                        status=RequestStatus.NEW
+                    )
+                    db_session.add(repair_request)
+                    repair_requests.append(repair_request)
+
+                await db_session.flush()
+                requests_count = len(repair_requests)
+            else:
+                requests_count = 0
+        else:
+            requests_count = len(existing_requests)
+
+        # Создание тестового Telegram бота
+        print("🤖 Создание Telegram бота...")
+        telegram_bot = TelegramBot(
+            name="Repair Bot",
+            token="123456789:AAFakeTokenForTestingPurposes123456789",  # Тестовый токен
+            is_active=True,
+            webhook_url=None
+        )
+        db_session.add(telegram_bot)
+
+        # Создание связи contractor1 с Telegram
+        contractor_result = await db_session.execute(
+            select(User).where(User.username == "contractor1")
+        )
+        contractor_user = contractor_result.scalars().first()
+
+        if contractor_user:
+            telegram_user = TelegramUser(
+                user_id=contractor_user.id,
+                telegram_id=123456789,  # Тестовый Telegram ID
+                username="contractor_test",
+                first_name="Исполнитель",
+                last_name="Тестовый",
+                is_bot_user=False
+            )
+            db_session.add(telegram_user)
+
+        await db_session.commit()
+        print("✅ Telegram бот создан")
+
         print("")
-        print("🔐 ДОСТУП К СИСТЕМЕ:")
+        print("🎉 ДОСТУП К СИСТЕМЕ:")
         print("   Admin: admin / admin123")
         print("   Test:  testuser / test123")
+        print("   Заказчик: customer1 / customer123")
+        print("   Исполнитель: contractor1 / contractor123")
+        print("   Сервисный инженер: service_engineer / engineer123")
+        print("")
+        print("📊 СТАТИСТИКА СОЗДАННЫХ ДАННЫХ:")
+        print(f"   • {len(departments)} отделов")
+        print(f"   • {users_count} пользователей")
+        print(f"   • {employees_count} сотрудников компании")
+        print(f"   • {nomenclatures_count} позиций номенклатуры")
+        print(f"   • {passports_count} ВЭД паспортов")
+        print(f"   • {news_count} новостей")
+        print(f"   • {events_count} событий")
+        print(f"   • {len(bots)} чат ботов")
+        print(f"   • {rooms_count} чат комнат")
+        print(f"   • {messages_count} сообщений")
+        print(f"   • {folders_count} папок чатов")
+        print(f"   • {customers_count} заказчиков")
+        print(f"   • {contractors_count} исполнителей")
+        print(f"   • {service_engineers_count} сервисных инженеров")
+        print(f"   • {requests_count} заявок на ремонт")
+        print("   • 1 Telegram бот")
+        print("   • 1 Telegram пользователь")
 
     except Exception as e:
         print(f"❌ Ошибка инициализации данных: {e}")

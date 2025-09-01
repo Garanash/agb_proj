@@ -69,7 +69,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          fetch(`${getApiUrl()}/api/users/chat-users/`, {
+          fetch(`${getApiUrl()}/api/users/chat-users`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

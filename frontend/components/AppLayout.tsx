@@ -14,8 +14,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   
   console.log('AppLayout rendered:', { pathname })
   
-  // Если находимся на странице входа, не показываем сайдбар
-  if (pathname === '/login') {
+  // Если находимся на странице входа или регистрации, не показываем сайдбар
+  if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>
   }
 

@@ -1,15 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import func
+import pandas as pd
+from io import BytesIO
+from pydantic import BaseModel
+import asyncio
+from asyncio import TimeoutError
 
 from database import get_db
 from models import User, UserRole, VEDNomenclature, VedPassport
 from schemas import (
-    VEDNomenclature as VEDNomenclatureSchema, 
+    VEDNomenclature as VEDNomenclatureSchema,
     VedPassport as VedPassportSchema,
     VedPassportCreate,
     VedPassportUpdate,
@@ -17,6 +22,43 @@ from schemas import (
     PassportGenerationResult
 )
 from routers.auth import get_current_user
+
+
+class NomenclatureImportItem(BaseModel):
+    code_1c: str
+    name: str
+    article: str
+    matrix: str
+    drilling_depth: Optional[str] = None
+    height: Optional[str] = None
+    thread: Optional[str] = None
+
+
+class NomenclatureImportResult(BaseModel):
+    success: bool
+    message: str
+    imported_count: int
+    skipped_count: int
+    errors: List[str] = []
+
+
+async def retry_operation(operation, max_retries=3, delay=1.0, timeout=30.0):
+    """Функция для повторных попыток выполнения операции с таймаутом"""
+    for attempt in range(max_retries):
+        try:
+            return await asyncio.wait_for(operation(), timeout=timeout)
+        except (TimeoutError, Exception) as e:
+            if attempt == max_retries - 1:
+                raise e
+            print(f"Попытка {attempt + 1} не удалась: {e}. Повтор через {delay} сек.")
+            await asyncio.sleep(delay)
+            delay *= 2  # Экспоненциальная задержка
+
+
+async def safe_db_operation(db_operation, max_retries=3):
+    """Безопасное выполнение операции с базой данных"""
+    return await retry_operation(db_operation, max_retries=max_retries)
+
 
 router = APIRouter()
 
@@ -162,75 +204,174 @@ async def create_bulk_passports(
     """Создание нескольких паспортов ВЭД из списка позиций"""
     if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    
+
     created_passports = []
     errors = []
-    
+    BATCH_SIZE = 20  # Уменьшаем размер батча для меньшей нагрузки
+    MAX_TOTAL_ITEMS = 100  # Уменьшаем максимум для стабильности
+    MAX_ITEMS_TYPES = 25  # Уменьшаем максимум типов позиций
+
     try:
+        # Проверяем размер пакета
+        total_items = sum(item.get('quantity', 1) for item in bulk_data.items)
+        if total_items > MAX_TOTAL_ITEMS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Слишком много паспортов для создания за раз. Максимум: {MAX_TOTAL_ITEMS}, запрошено: {total_items}"
+            )
+
+        # Проверяем, что общее количество не превышает разумные пределы
+        if len(bulk_data.items) > MAX_ITEMS_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Слишком много разных позиций. Максимум: {MAX_ITEMS_TYPES}, запрошено: {len(bulk_data.items)}"
+            )
+
+        # Предварительная проверка всех позиций
+        valid_items = []
         for item in bulk_data.items:
+            code_1c = item.get('code_1c')
+            quantity = item.get('quantity', 1)
+
+            if not code_1c:
+                errors.append(f"Отсутствует код 1С для позиции: {item}")
+                continue
+
+            if quantity > BATCH_SIZE:
+                errors.append(f"Слишком большое количество для позиции {code_1c}: {quantity}. Максимум: {BATCH_SIZE}")
+                continue
+
+            valid_items.append((code_1c, quantity))
+
+        if not valid_items:
+            return PassportGenerationResult(
+                success=False,
+                message="Нет допустимых позиций для создания паспортов",
+                errors=errors
+            )
+
+        # Обрабатываем позиции пакетами
+        current_batch = []
+        batch_count = 0
+        total_processed = 0
+        total_to_process = sum(quantity for _, quantity in valid_items)
+
+        print(f"🚀 Начало создания {total_to_process} паспортов...")
+
+        for idx, (code_1c, quantity) in enumerate(valid_items):
             try:
-                code_1c = item.get('code_1c')
-                quantity = item.get('quantity', 1)
-                
-                if not code_1c:
-                    errors.append(f"Отсутствует код 1С для позиции: {item}")
-                    continue
-                
                 # Получаем номенклатуру по коду 1С
                 result = await db.execute(
                     select(VEDNomenclature).where(VEDNomenclature.code_1c == code_1c)
                 )
                 nomenclature = result.scalar_one_or_none()
-                
+
                 if not nomenclature:
                     errors.append(f"Номенклатура с кодом 1С {code_1c} не найдена")
                     continue
-                
+
                 # Создаем паспорт для каждого количества
-                for _ in range(quantity):
-                    passport_number = await VedPassport.generate_passport_number(
-                        db=db,
-                        matrix=nomenclature.matrix,
-                        drilling_depth=nomenclature.drilling_depth
-                    )
+                for i in range(quantity):
+                    try:
+                        # Генерируем номер паспорта с повторными попытками
+                        async def generate_number():
+                            return await VedPassport.generate_passport_number(
+                                db=db,
+                                matrix=nomenclature.matrix,
+                                drilling_depth=nomenclature.drilling_depth
+                            )
 
-                    print(f"DEBUG: Created bulk passport with number: {passport_number}")
+                        passport_number = await safe_db_operation(generate_number)
 
-                    # Генерируем заголовок на основе номенклатуры, если не передан
-                    title = bulk_data.title
-                    if not title:
-                        title = f"Паспорт ВЭД {nomenclature.name} {nomenclature.matrix}"
-                        if nomenclature.drilling_depth:
-                            title += f" {nomenclature.drilling_depth}"
+                        # Проверяем уникальность номера (дополнительная проверка)
+                        async def check_unique():
+                            result = await db.execute(
+                                select(VedPassport).where(VedPassport.passport_number == passport_number)
+                            )
+                            return result.scalar_one_or_none() is None
 
-                    new_passport = VedPassport(
-                        passport_number=passport_number,
-                        title=title,
-                        order_number=bulk_data.order_number,
-                        nomenclature_id=nomenclature.id,
-                        quantity=1,
-                        created_by=current_user.id
-                    )
-                    
-                    db.add(new_passport)
-                    created_passports.append(new_passport)
-                
+                        if not await safe_db_operation(check_unique):
+                            errors.append(f"Номер паспорта {passport_number} уже существует, генерируем новый")
+                            continue
+
+                        # Генерируем заголовок на основе номенклатуры, если не передан
+                        title = bulk_data.title
+                        if not title:
+                            title = f"Паспорт ВЭД {nomenclature.name} {nomenclature.matrix}"
+                            if nomenclature.drilling_depth:
+                                title += f" {nomenclature.drilling_depth}"
+
+                        new_passport = VedPassport(
+                            passport_number=passport_number,
+                            title=title,
+                            order_number=bulk_data.order_number,
+                            nomenclature_id=nomenclature.id,
+                            quantity=1,
+                            created_by=current_user.id
+                        )
+
+                        current_batch.append(new_passport)
+                        batch_count += 1
+                        total_processed += 1
+
+                        # Коммитим пакетами для избежания перегрузки памяти
+                        if batch_count >= BATCH_SIZE:
+                            async def flush_batch():
+                                for passport in current_batch:
+                                    db.add(passport)
+                                await db.flush()
+
+                            await safe_db_operation(flush_batch)
+                            created_passports.extend(current_batch)
+                            current_batch = []
+                            batch_count = 0
+
+                            # Показываем прогресс
+                            progress = (total_processed / total_to_process) * 100
+                            print(".1f")
+
+                    except Exception as e:
+                        errors.append(f"Ошибка при создании паспорта {i+1} для {code_1c}: {str(e)}")
+                        continue
+
             except Exception as e:
-                errors.append(f"Ошибка при создании паспорта для {item}: {str(e)}")
+                errors.append(f"Ошибка при обработке позиции {code_1c}: {str(e)}")
                 continue
-        
+
+        # Обрабатываем оставшиеся паспорта в батче
+        if current_batch:
+            async def flush_remaining_batch():
+                for passport in current_batch:
+                    db.add(passport)
+                await db.flush()
+
+            await safe_db_operation(flush_remaining_batch)
+            created_passports.extend(current_batch)
+
         if created_passports:
-            await db.commit()
-            
-            # Получаем полные данные созданных паспортов
-            passport_ids = [p.id for p in created_passports]
-            result = await db.execute(
-                select(VedPassport)
-                .options(joinedload(VedPassport.nomenclature))
-                .where(VedPassport.id.in_(passport_ids))
-            )
-            full_passports = result.scalars().all()
-            
+            async def final_commit():
+                await db.commit()
+
+            await safe_db_operation(final_commit)
+
+            # Получаем полные данные созданных паспортов пакетами
+            full_passports = []
+            for i in range(0, len(created_passports), 50):  # Получаем по 50 паспортов
+                batch_ids = [p.id for p in created_passports[i:i+50]]
+
+                async def get_batch_passports():
+                    result = await db.execute(
+                        select(VedPassport)
+                        .options(joinedload(VedPassport.nomenclature))
+                        .where(VedPassport.id.in_(batch_ids))
+                    )
+                    return result.scalars().all()
+
+                batch_passports = await safe_db_operation(get_batch_passports)
+                full_passports.extend(batch_passports)
+
+            print(f"✅ Успешно создано {len(created_passports)} паспортов из {total_to_process}")
+
             return PassportGenerationResult(
                 success=True,
                 message=f"Создано {len(created_passports)} паспортов",
@@ -238,12 +379,20 @@ async def create_bulk_passports(
                 errors=errors
             )
         else:
+            async def rollback_db():
+                await db.rollback()
+
+            await safe_db_operation(rollback_db)
+            print(f"❌ Не удалось создать ни одного паспорта. Всего ошибок: {len(errors)}")
+
             return PassportGenerationResult(
                 success=False,
                 message="Не удалось создать ни одного паспорта",
                 errors=errors
             )
-            
+
+    except HTTPException:
+        raise
     except Exception as e:
         await db.rollback()
         print(f"Ошибка при массовом создании паспортов: {e}")
@@ -582,3 +731,292 @@ async def get_archive_filters(
     except Exception as e:
         print(f"Ошибка при получении фильтров: {e}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.delete("/nomenclature/{nomenclature_id}")
+async def delete_nomenclature(
+    nomenclature_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удаление номенклатуры ВЭД"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        # Получаем номенклатуру
+        result = await db.execute(
+            select(VEDNomenclature).where(VEDNomenclature.id == nomenclature_id)
+        )
+        nomenclature = result.scalar_one_or_none()
+
+        if not nomenclature:
+            raise HTTPException(status_code=404, detail="Номенклатура не найдена")
+
+        # Проверяем, есть ли связанные паспорта
+        passports_result = await db.execute(
+            select(VedPassport).where(VedPassport.nomenclature_id == nomenclature_id)
+        )
+        related_passports = passports_result.scalars().all()
+
+        # Удаляем связанные паспорта
+        for passport in related_passports:
+            await db.delete(passport)
+
+        # Удаляем номенклатуру
+        await db.delete(nomenclature)
+
+        # Сохраняем изменения
+        await db.commit()
+
+        return {
+            "message": f"Номенклатура {nomenclature.code_1c} и {len(related_passports)} связанных паспортов удалены",
+            "deleted_passports": len(related_passports)
+        }
+
+    except Exception as e:
+        await db.rollback()
+        print(f"Ошибка при удалении номенклатуры: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении: {str(e)}")
+
+
+@router.post("/nomenclature/import/", response_model=NomenclatureImportResult)
+async def import_nomenclature(
+    items: List[NomenclatureImportItem],
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Импорт номенклатуры ВЭД из списка"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    imported_count = 0
+    skipped_count = 0
+    errors = []
+
+    try:
+        for item in items:
+            try:
+                # Проверяем, существует ли уже такая номенклатура
+                existing = await db.execute(
+                    select(VEDNomenclature).where(VEDNomenclature.code_1c == item.code_1c)
+                )
+                existing_item = existing.scalar_one_or_none()
+
+                if existing_item:
+                    # Обновляем существующую номенклатуру
+                    existing_item.name = item.name
+                    existing_item.article = item.article
+                    existing_item.matrix = item.matrix
+                    existing_item.drilling_depth = item.drilling_depth
+                    existing_item.height = item.height
+                    existing_item.thread = item.thread
+                    existing_item.is_active = True
+                    skipped_count += 1
+                else:
+                    # Определяем тип продукта на основе наименования
+                    product_type = "коронка"  # по умолчанию
+                    if "расширитель" in item.name.lower():
+                        product_type = "расширитель"
+                    elif "башмак" in item.name.lower():
+                        product_type = "башмак"
+
+                    # Создаем новую номенклатуру
+                    new_item = VEDNomenclature(
+                        code_1c=item.code_1c,
+                        name=item.name,
+                        article=item.article,
+                        matrix=item.matrix,
+                        drilling_depth=item.drilling_depth,
+                        height=item.height,
+                        thread=item.thread,
+                        product_type=product_type,
+                        is_active=True
+                    )
+                    db.add(new_item)
+                    imported_count += 1
+
+            except Exception as e:
+                errors.append(f"Ошибка при импорте {item.code_1c}: {str(e)}")
+                continue
+
+        if imported_count > 0 or skipped_count > 0:
+            await db.commit()
+
+            message = f"Импорт завершен: добавлено {imported_count}, обновлено {skipped_count}"
+            if errors:
+                message += f", ошибок: {len(errors)}"
+
+            return NomenclatureImportResult(
+                success=True,
+                message=message,
+                imported_count=imported_count,
+                skipped_count=skipped_count,
+                errors=errors
+            )
+        else:
+            return NomenclatureImportResult(
+                success=False,
+                message="Не удалось импортировать ни одной позиции",
+                imported_count=0,
+                skipped_count=0,
+                errors=errors
+            )
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при импорте: {str(e)}")
+
+
+@router.get("/export/excel")
+async def export_passports_to_excel(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    matrix: Optional[str] = None,
+    drilling_depth: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Экспорт паспортов ВЭД в Excel"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        # Формируем запрос с фильтрами
+        query = select(VedPassport).options(
+            joinedload(VedPassport.nomenclature),
+            joinedload(VedPassport.creator)
+        )
+
+        if start_date:
+            query = query.where(VedPassport.created_at >= start_date)
+        if end_date:
+            query = query.where(VedPassport.created_at <= end_date)
+        if matrix:
+            query = query.where(VEDNomenclature.matrix == matrix)
+        if drilling_depth:
+            query = query.where(VEDNomenclature.drilling_depth == drilling_depth)
+
+        result = await db.execute(query)
+        passports = result.scalars().all()
+
+        # Создаем DataFrame для экспорта
+        data = []
+        for passport in passports:
+            data.append({
+                'Номер паспорта': passport.passport_number,
+                'Заголовок': passport.title,
+                'Номер заказа': passport.order_number or '',
+                'Матрица': passport.nomenclature.matrix if passport.nomenclature else '',
+                'Глубина бурения': passport.nomenclature.drilling_depth if passport.nomenclature else '',
+                'Название': passport.nomenclature.name if passport.nomenclature else '',
+                'Количество': passport.quantity,
+                'Статус': passport.status,
+                'Дата создания': passport.created_at.strftime('%d.%m.%Y %H:%M') if passport.created_at else '',
+                'Создал': f"{passport.creator.last_name} {passport.creator.first_name}" if passport.creator else ''
+            })
+
+        df = pd.DataFrame(data)
+
+        # Создаем Excel файл в памяти
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Паспорта ВЭД', index=False)
+
+            # Настраиваем ширину колонок
+            worksheet = writer.sheets['Паспорта ВЭД']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                worksheet.column_dimensions[column_letter].width = min(adjusted_width, 50)
+
+        output.seek(0)
+
+        # Возвращаем файл
+        return Response(
+            content=output.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={
+                'Content-Disposition': f'attachment; filename=ved_passports_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            }
+        )
+
+    except Exception as e:
+        print(f"Ошибка при экспорте в Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при экспорте: {str(e)}")
+
+
+@router.get("/nomenclature/export/excel")
+async def export_nomenclature_to_excel(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Экспорт номенклатуры ВЭД в Excel"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    try:
+        # Получаем всю активную номенклатуру
+        result = await db.execute(
+            select(VEDNomenclature).where(VEDNomenclature.is_active == True)
+        )
+        nomenclature = result.scalars().all()
+
+        # Создаем DataFrame для экспорта
+        data = []
+        for item in nomenclature:
+            data.append({
+                'Код 1С': item.code_1c,
+                'Название': item.name,
+                'Матрица': item.matrix,
+                'Глубина бурения': item.drilling_depth or '',
+                'Диаметр': item.diameter or '',
+                'Длина': item.length or '',
+                'Описание': item.description or '',
+                'Активен': 'Да' if item.is_active else 'Нет',
+                'Дата создания': item.created_at.strftime('%d.%m.%Y %H:%M') if item.created_at else ''
+            })
+
+        df = pd.DataFrame(data)
+
+        # Создаем Excel файл в памяти
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='Номенклатура ВЭД', index=False)
+
+            # Настраиваем ширину колонок
+            worksheet = writer.sheets['Номенклатура ВЭД']
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                worksheet.column_dimensions[column_letter].width = min(adjusted_width, 50)
+
+        output.seek(0)
+
+        # Возвращаем файл
+        return Response(
+            content=output.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={
+                'Content-Disposition': f'attachment; filename=ved_nomenclature_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            }
+        )
+
+    except Exception as e:
+        print(f"Ошибка при экспорте номенклатуры в Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при экспорте: {str(e)}")

@@ -43,8 +43,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     )
   }
 
-  // Если на странице входа, показываем её всегда
-  if (pathname === '/login') {
+  // Если на странице входа или регистрации, показываем их всегда
+  if (pathname === '/login' || pathname === '/register') {
     return <>{children}</>
   }
 

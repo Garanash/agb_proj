@@ -4,7 +4,7 @@ from sqlalchemy import select, and_
 from typing import List
 
 from database import get_db
-from models import CompanyEmployee, Department, User
+from models import CompanyEmployee, Department, User, UserRole
 from schemas import CompanyEmployee as CompanyEmployeeSchema, CompanyEmployeeList, CompanyEmployeeCreateResponse, CompanyEmployeeCreate, CompanyEmployeeUpdate
 from routers.auth import get_current_user
 
@@ -18,7 +18,7 @@ async def create_company_employee(
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нового сотрудника компании"""
-    if current_user.role not in ['admin', 'manager']:
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Проверяем существование отдела
@@ -85,7 +85,7 @@ async def update_company_employee(
     db: AsyncSession = Depends(get_db)
 ):
     """Обновление сотрудника компании"""
-    if current_user.role not in ['admin', 'manager']:
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     result = await db.execute(select(CompanyEmployee).where(CompanyEmployee.id == employee_id))
@@ -117,7 +117,7 @@ async def delete_company_employee(
     db: AsyncSession = Depends(get_db)
 ):
     """Удаление сотрудника компании"""
-    if current_user.role not in ['admin', 'manager']:
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     result = await db.execute(select(CompanyEmployee).where(CompanyEmployee.id == employee_id))

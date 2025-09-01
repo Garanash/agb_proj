@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from typing import List
 
 from database import get_db
-from models import ChatFolder, ChatRoom, ChatRoomFolder, User
+from models import ChatFolder, ChatRoom, ChatRoomFolder, ChatParticipant, User
 from schemas import (
     ChatFolder as ChatFolderSchema,
     ChatFolderCreate,
@@ -180,10 +180,10 @@ async def add_room_to_folder(
     # Проверяем существование чата и права доступа
     result = await db.execute(
         select(ChatRoom)
-        .join(ChatRoomParticipant)
+        .join(ChatParticipant)
         .where(and_(
             ChatRoom.id == room_data.room_id,
-            ChatRoomParticipant.user_id == current_user.id
+            ChatParticipant.user_id == current_user.id
         ))
     )
     room = result.scalar_one_or_none()

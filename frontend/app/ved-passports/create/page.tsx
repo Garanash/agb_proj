@@ -108,46 +108,50 @@ export default function CreateVEDPassportPage() {
     setSuccessMessage('')
 
     try {
-      // Создаем паспорт для каждого экземпляра
-      const passports: CreatedPassport[] = []
-      
-      for (let i = 0; i < formData.quantity; i++) {
-        const response = await fetch(`${getApiUrl()}/api/ved-passports/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            order_number: formData.orderNumber,
-            nomenclature_id: formData.nomenclatureId,
-            quantity: 1 // Каждый паспорт для одного экземпляра
-          })
+      // Используем bulk API даже для одного паспорта для оптимизации
+      const response = await fetch(`${getApiUrl()}/api/ved-passports/bulk/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          order_number: formData.orderNumber,
+          title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : undefined,
+          items: [{
+            code_1c: selectedNomenclature?.code_1c,
+            quantity: formData.quantity
+          }]
         })
+      })
 
-        if (response.ok) {
-          const result = await response.json()
-          passports.push({
-            id: result.id,
-            passport_number: result.passport_number, // Используем номер с бэкенда
-            order_number: result.order_number,
-            nomenclature: selectedNomenclature!,
-            quantity: 1,
-            status: result.status,
-            created_at: result.created_at
-          })
-        } else {
-          const errorData = await response.json()
-          throw new Error(errorData.detail || 'Произошла ошибка при создании паспорта')
+      if (response.ok) {
+        const result = await response.json()
+
+        // Преобразуем результат bulk API в формат для отображения
+        const passports: CreatedPassport[] = result.passports.map((passport: any) => ({
+          id: passport.id,
+          passport_number: passport.passport_number,
+          order_number: passport.order_number,
+          nomenclature: selectedNomenclature!,
+          quantity: 1,
+          status: passport.status,
+          created_at: passport.created_at
+        }))
+
+        // Добавляем созданные паспорты к списку
+        setCreatedPassports(prev => [...passports, ...prev])
+        setSuccessMessage(`Успешно создано ${passports.length} паспортов ВЭД!`)
+
+        // Показываем ошибки если они есть
+        if (result.errors && result.errors.length > 0) {
+          console.warn('Предупреждения при создании:', result.errors)
         }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Произошла ошибка при создании паспорта')
       }
 
-      // Добавляем созданные паспорты к списку
-      setCreatedPassports(prev => [...passports, ...prev])
-      setSuccessMessage(`Успешно создано ${passports.length} паспортов ВЭД!`)
-      
-      // Счетчик паспортов обновляется автоматически на бэкенде
-      
       // Очищаем форму
       setFormData({
         orderNumber: '',
@@ -185,47 +189,60 @@ export default function CreateVEDPassportPage() {
     setSuccessMessage('')
 
     try {
-      const allPassports: CreatedPassport[] = []
-      
-      // Создаем паспорты для каждой позиции
-      for (const item of validItems) {
-        // Создаем паспорт для каждого экземпляра
-        for (let i = 0; i < item.quantity; i++) {
-          const response = await fetch(`${getApiUrl()}/api/ved-passports/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              order_number: formData.orderNumber || 'BULK-ORDER',
-              nomenclature_id: item.nomenclature!.id,
-              quantity: 1 // Каждый паспорт для одного экземпляра
-            })
-          })
+      // Преобразуем bulkItems в формат для bulk API
+      const bulkRequestItems = validItems.map(item => ({
+        code_1c: item.nomenclature!.code_1c,
+        quantity: item.quantity
+      }))
 
-          if (response.ok) {
-            const result = await response.json()
-            allPassports.push({
-              id: result.id,
-              passport_number: result.passport_number, // Используем номер с бэкенда
-              order_number: result.order_number,
-              nomenclature: item.nomenclature!,
-              quantity: 1,
-              status: result.status,
-              created_at: result.created_at
-            })
-          } else {
-            const errorData = await response.json()
-            throw new Error(errorData.detail || 'Произошла ошибка при создании паспорта')
+      const response = await fetch(`${getApiUrl()}/api/ved-passports/bulk/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          order_number: formData.orderNumber || 'BULK-ORDER',
+          title: 'Массовое создание паспортов ВЭД',
+          items: bulkRequestItems
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+
+        // Преобразуем результат bulk API в формат для отображения
+        const allPassports: CreatedPassport[] = result.passports.map((passport: any) => {
+          // Находим соответствующую номенклатуру для этого паспорта
+          const nomenclature = validItems.find(item =>
+            item.nomenclature!.code_1c === passport.nomenclature.code_1c
+          )?.nomenclature!
+
+          return {
+            id: passport.id,
+            passport_number: passport.passport_number,
+            order_number: passport.order_number,
+            nomenclature: nomenclature,
+            quantity: 1,
+            status: passport.status,
+            created_at: passport.created_at
           }
+        })
+
+        // Добавляем созданные паспорты к списку
+        setCreatedPassports(prev => [...allPassports, ...prev])
+        setSuccessMessage(`Успешно создано ${allPassports.length} паспортов ВЭД!`)
+
+        // Показываем ошибки если они есть
+        if (result.errors && result.errors.length > 0) {
+          console.warn('Предупреждения при создании:', result.errors)
+          // Можно добавить отображение ошибок пользователю
         }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.detail || 'Произошла ошибка при массовом создании паспортов')
       }
 
-      // Добавляем созданные паспорты к списку
-      setCreatedPassports(prev => [...allPassports, ...prev])
-      setSuccessMessage(`Успешно создано ${allPassports.length} паспортов ВЭД!`)
-      
       // Очищаем форму
       setFormData({
         orderNumber: '',
