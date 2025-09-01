@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils/api'
+import LoginSuccessModal from './LoginSuccessModal'
 
 interface ContractorRegistrationFormProps {
   onSuccess?: () => void
@@ -20,25 +21,15 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
     middle_name: '',
     phone: '',
 
-    // Паспортные данные
-    passport_series: '',
-    passport_number: '',
-    passport_issued_by: '',
-    passport_issued_date: '',
-    passport_division_code: '',
-
-    // Адрес
-    registration_address: '',
-
     // Профессиональные данные
-    specialization: '',
-    experience_years: '',
-    skills: ''
+    specialization: ''
   })
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [generatedUsername, setGeneratedUsername] = useState('')
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -81,15 +72,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         last_name: formData.last_name,
         middle_name: formData.middle_name,
         phone: formData.phone,
-        passport_series: formData.passport_series || undefined,
-        passport_number: formData.passport_number || undefined,
-        passport_issued_by: formData.passport_issued_by || undefined,
-        passport_issued_date: formData.passport_issued_date || undefined,
-        passport_division_code: formData.passport_division_code || undefined,
-        registration_address: formData.registration_address || undefined,
-        specialization: formData.specialization,
-        experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined,
-        skills: formData.skills || undefined
+        specialization: formData.specialization
       }
 
       const response = await fetch(`${getApiUrl()}/api/contractors/register`, {
@@ -102,17 +85,12 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
 
       if (response.ok) {
         const result = await response.json()
-        setSuccess(`Регистрация успешна! Ваш логин: ${result.username}\n\nСсылка на Telegram бота будет доступна в личном кабинете после входа в систему.`)
+        setGeneratedUsername(result.username)
+        setShowLoginModal(true)
         setFormData({
           email: '', password: '', confirmPassword: '', first_name: '', last_name: '', middle_name: '',
-          phone: '', passport_series: '', passport_number: '', passport_issued_by: '',
-          passport_issued_date: '', passport_division_code: '', registration_address: '',
-          specialization: '', experience_years: '', skills: ''
+          phone: '', specialization: ''
         })
-
-        setTimeout(() => {
-          onSuccess?.()
-        }, 3000)
       } else {
         const errorData = await response.json()
         setError(errorData.detail || 'Ошибка при регистрации')
@@ -141,269 +119,154 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         </div>
       )}
 
-      {success && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-green-800 whitespace-pre-line">{success}</p>
-        </div>
-      )}
+
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Данные пользователя */}
+        {/* Фамилия */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Личные данные</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
-                Имя *
-              </label>
-              <input
-                type="text"
-                id="first_name"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
-                Фамилия *
-              </label>
-              <input
-                type="text"
-                id="last_name"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="middle_name" className="block text-sm font-medium text-gray-700 mb-1">
-                Отчество
-              </label>
-              <input
-                type="text"
-                id="middle_name"
-                name="middle_name"
-                value={formData.middle_name}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Телефон
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="+7(999)123-45-67"
-              />
-            </div>
-          </div>
+          <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-2">
+            Фамилия *
+          </label>
+          <input
+            type="text"
+            id="last_name"
+            name="last_name"
+            value={formData.last_name}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Введите вашу фамилию"
+            required
+          />
         </div>
 
-        {/* Данные для входа */}
+        {/* Имя */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Данные для входа</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email *
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Пароль *
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Подтверждение пароля *
-              </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
+          <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-2">
+            Имя *
+          </label>
+          <input
+            type="text"
+            id="first_name"
+            name="first_name"
+            value={formData.first_name}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Введите ваше имя"
+            required
+          />
         </div>
 
-        {/* Паспортные данные */}
+        {/* Отчество */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Паспортные данные</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="passport_series" className="block text-sm font-medium text-gray-700 mb-1">
-                Серия паспорта
-              </label>
-              <input
-                type="text"
-                id="passport_series"
-                name="passport_series"
-                value={formData.passport_series}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="1234"
-              />
-            </div>
-            <div>
-              <label htmlFor="passport_number" className="block text-sm font-medium text-gray-700 mb-1">
-                Номер паспорта
-              </label>
-              <input
-                type="text"
-                id="passport_number"
-                name="passport_number"
-                value={formData.passport_number}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="567890"
-              />
-            </div>
-            <div>
-              <label htmlFor="passport_issued_by" className="block text-sm font-medium text-gray-700 mb-1">
-                Кем выдан
-              </label>
-              <input
-                type="text"
-                id="passport_issued_by"
-                name="passport_issued_by"
-                value={formData.passport_issued_by}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="passport_issued_date" className="block text-sm font-medium text-gray-700 mb-1">
-                Дата выдачи
-              </label>
-              <input
-                type="date"
-                id="passport_issued_date"
-                name="passport_issued_date"
-                value={formData.passport_issued_date}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="passport_division_code" className="block text-sm font-medium text-gray-700 mb-1">
-                Код подразделения
-              </label>
-              <input
-                type="text"
-                id="passport_division_code"
-                name="passport_division_code"
-                value={formData.passport_division_code}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="123-456"
-              />
-            </div>
-            <div>
-              <label htmlFor="registration_address" className="block text-sm font-medium text-gray-700 mb-1">
-                Адрес регистрации
-              </label>
-              <input
-                type="text"
-                id="registration_address"
-                name="registration_address"
-                value={formData.registration_address}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          <label htmlFor="middle_name" className="block text-sm font-medium text-gray-700 mb-2">
+            Отчество
+          </label>
+          <input
+            type="text"
+            id="middle_name"
+            name="middle_name"
+            value={formData.middle_name}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Введите ваше отчество"
+          />
         </div>
 
-        {/* Профессиональные данные */}
+        {/* Телефон */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Профессиональные данные</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="specialization" className="block text-sm font-medium text-gray-700 mb-1">
-                Специализация *
-              </label>
-              <select
-                id="specialization"
-                name="specialization"
-                value={formData.specialization}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Выберите специализацию</option>
-                <option value="Электрик">Электрик</option>
-                <option value="Сантехник">Сантехник</option>
-                <option value="Плотник">Плотник</option>
-                <option value="Маляр">Маляр</option>
-                <option value="Штукатур">Штукатур</option>
-                <option value="Каменщик">Каменщик</option>
-                <option value="Кровельщик">Кровельщик</option>
-                <option value="Универсал">Универсал</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="experience_years" className="block text-sm font-medium text-gray-700 mb-1">
-                Стаж работы (лет)
-              </label>
-              <input
-                type="number"
-                id="experience_years"
-                name="experience_years"
-                value={formData.experience_years}
-                onChange={handleInputChange}
-                min="0"
-                max="50"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
-                Навыки и опыт
-              </label>
-              <textarea
-                id="skills"
-                name="skills"
-                value={formData.skills}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Опишите ваши навыки, опыт работы, используемое оборудование..."
-              />
-            </div>
-          </div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+            Телефон
+          </label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="+7(999)123-45-67"
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            Email *
+          </label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="your.email@example.com"
+            required
+          />
+        </div>
+
+        {/* Пароль */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            Пароль *
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            value={formData.password}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Минимум 6 символов"
+            required
+          />
+        </div>
+
+        {/* Подтверждение пароля */}
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            Подтверждение пароля *
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Повторите пароль"
+            required
+          />
+        </div>
+
+
+        {/* Специализация */}
+        <div>
+          <label htmlFor="specialization" className="block text-sm font-medium text-gray-700 mb-2">
+            Специализация *
+          </label>
+          <select
+            id="specialization"
+            name="specialization"
+            value={formData.specialization}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Выберите вашу специализацию</option>
+            <option value="Электрик">Электрик (электросистемы, электроника)</option>
+            <option value="Гидравлик">Гидравлик (гидросистемы, насосы)</option>
+            <option value="Двигателист">Двигателист (двигатели, моторы)</option>
+            <option value="Механик">Механик (механические узлы, трансмиссия)</option>
+            <option value="Ходовая часть">Специалист по ходовой части</option>
+            <option value="Рабочее оборудование">Специалист по рабочему оборудованию</option>
+            <option value="Системы управления">Специалист по системам управления</option>
+            <option value="Пневматика">Специалист по пневматике</option>
+            <option value="Тормозные системы">Специалист по тормозным системам</option>
+            <option value="Топливные системы">Специалист по топливным системам</option>
+            <option value="Диагностика">Диагностика и контроль</option>
+            <option value="Универсал">Универсал (многофункциональный специалист)</option>
+          </select>
         </div>
 
         {/* Кнопки */}
@@ -417,6 +280,17 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
           </button>
         </div>
       </form>
+
+      {/* Модальное окно с логином */}
+      <LoginSuccessModal
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false)
+          onSuccess?.()
+        }}
+        username={generatedUsername}
+        userType="contractor"
+      />
     </div>
   )
 }
