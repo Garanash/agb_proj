@@ -1,0 +1,59 @@
+# Оптимизированный Dockerfile для production с минимальным использованием места
+FROM node:18-alpine AS base
+
+# Устанавливаем только необходимые зависимости
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Копируем package files
+COPY package.json package-lock.json* ./
+
+# Устанавливаем только production зависимости
+RUN npm ci --only=production --no-audit --no-fund
+
+# Пересобираем исходный код только при необходимости
+FROM base AS builder
+WORKDIR /app
+
+# Копируем зависимости
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Собираем приложение с оптимизациями
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV production
+
+# Создаем .next/standalone для минимального размера
+RUN npm run build
+
+# Production image - минимальный размер
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Создаем пользователя
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Копируем только необходимые файлы
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Устанавливаем правильные права
+RUN chown -R nextjs:nodejs /app
+USER nextjs
+
+EXPOSE 3000
+
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1
+
+CMD ["node", "server.js"]
