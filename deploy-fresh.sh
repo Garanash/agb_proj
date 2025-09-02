@@ -5,7 +5,7 @@
 
 set -e
 
-echo "🚀 AGB Project - Развертывание на новой машине"
+echo "🚀 Test Platform - Развертывание на новой машине"
 echo "=============================================="
 
 # Проверяем наличие Docker и Docker Compose
@@ -24,9 +24,9 @@ if [ ! -f ".env" ]; then
     echo "⚠️  Файл .env не найден. Создаем базовый .env файл..."
     cat > .env << EOF
 # База данных
-POSTGRES_DB=agb_felix
-POSTGRES_USER=felix_user
-POSTGRES_PASSWORD=felix_password
+POSTGRES_DB=test_platform_db
+POSTGRES_USER=test_user
+POSTGRES_PASSWORD=test_password
 
 # FastAPI
 SECRET_KEY=your-super-secret-key-change-this-in-production

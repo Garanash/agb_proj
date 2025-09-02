@@ -2,23 +2,23 @@ services:
   # PostgreSQL
   postgres:
     image: postgres:15-alpine
-    container_name: agb_postgres
+    container_name: test_platform_postgres
     env_file:
       - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-agb_felix}
-      POSTGRES_USER: ${POSTGRES_USER:-felix_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-felix_password}
+      POSTGRES_DB: ${POSTGRES_DB:-test_platform_db}
+      POSTGRES_USER: ${POSTGRES_USER:-test_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-test_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "15432:5432"
     networks:
-      - app-network
+      - test-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-felix_user} -d ${POSTGRES_DB:-agb_felix}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-test_user} -d ${POSTGRES_DB:-test_platform_db}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,11 +28,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: agb_backend
+    container_name: test_platform_backend
+    command: ["./start.sh"]
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-felix_user}:${POSTGRES_PASSWORD:-felix_password}@postgres:5432/${POSTGRES_DB:-agb_felix}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@postgres:5432/${POSTGRES_DB:-test_platform_db}
       - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this-in-production}
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
@@ -49,7 +50,7 @@ services:
       - /app/__pycache__
       - uploads_data:/app/uploads
     networks:
-      - app-network
+      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -63,7 +64,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: agb_frontend
+    container_name: test_platform_frontend
     env_file:
       - .env
     environment:
@@ -76,7 +77,7 @@ services:
       - /app/node_modules
       - /app/.next
     networks:
-      - app-network
+      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
@@ -89,7 +90,7 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
-    container_name: agb_nginx
+    container_name: test_platform_nginx
     ports:
       - "80:80"
       - "443:443"
@@ -101,7 +102,7 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
       - uploads_data:/app/uploads
     networks:
-      - app-network
+      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
@@ -116,8 +117,5 @@ volumes:
     driver: local
 
 networks:
-  app-network:
+  test-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16

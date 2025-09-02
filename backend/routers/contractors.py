@@ -128,17 +128,28 @@ async def register_contractor(
     await db.refresh(new_user)
 
     # Создаем профиль исполнителя
+    # Формируем профессиональную информацию
+    professional_info = []
+    if contractor_data.specialization or contractor_data.experience_years or contractor_data.skills:
+        professional_info_item = {}
+        if contractor_data.specialization:
+            professional_info_item["specialization"] = contractor_data.specialization
+        if contractor_data.experience_years:
+            professional_info_item["experience_years"] = contractor_data.experience_years
+        if contractor_data.skills:
+            professional_info_item["skills"] = contractor_data.skills
+        if professional_info_item:
+            professional_info.append(professional_info_item)
+
     contractor_profile = ContractorProfile(
         user_id=new_user.id,
-        passport_series=contractor_data.passport_series,
-        passport_number=contractor_data.passport_number,
-        passport_issued_by=contractor_data.passport_issued_by,
-        passport_issued_date=contractor_data.passport_issued_date,
-        passport_division_code=contractor_data.passport_division_code,
-        registration_address=contractor_data.registration_address,
-        specialization=contractor_data.specialization,
-        experience_years=contractor_data.experience_years,
-        skills=contractor_data.skills
+        last_name=contractor_data.last_name,
+        first_name=contractor_data.first_name,
+        patronymic=contractor_data.middle_name,
+        phone=contractor_data.phone,
+        email=contractor_data.email,
+        professional_info=professional_info,
+        general_description=f"Исполнитель: {contractor_data.first_name} {contractor_data.last_name}"
     )
 
     db.add(contractor_profile)
@@ -175,6 +186,20 @@ async def get_contractor_profile(
         )
 
     # Преобразуем данные для соответствия новой схеме
+    # Обрабатываем education данные для корректной сериализации
+    education_data = profile.education or []
+    if isinstance(education_data, list):
+        for item in education_data:
+            if isinstance(item, dict) and 'graduation_year' in item:
+                # Убеждаемся, что graduation_year имеет правильный тип
+                if item['graduation_year'] is None or item['graduation_year'] == '':
+                    item['graduation_year'] = None
+                elif isinstance(item['graduation_year'], str):
+                    try:
+                        item['graduation_year'] = int(item['graduation_year'])
+                    except (ValueError, TypeError):
+                        item['graduation_year'] = None
+
     profile_data = {
         'id': profile.id,
         'user_id': profile.user_id,
@@ -186,7 +211,7 @@ async def get_contractor_profile(
         'phone': profile.phone,
         'email': profile.email,
         'professional_info': profile.professional_info or [],
-        'education': profile.education or [],
+        'education': education_data,
         'bank_name': profile.bank_name,
         'bank_account': profile.bank_account,
         'bank_bik': profile.bank_bik,
@@ -274,7 +299,21 @@ async def update_contractor_profile(
         profile.professional_info = json.loads(professional_info)
     if education is not None:
         import json
-        profile.education = json.loads(education)
+        education_data = json.loads(education)
+        # Обрабатываем пустые строки в education
+        if isinstance(education_data, list):
+            for item in education_data:
+                if isinstance(item, dict):
+                    # Преобразуем пустые строки в None для числовых полей
+                    if 'graduation_year' in item:
+                        if item['graduation_year'] == '':
+                            item['graduation_year'] = None
+                        elif isinstance(item['graduation_year'], str):
+                            try:
+                                item['graduation_year'] = int(item['graduation_year'])
+                            except ValueError:
+                                item['graduation_year'] = None
+        profile.education = education_data
 
     # Обрабатываем фото профиля
     if profile_photo:

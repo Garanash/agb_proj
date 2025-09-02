@@ -799,11 +799,28 @@ async def init_database_data(db_session):
                 contractor_users.append(contractor_user)
 
                 # Создаем профиль исполнителя
+                # Формируем профессиональную информацию
+                professional_info = []
+                if user_data.get("specialization") or user_data.get("experience_years") or user_data.get("skills"):
+                    professional_info_item = {}
+                    if user_data.get("specialization"):
+                        professional_info_item["specialization"] = user_data["specialization"]
+                    if user_data.get("experience_years"):
+                        professional_info_item["experience_years"] = user_data["experience_years"]
+                    if user_data.get("skills"):
+                        professional_info_item["skills"] = user_data["skills"]
+                    if professional_info_item:
+                        professional_info.append(professional_info_item)
+
                 contractor_profile = ContractorProfile(
                     user_id=contractor_user.id,  # Будет установлено после flush
-                    specialization=user_data["specialization"],
-                    experience_years=user_data["experience_years"],
-                    skills=user_data["skills"]
+                    last_name=user_data["last_name"],
+                    first_name=user_data["first_name"],
+                    patronymic=user_data["middle_name"],
+                    phone=user_data["phone"],
+                    email=user_data["email"],
+                    professional_info=professional_info,
+                    general_description=f"Исполнитель: {user_data['first_name']} {user_data['last_name']}"
                 )
                 contractor_profiles.append(contractor_profile)
 

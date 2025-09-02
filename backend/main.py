@@ -15,23 +15,22 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Запускаем инициализацию данных в фоне
+    # Инициализируем данные если их нет
     if os.getenv("AUTO_INIT_DATA", "true").lower() == "true":
         try:
-            import subprocess
-            import threading
+            from init_data import init_database_data
+            from database import AsyncSessionLocal
             
-            def run_init():
+            async def check_and_init():
                 try:
-                    subprocess.run([sys.executable, "init_production_data.py"], 
-                                 cwd="/app", timeout=300, check=True)
+                    async with AsyncSessionLocal() as db:
+                        await init_database_data(db)
+                    print("✅ Данные инициализированы успешно")
                 except Exception as e:
-                    print(f"⚠️ Ошибка фоновой инициализации: {e}")
+                    print(f"⚠️ Ошибка инициализации данных: {e}")
             
-            # Запускаем в отдельном потоке
-            init_thread = threading.Thread(target=run_init, daemon=True)
-            init_thread.start()
-            
+            # Запускаем инициализацию в фоне
+            asyncio.create_task(check_and_init())
         except Exception as e:
             print(f"⚠️ Ошибка запуска инициализации: {e}")
 
