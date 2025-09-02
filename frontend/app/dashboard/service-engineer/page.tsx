@@ -438,18 +438,6 @@ const getStatusText = (status: string) => {
   }
 }
 
-const getStatusText = (status: string) => {
-  switch (status) {
-    case 'new': return 'Новая'
-    case 'processing': return 'В обработке'
-    case 'sent_to_bot': return 'Отправлена в бот'
-    case 'assigned': return 'Назначен исполнитель'
-    case 'completed': return 'Завершена'
-    case 'cancelled': return 'Отменена'
-    default: return status
-  }
-}
-
 const getUrgencyColor = (urgency: string) => {
   switch (urgency) {
     case 'критическая': return 'bg-red-100 text-red-800'
