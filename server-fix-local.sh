@@ -65,6 +65,13 @@ info "Создаем необходимые директории..."
 mkdir -p uploads ssl backups
 chown -R 1000:1000 uploads ssl backups
 
+# Проверяем наличие production.env
+if [[ ! -f "production.env" ]]; then
+    error "Файл production.env не найден!"
+    error "Скопируйте production.env.example в production.env и настройте переменные"
+    exit 1
+fi
+
 # Запускаем контейнеры
 info "Запускаем контейнеры..."
 docker-compose -f docker-compose.prod.yml up -d --build

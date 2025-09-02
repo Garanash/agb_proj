@@ -13,9 +13,14 @@ WORKDIR /app
 # Копируем файлы зависимостей
 COPY package.json package-lock.json* ./
 
-# Устанавливаем зависимости и собираем в одной команде
-RUN npm ci --only=production --frozen-lockfile && \
-    npm run build && \
+# Устанавливаем зависимости
+RUN npm ci --only=production --frozen-lockfile
+
+# Копируем файлы приложения
+COPY . .
+
+# Собираем приложение
+RUN npm run build && \
     npm prune --production
 
 # Финальная стадия
