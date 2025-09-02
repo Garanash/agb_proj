@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getApiUrl } from '@/utils/api'
+import EditRequestModal from '@/components/EditRequestModal'
+import ContractorResponsesModal from '@/components/ContractorResponsesModal'
 
 interface RepairRequest {
   id: number
@@ -18,6 +20,9 @@ interface RepairRequest {
   address?: string
   city?: string
   region?: string
+  manager_comment?: string
+  final_price?: number
+  sent_to_bot_at?: string
   customer?: {
     company_name?: string
     contact_person?: string
@@ -65,6 +70,10 @@ export default function ServiceEngineerDashboard() {
   const [contractors, setContractors] = useState<ContractorProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'current' | 'archive' | 'contractors'>('current')
+  const [editingRequest, setEditingRequest] = useState<RepairRequest | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showResponsesModal, setShowResponsesModal] = useState(false)
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -233,6 +242,74 @@ export default function ServiceEngineerDashboard() {
     }
   }
 
+  const handleEditRequest = (request: RepairRequest) => {
+    setEditingRequest(request)
+    setShowEditModal(true)
+  }
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false)
+    setEditingRequest(null)
+    loadRequests()
+  }
+
+  const sendToBot = async (requestId: number) => {
+    if (!token) return
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}/send-to-bot`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        await loadRequests()
+        alert('Заявка успешно отправлена в бот!')
+      } else {
+        const errorData = await response.json()
+        alert(errorData.detail || 'Ошибка при отправке в бот')
+      }
+    } catch (error) {
+      alert('Произошла ошибка при отправке в бот')
+    }
+  }
+
+  const handleViewResponses = (requestId: number) => {
+    setSelectedRequestId(requestId)
+    setShowResponsesModal(true)
+  }
+
+  const handleAssignFromResponses = async (contractorId: number) => {
+    if (!selectedRequestId || !token) return
+
+    try {
+      const response = await fetch(`${getApiUrl()}/api/repair-requests/${selectedRequestId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: 'assigned',
+          assigned_contractor_id: contractorId
+        })
+      })
+
+      if (response.ok) {
+        await loadRequests()
+        setShowResponsesModal(false)
+        setSelectedRequestId(null)
+        alert('Исполнитель успешно назначен!')
+      } else {
+        alert('Ошибка при назначении исполнителя')
+      }
+    } catch (error) {
+      alert('Произошла ошибка при назначении исполнителя')
+    }
+  }
+
 
 
   const currentRequests = requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled')
@@ -292,6 +369,9 @@ export default function ServiceEngineerDashboard() {
                 contractors={contractors}
                 onUpdateStatus={updateRequestStatus}
                 onAssignContractor={assignContractor}
+                onEditRequest={handleEditRequest}
+                onSendToBot={sendToBot}
+                onViewResponses={handleViewResponses}
               />
             )}
 
@@ -307,6 +387,28 @@ export default function ServiceEngineerDashboard() {
           </>
         )}
       </div>
+
+      {/* Модальное окно редактирования заявки */}
+      <EditRequestModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingRequest(null)
+        }}
+        request={editingRequest}
+        onSuccess={handleEditSuccess}
+      />
+
+      {/* Модальное окно откликов исполнителей */}
+      <ContractorResponsesModal
+        isOpen={showResponsesModal}
+        onClose={() => {
+          setShowResponsesModal(false)
+          setSelectedRequestId(null)
+        }}
+        requestId={selectedRequestId || 0}
+        onAssignContractor={handleAssignFromResponses}
+      />
     </div>
   )
 }
@@ -316,6 +418,7 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case 'new': return 'bg-yellow-100 text-yellow-800'
     case 'processing': return 'bg-blue-100 text-blue-800'
+    case 'sent_to_bot': return 'bg-orange-100 text-orange-800'
     case 'assigned': return 'bg-green-100 text-green-800'
     case 'completed': return 'bg-gray-100 text-gray-800'
     case 'cancelled': return 'bg-red-100 text-red-800'
@@ -327,6 +430,19 @@ const getStatusText = (status: string) => {
   switch (status) {
     case 'new': return 'Новая'
     case 'processing': return 'В обработке'
+    case 'sent_to_bot': return 'Отправлена в бот'
+    case 'assigned': return 'Назначен исполнитель'
+    case 'completed': return 'Завершена'
+    case 'cancelled': return 'Отменена'
+    default: return status
+  }
+}
+
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'new': return 'Новая'
+    case 'processing': return 'В обработке'
+    case 'sent_to_bot': return 'Отправлена в бот'
     case 'assigned': return 'Назначен исполнитель'
     case 'completed': return 'Завершена'
     case 'cancelled': return 'Отменена'
@@ -349,12 +465,18 @@ function CurrentRequestsTab({
   requests,
   contractors,
   onUpdateStatus,
-  onAssignContractor
+  onAssignContractor,
+  onEditRequest,
+  onSendToBot,
+  onViewResponses
 }: {
   requests: RepairRequest[]
   contractors: ContractorProfile[]
   onUpdateStatus: (requestId: number, status: string) => void
   onAssignContractor: (requestId: number, contractorId: number) => void
+  onEditRequest: (request: RepairRequest) => void
+  onSendToBot: (requestId: number) => void
+  onViewResponses: (requestId: number) => void
 }) {
   if (requests.length === 0) {
     return (
@@ -366,6 +488,18 @@ function CurrentRequestsTab({
 
   return (
     <div className="space-y-3">
+      {/* Отладочная информация */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+        <p className="text-sm text-yellow-800">
+          <strong>Отладка:</strong> Загружено заявок: {requests.length}
+        </p>
+        {requests.length > 0 && (
+          <p className="text-xs text-yellow-700 mt-1">
+            Статусы: {requests.map(r => r.status).join(', ')}
+          </p>
+        )}
+      </div>
+      
       {requests.map((request) => (
         <div key={request.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
@@ -422,8 +556,13 @@ function CurrentRequestsTab({
                     </span>
                   </div>
 
+                  {/* Отладочная информация */}
+                  <div className="text-xs text-gray-500 mb-2">
+                    Статус: {request.status} | Комментарий: {request.manager_comment ? 'есть' : 'нет'} | Цена: {request.final_price || 'нет'}
+                  </div>
+
                   {/* Компактные действия */}
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap gap-2">
                     {request.status === 'new' && (
                       <button
                         onClick={() => onUpdateStatus(request.id, 'processing')}
@@ -433,24 +572,31 @@ function CurrentRequestsTab({
                       </button>
                     )}
 
-                    {request.status === 'processing' && !request.assigned_contractor && (
-                      <select
-                        onChange={(e) => {
-                          const contractorId = parseInt(e.target.value)
-                          if (contractorId) {
-                            onAssignContractor(request.id, contractorId)
-                          }
-                        }}
-                        className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                        defaultValue=""
+                    {request.status === 'processing' && (
+                      <button
+                        onClick={() => onEditRequest(request)}
+                        className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors"
                       >
-                        <option value="">Исполнитель</option>
-                        {contractors.map((contractor) => (
-                          <option key={contractor.user_id} value={contractor.user_id}>
-                            {contractor.user.first_name}
-                          </option>
-                        ))}
-                      </select>
+                        Редактировать
+                      </button>
+                    )}
+
+                    {request.status === 'processing' && request.manager_comment && request.final_price && (
+                      <button
+                        onClick={() => onSendToBot(request.id)}
+                        className="px-3 py-1 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition-colors"
+                      >
+                        Отправить в бот
+                      </button>
+                    )}
+
+                    {request.status === 'sent_to_bot' && !request.assigned_contractor && (
+                      <button
+                        onClick={() => onViewResponses(request.id)}
+                        className="px-3 py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700 transition-colors"
+                      >
+                        Просмотреть отклики
+                      </button>
                     )}
 
                     {request.status !== 'completed' && request.status !== 'cancelled' && (

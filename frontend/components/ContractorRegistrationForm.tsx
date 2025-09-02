@@ -5,7 +5,8 @@ import { getApiUrl } from '@/utils/api'
 import LoginSuccessModal from './LoginSuccessModal'
 
 interface ContractorRegistrationFormProps {
-  onSuccess?: () => void
+  onSuccess?: (username: string) => void
+  showLoginModal?: boolean
 }
 
 const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
@@ -85,12 +86,11 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
 
       if (response.ok) {
         const result = await response.json()
-        setGeneratedUsername(result.username)
-        setShowLoginModal(true)
         setFormData({
           email: '', password: '', confirmPassword: '', first_name: '', last_name: '', middle_name: '',
           phone: '', specialization: ''
         })
+        onSuccess?.(result.username)
       } else {
         const errorData = await response.json()
         setError(errorData.detail || 'Ошибка при регистрации')
@@ -103,15 +103,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">
-          Регистрация исполнителя
-        </h2>
-        <p className="text-center text-gray-600">
-          Создайте аккаунт для выполнения ремонтных работ
-        </p>
-      </div>
+    <div>
 
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
@@ -280,17 +272,6 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
           </button>
         </div>
       </form>
-
-      {/* Модальное окно с логином */}
-      <LoginSuccessModal
-        isOpen={showLoginModal}
-        onClose={() => {
-          setShowLoginModal(false)
-          onSuccess?.()
-        }}
-        username={generatedUsername}
-        userType="contractor"
-      />
     </div>
   )
 }

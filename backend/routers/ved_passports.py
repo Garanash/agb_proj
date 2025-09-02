@@ -257,6 +257,7 @@ async def create_bulk_passports(
         total_to_process = sum(quantity for _, quantity in valid_items)
 
         print(f"🚀 Начало создания {total_to_process} паспортов...")
+        print(f"📋 Валидные позиции: {len(valid_items)}")
 
         for idx, (code_1c, quantity) in enumerate(valid_items):
             try:
@@ -314,12 +315,15 @@ async def create_bulk_passports(
                         batch_count += 1
                         total_processed += 1
 
+                        print(f"📄 Создан паспорт {passport_number} для {code_1c} (батч: {batch_count}/{BATCH_SIZE})")
+
                         # Коммитим пакетами для избежания перегрузки памяти
                         if batch_count >= BATCH_SIZE:
                             async def flush_batch():
                                 for passport in current_batch:
                                     db.add(passport)
                                 await db.flush()
+                                print(f"💾 Сохранен батч из {len(current_batch)} паспортов")
 
                             await safe_db_operation(flush_batch)
                             created_passports.extend(current_batch)
@@ -328,7 +332,7 @@ async def create_bulk_passports(
 
                             # Показываем прогресс
                             progress = (total_processed / total_to_process) * 100
-                            print(".1f")
+                            print(f"📊 Прогресс: {progress:.1f}% ({total_processed}/{total_to_process})")
 
                     except Exception as e:
                         errors.append(f"Ошибка при создании паспорта {i+1} для {code_1c}: {str(e)}")
@@ -344,6 +348,7 @@ async def create_bulk_passports(
                 for passport in current_batch:
                     db.add(passport)
                 await db.flush()
+                print(f"💾 Сохранен последний батч из {len(current_batch)} паспортов")
 
             await safe_db_operation(flush_remaining_batch)
             created_passports.extend(current_batch)
@@ -371,6 +376,7 @@ async def create_bulk_passports(
                 full_passports.extend(batch_passports)
 
             print(f"✅ Успешно создано {len(created_passports)} паспортов из {total_to_process}")
+            print(f"📊 Финальный результат: {len(full_passports)} паспортов в ответе")
 
             return PassportGenerationResult(
                 success=True,

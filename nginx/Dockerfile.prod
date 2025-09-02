@@ -1,39 +1,18 @@
-# Nginx Production
 FROM nginx:alpine
 
-# Устанавливаем дополнительные инструменты
-RUN apk add --no-cache curl wget
+# Устанавливаем дополнительные пакеты
+RUN apk add --no-cache wget curl
 
-# Копируем конфигурацию nginx
+# Копируем конфигурацию
 COPY nginx.prod.conf /etc/nginx/nginx.conf
 
-# Создаем директорию для SSL сертификатов
-RUN mkdir -p /etc/nginx/ssl
+# Создаем директории
+RUN mkdir -p /app/uploads /etc/nginx/ssl
 
-# Копируем SSL сертификаты (если есть)
-# COPY ssl/cert.pem /etc/nginx/ssl/
-# COPY ssl/key.pem /etc/nginx/ssl/
-
-# Копируем статические файлы (если нужно)
-# COPY static /usr/share/nginx/html
-
-# Создаем пользователя nginx
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
-
-# Устанавливаем права
-RUN chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    chown -R nginx:nginx /etc/nginx/ssl
-
-# Переключаемся на пользователя nginx
-USER nginx
+# Проверка здоровья
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
 
 EXPOSE 80 443
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/health || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

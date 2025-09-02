@@ -19,11 +19,12 @@ from schemas import (
 )
 from dependencies import get_current_user
 
-# Импорт Telegram функций (будет добавлен позже)
+# Импорт Telegram функций
 try:
-    from telegram_bot import notify_new_request
+    from telegram_bot import notify_new_request, send_request_to_bot
 except ImportError:
     notify_new_request = None
+    send_request_to_bot = None
 
 router = APIRouter(prefix="/repair-requests", tags=["repair-requests"])
 
@@ -391,3 +392,104 @@ async def update_contractor_response(
     await db.refresh(response)
 
     return response
+
+
+@router.post("/{request_id}/send-to-bot", response_model=RepairRequestSchema)
+async def send_request_to_telegram_bot(
+    request_id: int,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Отправить заявку в Telegram бот (только для сервисных инженеров)"""
+    
+    if current_user.role not in [UserRole.SERVICE_ENGINEER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только сервисные инженеры могут отправлять заявки в бот"
+        )
+
+    # Получаем заявку
+    result = await db.execute(select(RepairRequest).where(RepairRequest.id == request_id))
+    request = result.scalars().first()
+
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заявка не найдена"
+        )
+
+    # Проверяем, что заявка в правильном статусе
+    if request.status != RequestStatus.PROCESSING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Заявка должна быть в статусе 'В обработке' для отправки в бот"
+        )
+
+    # Проверяем, что есть комментарий менеджера и цена
+    if not request.manager_comment or not request.final_price:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Необходимо заполнить комментарий менеджера и финальную цену"
+        )
+
+    # Обновляем статус заявки
+    request.status = RequestStatus.SENT_TO_BOT
+    request.sent_to_bot_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(request)
+
+    # Отправляем в бот (в фоне)
+    if send_request_to_bot:
+        background_tasks.add_task(send_request_to_bot, request_id)
+
+    return request
+
+
+@router.get("/{request_id}/responses", response_model=List[ContractorResponseSchema])
+async def get_request_responses(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получить отклики на заявку"""
+    
+    result = await db.execute(select(RepairRequest).where(RepairRequest.id == request_id))
+    request = result.scalars().first()
+
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заявка не найдена"
+        )
+
+    # Проверяем права доступа
+    can_view = False
+
+    if current_user.role == UserRole.CUSTOMER:
+        # Заказчик может видеть отклики только на свои заявки
+        result = await db.execute(
+            select(CustomerProfile).where(CustomerProfile.user_id == current_user.id)
+        )
+        customer_profile = result.scalars().first()
+
+        if customer_profile and request.customer_id == customer_profile.id:
+            can_view = True
+
+    elif current_user.role in [UserRole.SERVICE_ENGINEER, UserRole.ADMIN]:
+        # Сервисные инженеры и админы могут видеть все отклики
+        can_view = True
+
+    if not can_view:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Недостаточно прав"
+        )
+
+    result = await db.execute(
+        select(ContractorResponse).where(ContractorResponse.request_id == request_id)
+    )
+    responses = result.scalars().all()
+
+    return responses

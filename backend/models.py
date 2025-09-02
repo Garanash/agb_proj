@@ -32,7 +32,8 @@ class Permission(str, enum.Enum):
 
 class RequestStatus(str, enum.Enum):
     NEW = "new"  # Новая заявка
-    PROCESSING = "processing"  # В обработке
+    PROCESSING = "processing"  # В обработке (принята менеджером)
+    SENT_TO_BOT = "sent_to_bot"  # Отправлена в бот
     ASSIGNED = "assigned"  # Назначен исполнитель
     COMPLETED = "completed"  # Завершена
     CANCELLED = "cancelled"  # Отменена
@@ -52,8 +53,8 @@ class User(Base):
     username = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
     middle_name = Column(String, nullable=True)
     role = Column(String, default=UserRole.EMPLOYEE)
     is_active = Column(Boolean, default=True)
@@ -513,6 +514,11 @@ class RepairRequest(Base):
     equipment_model = Column(String, nullable=True)
     problem_description = Column(String, nullable=True)
     estimated_cost = Column(Integer, nullable=True)  # в рублях
+    
+    # Дополнительная информация от менеджера сервиса
+    manager_comment = Column(String, nullable=True)  # Комментарий менеджера
+    final_price = Column(Integer, nullable=True)  # Финальная цена заявки
+    sent_to_bot_at = Column(DateTime(timezone=True), nullable=True)  # Когда отправлена в бот
 
     # Статусы
     status = Column(String, default=RequestStatus.NEW)
@@ -559,28 +565,7 @@ class ContractorResponse(Base):
     contractor = relationship("ContractorProfile", back_populates="responses", lazy="selectin")
 
 
-class TelegramNotification(Base):
-    """Уведомления в Telegram"""
-    __tablename__ = "telegram_notifications"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=True)
-    response_id = Column(Integer, ForeignKey("contractor_responses.id"), nullable=True)
-
-    # Тип уведомления
-    notification_type = Column(String, nullable=False)  # new_request, response_received, assigned, completed
-    message = Column(String, nullable=False)
-    sent = Column(Boolean, default=False)
-
-    # Метаданные
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    sent_at = Column(DateTime(timezone=True), nullable=True)
-
-    # Связи
-    user = relationship("User", lazy="selectin")
-    request = relationship("RepairRequest", lazy="selectin")
-    response = relationship("ContractorResponse", lazy="selectin")
 
 
 # Модели для Telegram бота

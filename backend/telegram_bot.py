@@ -37,6 +37,28 @@ class TelegramBotService:
 
     async def init_bots(self):
         """Инициализация всех активных ботов"""
+        # Добавляем основной бот с указанным токеном
+        main_bot_token = "8394091922:AAF2l0X7slM6apRNf2ju25aqklwSrG1ATNg"
+        
+        try:
+            bot = Bot(
+                token=main_bot_token,
+                default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+            )
+            dp = Dispatcher()
+
+            # Регистрируем обработчики
+            self.register_handlers(dp)
+
+            self.bots[main_bot_token] = bot
+            self.dispatchers[main_bot_token] = dp
+
+            logger.info(f"✅ Основной бот инициализирован")
+
+        except Exception as e:
+            logger.error(f"❌ Ошибка инициализации основного бота: {e}")
+
+        # Также инициализируем ботов из БД
         async with self.async_session() as session:
             from sqlalchemy import select
             result = await session.execute(
@@ -45,6 +67,9 @@ class TelegramBotService:
             bots = result.scalars().all()
 
             for bot_data in bots:
+                if bot_data.token == main_bot_token:
+                    continue  # Уже инициализирован
+                    
                 try:
                     bot = Bot(
                         token=bot_data.token,
@@ -53,7 +78,7 @@ class TelegramBotService:
                     dp = Dispatcher()
 
                     # Регистрируем обработчики
-                    self.register_handlers(dp, session)
+                    self.register_handlers(dp)
 
                     self.bots[bot_data.token] = bot
                     self.dispatchers[bot_data.token] = dp
@@ -63,7 +88,7 @@ class TelegramBotService:
                 except Exception as e:
                     logger.error(f"❌ Ошибка инициализации бота {bot_data.name}: {e}")
 
-    def register_handlers(self, dp: Dispatcher, session: AsyncSession):
+    def register_handlers(self, dp: Dispatcher):
         """Регистрация обработчиков команд"""
 
         @dp.message()
@@ -220,11 +245,23 @@ class TelegramBotService:
             return
 
         # Создаем отклик
-        from models import ContractorResponse, ResponseStatus
+        from models import ContractorResponse, ResponseStatus, ContractorProfile
+        from sqlalchemy import select
+        
+        # Находим профиль исполнителя
+        result = await session.execute(
+            select(ContractorProfile).where(ContractorProfile.user_id == telegram_user.user_id)
+        )
+        contractor_profile = result.scalars().first()
+        
+        if not contractor_profile:
+            await callback.answer("❌ Профиль исполнителя не найден. Обратитесь к администратору.")
+            return
+        
         new_response = ContractorResponse(
             request_id=request_id,
-            contractor_id=telegram_user.user_id,
-            response_text="Отклик через Telegram бот",
+            contractor_id=contractor_profile.id,
+            comment="Отклик через Telegram бот",
             status=ResponseStatus.PENDING
         )
 
@@ -306,6 +343,84 @@ class TelegramBotService:
 
         await session.commit()
 
+    async def send_request_to_contractors(self, request_id: int, session: AsyncSession):
+        """Отправка заявки всем исполнителям в бот"""
+        # Получаем заявку
+        from sqlalchemy import select
+        result = await session.execute(
+            select(RepairRequest).where(RepairRequest.id == request_id)
+        )
+        request = result.scalars().first()
+
+        if not request:
+            logger.error(f"Заявка {request_id} не найдена")
+            return
+
+        # Получаем всех исполнителей с Telegram
+        result = await session.execute(
+            select(TelegramUser).join(User).where(User.role == UserRole.CONTRACTOR)
+        )
+        contractors = result.scalars().all()
+
+        if not contractors:
+            logger.warning("Нет исполнителей с Telegram для отправки заявки")
+            return
+
+        # Формируем красивое сообщение
+        message = f"""
+🛠️ <b>Новая заявка на ремонт!</b>
+
+📋 <b>Описание:</b>
+{request.manager_comment or request.description}
+
+📍 <b>Полный адрес:</b>
+{request.region or ''}, {request.city or ''}, {request.address or 'Адрес не указан'}
+
+💰 <b>Цена заявки:</b> {request.final_price:,} ₽
+
+📅 <b>Дата заявки:</b> {request.created_at.strftime('%d.%m.%Y %H:%M')}
+
+⚡ <b>Срочность:</b> {request.urgency or 'Не указана'}
+
+🏢 <b>Оборудование:</b> {request.equipment_type or 'Не указано'}
+"""
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="✅ Откликнуться на работу",
+                callback_data=f"respond_{request.id}"
+            )]
+        ])
+
+        # Отправляем уведомления
+        for bot_token, bot in self.bots.items():
+            for contractor in contractors:
+                try:
+                    result = await bot.send_message(
+                        chat_id=contractor.telegram_id,
+                        text=message,
+                        reply_markup=keyboard
+                    )
+
+                    # Сохраняем уведомление в БД
+                    notification = TelegramNotification(
+                        telegram_user_id=contractor.id,
+                        message_type="request_sent_to_bot",
+                        message_text=message,
+                        message_id=result.message_id,
+                        chat_id=contractor.telegram_id,
+                        repair_request_id=request.id
+                    )
+                    session.add(notification)
+
+                    logger.info(f"Заявка {request_id} отправлена исполнителю {contractor.telegram_id}")
+
+                except Exception as e:
+                    logger.error(f"Ошибка отправки заявки исполнителю {contractor.telegram_id}: {e}")
+
+        await session.commit()
+        logger.info(f"Заявка {request_id} отправлена {len(contractors)} исполнителям")
+
     async def save_telegram_user(self, session: AsyncSession, user, chat_id: int):
         """Сохранение информации о Telegram пользователе"""
         from sqlalchemy import select
@@ -370,6 +485,12 @@ async def notify_new_request(request_id: int):
     """Отправка уведомления о новой заявке (вызывается из основного приложения)"""
     async with telegram_service.async_session() as session:
         await telegram_service.send_new_request_notification(request_id, session)
+
+
+async def send_request_to_bot(request_id: int):
+    """Отправка заявки в бот всем исполнителям (вызывается из основного приложения)"""
+    async with telegram_service.async_session() as session:
+        await telegram_service.send_request_to_contractors(request_id, session)
 
 
 if __name__ == "__main__":

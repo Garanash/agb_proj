@@ -854,6 +854,8 @@ class RepairRequestUpdate(BaseModel):
     equipment_model: Optional[str] = None
     problem_description: Optional[str] = None
     estimated_cost: Optional[int] = None
+    manager_comment: Optional[str] = None
+    final_price: Optional[int] = None
     status: Optional[str] = None
     service_engineer_id: Optional[int] = None
     assigned_contractor_id: Optional[int] = None
@@ -867,6 +869,8 @@ class RepairRequest(RepairRequestBase):
     equipment_model: Optional[str] = None
     problem_description: Optional[str] = None
     estimated_cost: Optional[int] = None
+    manager_comment: Optional[str] = None
+    final_price: Optional[int] = None
     status: str
     service_engineer_id: Optional[int] = None
     assigned_contractor_id: Optional[int] = None
@@ -875,6 +879,7 @@ class RepairRequest(RepairRequestBase):
     processed_at: Optional[datetime] = None
     assigned_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+    sent_to_bot_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -911,14 +916,6 @@ class ContractorResponse(ContractorResponseBase):
 
 
 class CustomerRegistration(BaseModel):
-    # Данные пользователя
-    email: str
-    password: str
-    first_name: str
-    last_name: str
-    middle_name: Optional[str] = None
-    phone: Optional[str] = None
-
     # Данные компании
     company_name: str
     contact_person: str

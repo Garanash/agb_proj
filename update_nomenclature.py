@@ -1,8 +1,23 @@
 #!/usr/bin/env python3
-import requests
-import json
+"""
+Скрипт для обновления данных номенклатуры в базе данных
+"""
+import asyncio
+import sys
+import os
 
-# Данные номенклатуры для импорта
+# Устанавливаем локальный URL базы данных
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://felix_user:felix_password_secure_2024@localhost:15432/agb_felix"
+
+# Добавляем путь к backend для импорта модулей
+sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, delete
+from database import AsyncSessionLocal
+from models import VEDNomenclature, VedPassport
+
+# Новые данные номенклатуры
 nomenclature_data = [
     {
         "code_1c": "УТ-00047870",
@@ -376,29 +391,48 @@ nomenclature_data = [
     }
 ]
 
-def import_nomenclature():
-    url = "http://localhost/api/ved-passports/nomenclature/import/"
-    headers = {
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc1NjgxODY0NH0.67JVBROj1BGQJTPO0GM8lYZtP0araIeYmmhZ0ZDy9V8",
-        "Content-Type": "application/json"
-    }
-
-    print(f"Импортируем {len(nomenclature_data)} позиций номенклатуры...")
-
-    response = requests.post(url, json=nomenclature_data, headers=headers)
-
-    if response.status_code == 200:
-        result = response.json()
-        print("✅ Импорт завершен!")
-        print(f"Добавлено: {result['imported_count']}")
-        print(f"Обновлено: {result['skipped_count']}")
-        if result['errors']:
-            print(f"Ошибок: {len(result['errors'])}")
-            for error in result['errors'][:5]:  # Показываем первые 5 ошибок
-                print(f"  - {error}")
-    else:
-        print(f"❌ Ошибка импорта: {response.status_code}")
-        print(response.text)
+async def update_nomenclature():
+    """Обновляет данные номенклатуры в базе данных"""
+    print("🔄 Начинаем обновление номенклатуры...")
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            # Сначала удаляем все связанные ВЭД паспорта
+            print("🗑️ Удаляем старые ВЭД паспорта...")
+            await db.execute(delete(VedPassport))
+            
+            # Затем удаляем все существующие данные номенклатуры
+            print("🗑️ Удаляем старые данные номенклатуры...")
+            await db.execute(delete(VEDNomenclature))
+            await db.commit()
+            
+            # Добавляем новые данные
+            print(f"➕ Добавляем {len(nomenclature_data)} новых позиций номенклатуры...")
+            
+            for nom_data in nomenclature_data:
+                nomenclature = VEDNomenclature(**nom_data)
+                db.add(nomenclature)
+            
+            await db.commit()
+            
+            print("✅ Номенклатура успешно обновлена!")
+            print(f"📊 Добавлено {len(nomenclature_data)} позиций:")
+            
+            # Группируем по типам продуктов для статистики
+            stats = {}
+            for nom in nomenclature_data:
+                product_type = nom["product_type"]
+                if product_type not in stats:
+                    stats[product_type] = 0
+                stats[product_type] += 1
+            
+            for product_type, count in stats.items():
+                print(f"   • {product_type}: {count} позиций")
+                
+        except Exception as e:
+            print(f"❌ Ошибка при обновлении номенклатуры: {e}")
+            await db.rollback()
+            raise
 
 if __name__ == "__main__":
-    import_nomenclature()
+    asyncio.run(update_nomenclature())
