@@ -244,14 +244,8 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U felix_prod_us
 
 ```bash
 # Автоматическое исправление
-./fix-server-issues.sh
-
-# Или ручное исправление
-./cleanup-server.sh
-./deploy-minimal.sh
+./server-fix.sh
 ```
-
-**Подробнее**: [QUICK_FIX.md](QUICK_FIX.md) | [SERVER_SPACE_FIX.md](SERVER_SPACE_FIX.md)
 
 ## 📁 Структура проекта
 
@@ -261,13 +255,9 @@ agb-production/
 ├── 🔄 update.sh              # Скрипт обновления
 ├── 📊 monitor.sh             # Мониторинг системы
 ├── 🧪 test-production.sh     # Тестирование
-├── 🔧 fix-server-issues.sh   # Исправление проблем на сервере
-├── 🧹 cleanup-server.sh      # Очистка сервера
-├── 📦 deploy-minimal.sh      # Минимальная версия
+├── 🔧 server-fix.sh          # Исправление проблем на сервере
 ├── 📋 DEPLOYMENT.md          # Подробная документация
-├── 🚨 QUICK_FIX.md           # Быстрое исправление проблем
 ├── 🐳 docker-compose.prod.yml # Production конфигурация
-├── 🐳 docker-compose.minimal.yml # Минимальная конфигурация
 ├── ⚙️ production.env.example  # Шаблон конфигурации
 ├── 📁 backend/               # Backend приложение
 ├── 📁 frontend/              # Frontend приложение

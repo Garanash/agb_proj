@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Финальный скрипт для исправления всех проблем на сервере
+# Универсальный скрипт для очистки сервера и запуска приложения
+# Исправляет все проблемы с местом на диске и запускает систему
 
 set -e
 
@@ -32,7 +33,7 @@ error() {
 SERVER_IP="37.252.20.46"
 SERVER_USER="root"
 
-log "🚀 Начинаем исправление всех проблем на сервере..."
+log "🚀 Запуск универсального исправления сервера..."
 
 # Проверяем подключение к серверу
 info "Проверяем подключение к серверу $SERVER_IP..."
@@ -50,9 +51,6 @@ log "✅ Подключение к серверу установлено"
 # Передаем все необходимые файлы на сервер
 info "Передаем исправленные файлы на сервер..."
 
-# Передаем скрипт очистки
-scp cleanup-server.sh $SERVER_USER@$SERVER_IP:/tmp/
-
 # Передаем оптимизированный Dockerfile
 scp frontend/Dockerfile.prod.minimal $SERVER_USER@$SERVER_IP:/tmp/Dockerfile.prod
 
@@ -61,12 +59,6 @@ scp frontend/next.config.js $SERVER_USER@$SERVER_IP:/tmp/
 
 # Передаем исправленный файл service-engineer
 scp frontend/app/dashboard/service-engineer/page.tsx $SERVER_USER@$SERVER_IP:/tmp/
-
-# Передаем минимальную версию docker-compose
-scp docker-compose.minimal.yml $SERVER_USER@$SERVER_IP:/tmp/
-
-# Передаем скрипт развертывания минимальной версии
-scp deploy-minimal.sh $SERVER_USER@$SERVER_IP:/tmp/
 
 log "✅ Все файлы переданы на сервер"
 
@@ -81,31 +73,50 @@ cd /root/agb_proj
 # Останавливаем все контейнеры
 echo "Останавливаем все контейнеры..."
 docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
-docker-compose -f docker-compose.minimal.yml down 2>/dev/null || true
 
-# Выполняем очистку
-echo "Выполняем очистку сервера..."
-chmod +x /tmp/cleanup-server.sh
-/tmp/cleanup-server.sh
+# Очищаем Docker кэш и неиспользуемые ресурсы
+echo "Очищаем Docker кэш и неиспользуемые ресурсы..."
+docker system prune -a -f --volumes
+
+# Очищаем системные кэши
+echo "Очищаем системные кэши apt..."
+apt-get clean && apt-get autoremove -y
+
+# Очищаем логи
+echo "Очищаем логи..."
+journalctl --vacuum-time=1d
+
+# Проверяем доступное место на диске
+echo "Проверяем доступное место на диске..."
+df -h
 
 # Копируем исправленные файлы
 echo "Копируем исправленные файлы..."
 cp /tmp/Dockerfile.prod frontend/
 cp /tmp/next.config.js frontend/
 cp /tmp/page.tsx frontend/app/dashboard/service-engineer/
-cp /tmp/docker-compose.minimal.yml ./
-cp /tmp/deploy-minimal.sh ./
 
-# Делаем скрипты исполняемыми
-chmod +x deploy-minimal.sh
+# Создаем необходимые директории
+echo "Создаем необходимые директории..."
+mkdir -p uploads ssl backups
+chown -R 1000:1000 uploads ssl backups
 
-# Очищаем Docker кэш еще раз
-echo "Очищаем Docker кэш..."
-docker system prune -a -f --volumes
+# Запускаем контейнеры
+echo "Запускаем контейнеры..."
+docker-compose -f docker-compose.prod.yml up -d --build
 
-# Запускаем развертывание минимальной версии
-echo "Запускаем развертывание минимальной версии..."
-./deploy-minimal.sh
+# Исправляем права доступа для Docker volumes
+echo "Исправляем права доступа для Docker volumes..."
+docker-compose -f docker-compose.prod.yml exec -T backend chown -R 1000:1000 /app/uploads 2>/dev/null || true
+docker-compose -f docker-compose.prod.yml exec -T postgres chown -R 999:999 /var/lib/postgresql/data 2>/dev/null || true
+
+# Ждем запуска сервисов
+echo "Ждем запуска сервисов..."
+sleep 30
+
+# Проверяем статус сервисов
+echo "Проверяем статус сервисов..."
+docker-compose -f docker-compose.prod.yml ps
 
 echo "✅ Исправления завершены!"
 EOF
@@ -114,14 +125,15 @@ log "✅ Все исправления выполнены на сервере!"
 
 # Проверяем статус сервисов
 info "Проверяем статус сервисов..."
-ssh $SERVER_USER@$SERVER_IP "cd /root/agb_proj && docker-compose -f docker-compose.minimal.yml ps"
+ssh $SERVER_USER@$SERVER_IP "cd /root/agb_proj && docker-compose -f docker-compose.prod.yml ps"
 
 log "🎉 Исправление всех проблем завершено!"
 info "Проверьте доступность приложения:"
 info "  - Фронтенд: http://$SERVER_IP:3000"
 info "  - Бекенд: http://$SERVER_IP:8000"
+info "  - Nginx: http://$SERVER_IP"
 echo ""
 info "Полезные команды для мониторинга:"
-info "  - Логи: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.minimal.yml logs -f'"
-info "  - Статус: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.minimal.yml ps'"
-info "  - Перезапуск: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.minimal.yml restart'"
+info "  - Логи: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.prod.yml logs -f'"
+info "  - Статус: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.prod.yml ps'"
+info "  - Перезапуск: ssh $SERVER_USER@$SERVER_IP 'cd /root/agb_proj && docker-compose -f docker-compose.prod.yml restart'"
