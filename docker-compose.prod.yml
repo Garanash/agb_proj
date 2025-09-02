@@ -15,7 +15,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-production-db.sh:/docker-entrypoint-initdb.d/01-init-production-db.sh:ro
-      - ./backend/init_db.py:/docker-entrypoint-initdb.d/02-init-db.py:ro
     networks:
       - app-network
     restart: unless-stopped
@@ -57,8 +56,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 120s
 
   # Фронтенд - Next.js
   frontend:

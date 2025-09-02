@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from database import engine, Base
+from datetime import datetime
 import os
 import sys
 import asyncio
@@ -134,7 +135,29 @@ if os.path.exists("uploads"):
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "Felix Backend"}
+    """Проверка здоровья сервиса и базы данных"""
+    try:
+        # Проверяем подключение к базе данных
+        from database import AsyncSessionLocal
+        from sqlalchemy import text
+        
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        
+        return {
+            "status": "healthy", 
+            "service": "Felix Backend",
+            "database": "connected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy", 
+            "service": "Felix Backend",
+            "database": "disconnected",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.get("/")
 async def root():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ ДАННЫХ ДЛЯ PRODUCTION
-Запускается автоматически при старте backend контейнера
+АВТОМАТИЧЕСКАЯ ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ
+Создает все таблицы и данные при первом запуске
 """
 import asyncio
 import os
@@ -36,23 +36,6 @@ async def wait_for_database(max_retries=30, delay=2):
                 print("❌ Не удалось подключиться к базе данных")
                 return False
 
-async def check_if_initialized():
-    """Проверяет, инициализированы ли уже данные"""
-    try:
-        async with AsyncSessionLocal() as db:
-            # Проверяем наличие админа
-            result = await db.execute(select(User).where(User.username == "admin"))
-            admin_exists = result.scalar_one_or_none()
-            
-            # Проверяем наличие номенклатуры
-            result = await db.execute(select(VEDNomenclature))
-            nomenclature_exists = result.scalar_one_or_none()
-            
-            return admin_exists is not None and nomenclature_exists is not None
-    except Exception as e:
-        print(f"⚠️ Ошибка при проверке инициализации: {e}")
-        return False
-
 async def create_tables():
     """Создает все таблицы в базе данных"""
     print("📋 Создание таблиц базы данных...")
@@ -72,9 +55,26 @@ async def create_tables():
         traceback.print_exc()
         return False
 
-async def init_production_data():
-    """Инициализирует данные для production"""
-    print("🚀 Запуск инициализации production данных...")
+async def check_if_initialized():
+    """Проверяет, инициализированы ли уже данные"""
+    try:
+        async with AsyncSessionLocal() as db:
+            # Проверяем наличие админа
+            result = await db.execute(select(User).where(User.username == "admin"))
+            admin_exists = result.scalar_one_or_none()
+            
+            # Проверяем наличие номенклатуры
+            result = await db.execute(select(VEDNomenclature))
+            nomenclature_exists = result.scalar_one_or_none()
+            
+            return admin_exists is not None and nomenclature_exists is not None
+    except Exception as e:
+        print(f"⚠️ Ошибка при проверке инициализации: {e}")
+        return False
+
+async def init_database():
+    """Полная инициализация базы данных"""
+    print("🚀 Запуск инициализации базы данных...")
     
     # Ждем готовности базы данных
     if not await wait_for_database():
@@ -109,13 +109,13 @@ async def init_production_data():
 
 async def main():
     """Основная функция"""
-    print("🎯 AGB Production Data Initializer")
+    print("🎯 AGB Database Initializer")
     print("=" * 50)
     
     # Небольшая задержка для стабильности
     await asyncio.sleep(5)
     
-    await init_production_data()
+    await init_database()
     
     print("🎉 Инициализация завершена!")
     print("=" * 50)
