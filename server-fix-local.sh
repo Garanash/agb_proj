@@ -29,6 +29,14 @@ error() {
     echo -e "${RED}[ERROR] $1${NC}"
 }
 
+success() {
+    echo -e "${GREEN}[SUCCESS] $1${NC}"
+}
+
+warning() {
+    echo -e "${YELLOW}[WARNING] $1${NC}"
+}
+
 log "🚀 Запуск исправления проблем на сервере..."
 
 # Проверяем, что мы в правильной директории
@@ -65,11 +73,31 @@ info "Создаем необходимые директории..."
 mkdir -p uploads ssl backups
 chown -R 1000:1000 uploads ssl backups
 
-# Проверяем наличие production.env
+# Создаем production.env если его нет
 if [[ ! -f "production.env" ]]; then
-    error "Файл production.env не найден!"
-    error "Скопируйте production.env.example в production.env и настройте переменные"
-    exit 1
+    warning "Файл production.env не найден! Создаем из примера..."
+    if [[ -f "production.env.example" ]]; then
+        cp production.env.example production.env
+        warning "ВАЖНО: Отредактируйте файл production.env и измените пароли!"
+        warning "Особенно измените:"
+        warning "  - POSTGRES_PASSWORD"
+        warning "  - SECRET_KEY"
+        warning "  - ADMIN_PASSWORD"
+        warning "  - DATABASE_URL"
+        warning "  - NEXT_PUBLIC_API_URL"
+        
+        # Устанавливаем базовые значения для тестирования
+        sed -i 's/CHANGE_THIS_SECURE_DB_PASSWORD_2024/felix_password_secure_2024/g' production.env
+        sed -i 's/CHANGE_THIS_SUPER_SECRET_KEY_IN_PRODUCTION_2024_MIN_32_CHARS_LONG/your_super_secret_key_here_32_chars_long_2024/g' production.env
+        sed -i 's/CHANGE_THIS_ADMIN_PASSWORD_IMMEDIATELY_2024/admin_password_2024/g' production.env
+        sed -i 's|postgresql+asyncpg://felix_prod_user:CHANGE_THIS_SECURE_DB_PASSWORD_2024@postgres:5432/agb_felix_prod|postgresql+asyncpg://felix_prod_user:felix_password_secure_2024@postgres:5432/agb_felix_prod|g' production.env
+        sed -i 's|http://localhost/api|http://localhost/api|g' production.env
+        
+        success "Файл production.env создан с базовыми значениями"
+    else
+        error "Файл production.env.example не найден!"
+        exit 1
+    fi
 fi
 
 # Запускаем контейнеры
