@@ -8,7 +8,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Функция для вывода сообщений
 log() {
     echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
@@ -27,19 +26,12 @@ info() {
 
 # Проверка прав root
 check_root() {
-    if [[ $EUID -eq 0 ]]; then
-        warn "⚠️  ВНИМАНИЕ: Скрипт запущен от имени root!"
-        warn "Это может привести к проблемам с правами доступа к файлам."
-        warn "Рекомендуется запускать от обычного пользователя с правами на Docker."
-        echo ""
-        read -p "Продолжить выполнение? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            info "Выполнение отменено пользователем"
-            exit 0
-        fi
-        warn "Продолжаем выполнение от root..."
+    if [[ $EUID -ne 0 ]]; then
+        error "Этот скрипт предназначен для запуска от имени root!"
+        error "Используйте deploy.sh для запуска от обычного пользователя"
+        exit 1
     fi
+    log "✅ Запуск от root подтвержден"
 }
 
 # Проверка зависимостей
@@ -73,7 +65,7 @@ create_production_env() {
     fi
 }
 
-# Создание SSL сертификатов (самоподписанных для тестирования)
+# Создание SSL сертификатов
 create_ssl_certificates() {
     if [ ! -d "ssl" ]; then
         log "Создание SSL сертификатов..."
@@ -84,6 +76,10 @@ create_ssl_certificates() {
             -keyout ssl/key.pem \
             -out ssl/cert.pem \
             -subj "/C=RU/ST=Moscow/L=Moscow/O=AGB/CN=localhost"
+        
+        # Устанавливаем правильные права
+        chmod 600 ssl/key.pem
+        chmod 644 ssl/cert.pem
         
         log "SSL сертификаты созданы ✅"
         warn "Для production используйте настоящие SSL сертификаты!"
@@ -101,17 +97,14 @@ create_directories() {
     mkdir -p uploads/documents
     mkdir -p uploads/portfolio
     mkdir -p uploads/profiles
+    mkdir -p backups
     
     # Устанавливаем правильные права
     chmod +x scripts/init-production-db.sh 2>/dev/null || true
     
-    # Если запущено от root, исправляем права доступа
-    if [[ $EUID -eq 0 ]]; then
-        warn "Исправление прав доступа к файлам..."
-        chown -R 1000:1000 uploads/ 2>/dev/null || true
-        chown -R 1000:1000 ssl/ 2>/dev/null || true
-        chown -R 1000:1000 backups/ 2>/dev/null || true
-    fi
+    # Устанавливаем права для Docker volumes
+    chown -R 1000:1000 uploads/ 2>/dev/null || true
+    chown -R 1000:1000 backups/ 2>/dev/null || true
     
     log "Директории созданы ✅"
 }
@@ -139,17 +132,15 @@ build_and_start() {
     # Запускаем контейнеры
     docker-compose -f docker-compose.prod.yml up -d
     
-    # Если запущено от root, исправляем права доступа к volumes
-    if [[ $EUID -eq 0 ]]; then
-        warn "Исправление прав доступа к Docker volumes..."
-        sleep 5  # Ждем запуска контейнеров
-        
-        # Исправляем права для uploads volume
-        docker-compose -f docker-compose.prod.yml exec -T backend chown -R app:app /app/uploads 2>/dev/null || true
-        
-        # Исправляем права для postgres data
-        docker-compose -f docker-compose.prod.yml exec -T postgres chown -R postgres:postgres /var/lib/postgresql/data 2>/dev/null || true
-    fi
+    # Ждем запуска и исправляем права доступа
+    log "Ожидание запуска контейнеров..."
+    sleep 10
+    
+    # Исправляем права для uploads volume
+    docker-compose -f docker-compose.prod.yml exec -T backend chown -R app:app /app/uploads 2>/dev/null || true
+    
+    # Исправляем права для postgres data
+    docker-compose -f docker-compose.prod.yml exec -T postgres chown -R postgres:postgres /var/lib/postgresql/data 2>/dev/null || true
     
     log "Контейнеры запущены ✅"
 }
@@ -220,12 +211,18 @@ show_deployment_info() {
     echo "  🔐 Изменить пароли в production.env"
     echo "  🔒 Настроить SSL сертификаты для production"
     echo "  🛡️ Настроить файрвол и безопасность"
+    echo ""
+    info "💡 Для управления используйте:"
+    echo "  ./monitor.sh status    # Статус"
+    echo "  ./monitor.sh health    # Проверка здоровья"
+    echo "  ./monitor.sh logs      # Логи"
+    echo "  ./update.sh            # Обновление"
 }
 
 # Основная функция
 main() {
-    log "🚀 Запуск развертывания AGB Production"
-    echo "=================================="
+    log "🚀 Запуск развертывания AGB Production (ROOT MODE)"
+    echo "=============================================="
     
     check_root
     check_dependencies

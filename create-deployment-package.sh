@@ -52,6 +52,7 @@ create_deployment_package() {
     
     # Скрипты управления
     cp deploy.sh "$package_dir/"
+    cp deploy-root.sh "$package_dir/"
     cp update.sh "$package_dir/"
     cp monitor.sh "$package_dir/"
     cp test-production.sh "$package_dir/"
@@ -88,7 +89,11 @@ nano production.env  # Измените пароли!
 
 ## 2. Запуск системы
 \`\`\`bash
+# Для обычного пользователя (рекомендуется)
 ./deploy.sh
+
+# ИЛИ для root пользователя
+./deploy-root.sh
 \`\`\`
 
 ## 3. Проверка
@@ -107,6 +112,10 @@ nano production.env  # Измените пароли!
 ./update.sh            # Обновление
 ./deploy.sh stop       # Остановка
 \`\`\`
+
+## 🔐 Выбор скрипта
+- **./deploy.sh** - для обычного пользователя (безопасно)
+- **./deploy-root.sh** - для root пользователя
 
 Подробная документация: [DEPLOYMENT.md](DEPLOYMENT.md)
 EOF
