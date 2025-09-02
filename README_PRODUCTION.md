@@ -265,7 +265,16 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U felix_prod_us
 ./fix-docker-limits.sh
 ```
 
-**Подробнее**: [DOCKER_HUB_FIX.md](DOCKER_HUB_FIX.md) | [docker-login-guide.md](docker-login-guide.md)
+### Проблемы с путями в Next.js
+
+Если возникают ошибки `Module not found: Can't resolve '@/utils/api'`:
+
+```bash
+# Специальный скрипт для исправления путей
+./fix-frontend-paths.sh
+```
+
+**Подробнее**: [DOCKER_HUB_FIX.md](DOCKER_HUB_FIX.md) | [docker-login-guide.md](docker-login-guide.md) | [FRONTEND_PATHS_FIX.md](FRONTEND_PATHS_FIX.md)
 
 **Подробнее**: [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)
 
@@ -279,6 +288,7 @@ agb-production/
 ├── 🧪 test-production.sh     # Тестирование
 ├── 🔧 fix-server-complete.sh # ПОЛНОЕ исправление проблем на сервере (РЕКОМЕНДУЕТСЯ)
 ├── 🔧 fix-docker-limits.sh   # Исправление проблем с лимитами Docker Hub
+├── 🔧 fix-frontend-paths.sh  # Исправление проблем с путями в Next.js
 ├── 🔧 docker-login.sh        # Авторизация в Docker Hub
 ├── 🔧 debug-docker.sh        # Диагностика Docker контейнеров
 ├── 🔧 server-fix.sh          # Исправление проблем на сервере (с локальной машины)
@@ -286,6 +296,7 @@ agb-production/
 ├── 📋 DEPLOYMENT.md          # Подробная документация
 ├── 📋 SERVER_INSTRUCTIONS.md # Инструкции для работы на сервере
 ├── 📋 DOCKER_HUB_FIX.md      # Решение проблем с Docker Hub
+├── 📋 FRONTEND_PATHS_FIX.md  # Решение проблем с путями в Next.js
 ├── 📋 docker-login-guide.md  # Руководство по авторизации в Docker Hub
 ├── 📋 DOCKER_CONNECT.md      # Подключение к Docker контейнерам
 ├── 🐳 docker-compose.prod.yml # Production конфигурация

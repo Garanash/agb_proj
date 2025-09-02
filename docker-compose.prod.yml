@@ -64,7 +64,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod.minimal
+      dockerfile: Dockerfile.prod.fixed
     container_name: agb_frontend_prod
     env_file:
       - ./production.env
