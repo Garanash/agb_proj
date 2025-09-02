@@ -243,9 +243,14 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U felix_prod_us
 Если возникают ошибки `no space left on device`:
 
 ```bash
-# Автоматическое исправление
+# Если вы на локальной машине
 ./server-fix.sh
+
+# Если вы на сервере
+./server-fix-local.sh
 ```
+
+**Подробнее**: [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)
 
 ## 📁 Структура проекта
 
@@ -255,8 +260,10 @@ agb-production/
 ├── 🔄 update.sh              # Скрипт обновления
 ├── 📊 monitor.sh             # Мониторинг системы
 ├── 🧪 test-production.sh     # Тестирование
-├── 🔧 server-fix.sh          # Исправление проблем на сервере
+├── 🔧 server-fix.sh          # Исправление проблем на сервере (с локальной машины)
+├── 🔧 server-fix-local.sh    # Исправление проблем на сервере (на сервере)
 ├── 📋 DEPLOYMENT.md          # Подробная документация
+├── 📋 SERVER_INSTRUCTIONS.md # Инструкции для работы на сервере
 ├── 🐳 docker-compose.prod.yml # Production конфигурация
 ├── ⚙️ production.env.example  # Шаблон конфигурации
 ├── 📁 backend/               # Backend приложение
