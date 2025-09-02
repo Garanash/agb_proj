@@ -6,7 +6,7 @@ services:
     image: postgres:15-alpine
     container_name: agb_postgres_prod
     env_file:
-      - ./production.env
+      - production.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agb_felix_prod}
       POSTGRES_USER: ${POSTGRES_USER:-felix_prod_user}
@@ -65,9 +65,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod.fixed
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: agb_frontend_prod
     env_file:
-      - ./production.env
+      - production.env
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NODE_ENV=production

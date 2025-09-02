@@ -22,8 +22,10 @@ COPY . .
 # Устанавливаем переменные окружения для сборки
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Собираем приложение
+# Собираем приложение с правильными путями
 RUN npm run build && \
     npm prune --production
 
@@ -36,6 +38,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Создаем пользователя
 RUN addgroup --system --gid 1001 nodejs && \
