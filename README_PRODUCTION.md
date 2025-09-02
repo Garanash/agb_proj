@@ -258,11 +258,14 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U felix_prod_us
 Если возникают ошибки `toomanyrequests: You have reached your unauthenticated pull rate limit`:
 
 ```bash
-# Специальный скрипт для обхода лимитов Docker Hub
+# 1. Авторизуйтесь в Docker Hub (РЕКОМЕНДУЕТСЯ)
+./docker-login.sh
+
+# 2. Или используйте скрипт обхода лимитов
 ./fix-docker-limits.sh
 ```
 
-**Подробнее**: [DOCKER_HUB_FIX.md](DOCKER_HUB_FIX.md)
+**Подробнее**: [DOCKER_HUB_FIX.md](DOCKER_HUB_FIX.md) | [docker-login-guide.md](docker-login-guide.md)
 
 **Подробнее**: [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)
 
@@ -276,11 +279,15 @@ agb-production/
 ├── 🧪 test-production.sh     # Тестирование
 ├── 🔧 fix-server-complete.sh # ПОЛНОЕ исправление проблем на сервере (РЕКОМЕНДУЕТСЯ)
 ├── 🔧 fix-docker-limits.sh   # Исправление проблем с лимитами Docker Hub
+├── 🔧 docker-login.sh        # Авторизация в Docker Hub
+├── 🔧 debug-docker.sh        # Диагностика Docker контейнеров
 ├── 🔧 server-fix.sh          # Исправление проблем на сервере (с локальной машины)
 ├── 🔧 server-fix-local.sh    # Исправление проблем на сервере (на сервере)
 ├── 📋 DEPLOYMENT.md          # Подробная документация
 ├── 📋 SERVER_INSTRUCTIONS.md # Инструкции для работы на сервере
 ├── 📋 DOCKER_HUB_FIX.md      # Решение проблем с Docker Hub
+├── 📋 docker-login-guide.md  # Руководство по авторизации в Docker Hub
+├── 📋 DOCKER_CONNECT.md      # Подключение к Docker контейнерам
 ├── 🐳 docker-compose.prod.yml # Production конфигурация
 ├── 🐳 docker-compose.prod.offline.yml # Offline конфигурация (обход лимитов)
 ├── ⚙️ production.env.example  # Шаблон конфигурации
