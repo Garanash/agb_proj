@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # PostgreSQL
+  # PostgreSQL - используем альтернативный реестр
   postgres:
-    image: postgres:15-alpine
+    image: registry.hub.docker.com/library/postgres:15-alpine
     container_name: agb_postgres_prod
     env_file:
       - ./production.env
@@ -114,7 +114,7 @@ services:
 
   # Мониторинг - Watchtower (автообновление контейнеров)
   watchtower:
-    image: containrrr/watchtower
+    image: registry.hub.docker.com/containrrr/watchtower
     container_name: agb_watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

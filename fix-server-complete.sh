@@ -93,28 +93,55 @@ info "7. Создаем необходимые директории..."
 mkdir -p uploads/documents uploads/portfolio uploads/profiles ssl backups
 chown -R 1000:1000 uploads ssl backups 2>/dev/null || true
 
-# 8. Запускаем контейнеры с пересборкой
-info "8. Запускаем контейнеры с пересборкой..."
-docker-compose -f docker-compose.prod.yml up -d --build --force-recreate
+# 8. Проверяем наличие production.env
+info "8. Проверяем файл production.env..."
+if [[ ! -f "production.env" ]]; then
+    error "Файл production.env не найден! Создаем из примера..."
+    if [[ -f "production.env.example" ]]; then
+        cp production.env.example production.env
+        # Устанавливаем базовые значения
+        sed -i 's/CHANGE_THIS_SECURE_DB_PASSWORD_2024/felix_password_secure_2024/g' production.env
+        sed -i 's/CHANGE_THIS_SUPER_SECRET_KEY_IN_PRODUCTION_2024_MIN_32_CHARS_LONG/your_super_secret_key_here_32_chars_long_2024/g' production.env
+        sed -i 's/CHANGE_THIS_ADMIN_PASSWORD_IMMEDIATELY_2024/admin_password_2024/g' production.env
+        sed -i 's|postgresql+asyncpg://felix_prod_user:CHANGE_THIS_SECURE_DB_PASSWORD_2024@postgres:5432/agb_felix_prod|postgresql+asyncpg://felix_prod_user:felix_password_secure_2024@postgres:5432/agb_felix_prod|g' production.env
+        sed -i 's|http://localhost/api|http://localhost/api|g' production.env
+        success "Файл production.env создан с базовыми значениями"
+    else
+        error "Файл production.env.example не найден!"
+        exit 1
+    fi
+else
+    success "Файл production.env найден"
+fi
 
-# 9. Ждем запуска сервисов
-info "9. Ждем запуска сервисов..."
+# 9. Запускаем контейнеры с пересборкой
+info "9. Запускаем контейнеры с пересборкой..."
+# Пробуем сначала обычный файл, если не получается - используем offline версию
+if docker-compose -f docker-compose.prod.yml up -d --build --force-recreate 2>/dev/null; then
+    success "Используем docker-compose.prod.yml"
+else
+    warning "Проблемы с docker-compose.prod.yml, пробуем offline версию..."
+    docker-compose -f docker-compose.prod.offline.yml up -d --build --force-recreate
+fi
+
+# 10. Ждем запуска сервисов
+info "10. Ждем запуска сервисов..."
 sleep 45
 
-# 10. Проверяем статус
-info "10. Проверяем статус сервисов..."
+# 11. Проверяем статус
+info "11. Проверяем статус сервисов..."
 docker-compose -f docker-compose.prod.yml ps
 
-# 11. Проверяем логи фронтенда
-info "11. Проверяем логи фронтенда..."
+# 12. Проверяем логи фронтенда
+info "12. Проверяем логи фронтенда..."
 docker-compose -f docker-compose.prod.yml logs frontend --tail=20
 
-# 12. Проверяем логи бекенда
-info "12. Проверяем логи бекенда..."
+# 13. Проверяем логи бекенда
+info "13. Проверяем логи бекенда..."
 docker-compose -f docker-compose.prod.yml logs backend --tail=20
 
-# 13. Проверяем доступность сервисов
-info "13. Проверяем доступность сервисов..."
+# 14. Проверяем доступность сервисов
+info "14. Проверяем доступность сервисов..."
 sleep 10
 
 # Проверяем фронтенд

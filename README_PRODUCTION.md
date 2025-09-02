@@ -253,6 +253,17 @@ docker-compose -f docker-compose.prod.yml exec -T postgres psql -U felix_prod_us
 ./server-fix-local.sh
 ```
 
+### Проблемы с Docker Hub
+
+Если возникают ошибки `toomanyrequests: You have reached your unauthenticated pull rate limit`:
+
+```bash
+# Специальный скрипт для обхода лимитов Docker Hub
+./fix-docker-limits.sh
+```
+
+**Подробнее**: [DOCKER_HUB_FIX.md](DOCKER_HUB_FIX.md)
+
 **Подробнее**: [SERVER_INSTRUCTIONS.md](SERVER_INSTRUCTIONS.md)
 
 ## 📁 Структура проекта
@@ -264,11 +275,14 @@ agb-production/
 ├── 📊 monitor.sh             # Мониторинг системы
 ├── 🧪 test-production.sh     # Тестирование
 ├── 🔧 fix-server-complete.sh # ПОЛНОЕ исправление проблем на сервере (РЕКОМЕНДУЕТСЯ)
+├── 🔧 fix-docker-limits.sh   # Исправление проблем с лимитами Docker Hub
 ├── 🔧 server-fix.sh          # Исправление проблем на сервере (с локальной машины)
 ├── 🔧 server-fix-local.sh    # Исправление проблем на сервере (на сервере)
 ├── 📋 DEPLOYMENT.md          # Подробная документация
 ├── 📋 SERVER_INSTRUCTIONS.md # Инструкции для работы на сервере
+├── 📋 DOCKER_HUB_FIX.md      # Решение проблем с Docker Hub
 ├── 🐳 docker-compose.prod.yml # Production конфигурация
+├── 🐳 docker-compose.prod.offline.yml # Offline конфигурация (обход лимитов)
 ├── ⚙️ production.env.example  # Шаблон конфигурации
 ├── 📁 backend/               # Backend приложение
 ├── 📁 frontend/              # Frontend приложение
