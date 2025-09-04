@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   # PostgreSQL
   postgres:
@@ -29,27 +31,26 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: test_platform_backend
-    command: ["./start.sh"]
+    command: ./start.sh
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@postgres:5432/${POSTGRES_DB:-test_platform_db}
-      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-this-in-production}
-      - ALGORITHM=${ALGORITHM:-HS256}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
-      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@localhost}
-      - ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Администратор}
-      - ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-Системы}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@postgres:5432/${POSTGRES_DB:-test_platform_db}
+      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@localhost}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-Администратор}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-Системы}
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - test-network
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - uploads_data:/app/uploads
-      - ./backend:/app
-    networks:
-      - test-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
@@ -67,16 +68,15 @@ services:
     env_file:
       - .env
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
-      - NODE_ENV=${NODE_ENV:-production}
-    depends_on:
-      - backend
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+      NODE_ENV: ${NODE_ENV:-production}
     volumes:
-      - ./frontend:/app
-      - frontend_modules:/app/node_modules
-      - frontend_next:/app/.next
+      - /app/node_modules
+      - /app/.next
     networks:
       - test-network
+    depends_on:
+      - backend
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
@@ -93,15 +93,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
-    depends_on:
-      - frontend
-      - backend
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
       - uploads_data:/app/uploads:ro
     networks:
       - test-network
+    depends_on:
+      - frontend
+      - backend
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
@@ -111,13 +111,7 @@ services:
 
 volumes:
   postgres_data:
-    driver: local
   uploads_data:
-    driver: local
-  frontend_modules:
-    driver: local
-  frontend_next:
-    driver: local
 
 networks:
   test-network:
