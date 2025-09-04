@@ -11,8 +11,8 @@ RUN apk add --no-cache libc6-compat && \
 # Копируем package.json и package-lock.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm install --no-fund --no-audit
+# Устанавливаем зависимости с флагом legacy-peer-deps
+RUN npm install --no-fund --no-audit --legacy-peer-deps
 
 # Копируем исходный код
 COPY . .
