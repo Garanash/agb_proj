@@ -16,7 +16,16 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf-xlib-2.0-dev \
     libffi-dev \
     shared-mime-info \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Создаем и активируем виртуальное окружение
+ENV VIRTUAL_ENV=/app/venv
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Обновляем pip в виртуальном окружении
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Копируем requirements и устанавливаем зависимости
 COPY requirements.txt .

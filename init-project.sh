@@ -6,6 +6,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Установка переменных окружения для сборки
+export DEBIAN_FRONTEND=noninteractive
+export TERM=xterm-256color
+
 # Функция для логирования
 log() {
     echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
@@ -103,6 +107,10 @@ SSL_KEY_PATH=/etc/nginx/ssl/key.pem
 # Мониторинг
 WATCHTOWER_CLEANUP=true
 WATCHTOWER_POLL_INTERVAL=3600
+
+# Переменные для сборки
+DEBIAN_FRONTEND=noninteractive
+TERM=xterm-256color
 EOL
 
 if [ $? -eq 0 ]; then
@@ -160,8 +168,19 @@ else
 fi
 
 # Сборка и запуск проекта
-log "4. Сборка проекта..."
-if ! docker-compose build --no-cache; then
+log "4. Подготовка к сборке..."
+
+# Обновляем npm в контейнере frontend
+log "Обновление npm в контейнере frontend..."
+docker-compose run --rm frontend sh -c "npm install -g npm@latest" || {
+    log_error "Ошибка при обновлении npm"
+    exit 1
+}
+log "✓ npm обновлен"
+
+# Сборка проекта
+log "Сборка проекта..."
+if ! DEBIAN_FRONTEND=noninteractive TERM=xterm-256color docker-compose build --no-cache; then
     log_error "Ошибка при сборке проекта"
     exit 1
 fi

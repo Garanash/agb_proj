@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Активируем виртуальное окружение
+source /app/venv/bin/activate
+
 echo "🚀 Запуск Test Platform Backend..."
 echo "📋 Инициализация базы данных..."
 python init_db.py &
