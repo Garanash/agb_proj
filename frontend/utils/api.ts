@@ -6,17 +6,7 @@
 export const getApiUrl = (): string => {
   // На клиенте
   if (typeof window !== 'undefined') {
-    // В локальной среде (localhost) - используем текущий origin (через Nginx)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost';
-    }
-
-    // В Docker или на сервере используем backend как имя сервиса
-    if (window.location.hostname.includes('agb') || process.env.NODE_ENV === 'production') {
-      return 'http://backend:8000';
-    }
-
-    // На внешнем сервере используем текущий origin
+    // Всегда используем текущий origin (через Nginx)
     return window.location.origin;
   }
 
@@ -35,6 +25,10 @@ export const getApiEndpoint = (endpoint: string): string => {
   const baseUrl = getApiUrl();
   // Убираем начальный слэш из endpoint если он есть
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  // Если endpoint уже содержит /api, не добавляем его повторно
+  if (cleanEndpoint.startsWith('/api')) {
+    return `${baseUrl}${cleanEndpoint}`;
+  }
   return `${baseUrl}/api${cleanEndpoint}`;
 };
 
