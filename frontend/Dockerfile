@@ -3,10 +3,8 @@ FROM node:20.11.1-alpine
 
 WORKDIR /app
 
-# Устанавливаем системные зависимости и обновляем npm до стабильной версии
-RUN apk add --no-cache libc6-compat && \
-    npm install -g npm@10.2.4 && \
-    npm cache clean --force
+# Устанавливаем системные зависимости
+RUN apk add --no-cache libc6-compat
 
 # Копируем package.json и package-lock.json
 COPY package*.json ./

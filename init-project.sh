@@ -170,13 +170,7 @@ fi
 # Сборка и запуск проекта
 log "4. Подготовка к сборке..."
 
-# Обновляем npm в контейнере frontend
-log "Обновление npm в контейнере frontend..."
-docker-compose run --rm frontend sh -c "npm install -g npm@10.2.4" || {
-    log_error "Ошибка при обновлении npm"
-    exit 1
-}
-log "✓ npm обновлен"
+# Пропускаем обновление npm, так как это теперь делается в Dockerfile
 
 # Сборка проекта
 log "Сборка проекта..."
