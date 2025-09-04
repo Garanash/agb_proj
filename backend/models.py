@@ -348,8 +348,16 @@ class VedPassport(Base):
     nomenclature = relationship("VEDNomenclature", lazy="selectin")
 
     @staticmethod
-    async def generate_passport_number(db: AsyncSession, matrix: str, drilling_depth: str = None, article: str = None) -> str:
-        """Генерация номера паспорта используя счетчик из БД"""
+    async def generate_passport_number(db: AsyncSession, matrix: str, drilling_depth: str = None, article: str = None, product_type: str = None) -> str:
+        """Генерация номера паспорта используя счетчик из БД
+
+        Правила генерации номеров паспортов:
+        Коронки: AGB [Глубина бурения] [Матрица] [Серийный номер] [Год]
+        Пример: AGB 05-07 NQ 000001 25
+
+        Расширители и башмаки: AGB [Матрица] [Серийный номер] [Год]
+        Пример: AGB NQ 000001 25
+        """
         current_year = datetime.datetime.now().year
         current_year_suffix = str(current_year)[-2:]  # Последние 2 цифры года
         counter_name = f"ved_passport_{current_year}"
@@ -381,10 +389,21 @@ class VedPassport(Base):
         # Форматируем серийный номер с ведущими нулями
         serial_number = str(counter.current_value).zfill(6)
 
-        # Формируем номер паспорта
-        passport_number = f"{serial_number}{current_year_suffix}"
+        # Формируем номер паспорта согласно правилам
+        if product_type == "коронка":
+            # Коронки: AGB [Глубина бурения] [Матрица] [Серийный номер] [Год]
+            if drilling_depth:
+                passport_number = f"AGB {drilling_depth} {matrix} {serial_number} {current_year_suffix}"
+            else:
+                passport_number = f"AGB {matrix} {serial_number} {current_year_suffix}"
+        elif product_type in ["расширитель", "башмак"]:
+            # Расширители и башмаки: AGB [Матрица] [Серийный номер] [Год]
+            passport_number = f"AGB {matrix} {serial_number} {current_year_suffix}"
+        else:
+            # Если тип продукта не определен, используем общий формат
+            passport_number = f"AGB {matrix} {serial_number} {current_year_suffix}"
 
-        print(f"DEBUG: Generated passport number: {passport_number} (serial: {counter.current_value}, year: {current_year})")
+        print(f"DEBUG: Generated passport number: {passport_number} (serial: {counter.current_value}, year: {current_year}, type: {product_type})")
         return passport_number
 
 class VedPassportRole(Base):

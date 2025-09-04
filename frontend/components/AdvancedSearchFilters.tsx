@@ -58,8 +58,7 @@ export default function AdvancedSearchFilters({
   const [isLoading, setIsLoading] = useState(false)
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false)
 
-  // Убираем автоматический вызов onFiltersChange при каждом изменении фильтров
-  // Теперь фильтры будут применяться только по кнопке "Применить фильтры"
+  // Автоматически применяем фильтры при изменении
 
   const fetchFilterOptions = async () => {
     if (!token) return
@@ -86,10 +85,13 @@ export default function AdvancedSearchFilters({
   }
 
   const handleFilterChange = (field: keyof SearchFilters, value: string) => {
-    setFilters(prev => ({
-      ...prev,
+    const newFilters = {
+      ...filters,
       [field]: value
-    }))
+    }
+    setFilters(newFilters)
+    // Автоматически применяем фильтры при изменении
+    onFiltersChange(newFilters)
   }
 
   const applyFilters = () => {
@@ -341,27 +343,19 @@ export default function AdvancedSearchFilters({
                 </div>
               </div>
 
-              {/* Кнопка применения фильтров */}
-              <div className="pt-4 border-t border-gray-200">
-                <div className="flex justify-between items-center">
-                  <button
-                    onClick={applyFilters}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  >
-                    <MagnifyingGlassIcon className="h-4 w-4 mr-2" />
-                    Применить фильтры
-                  </button>
-                  
-                  {hasActiveFilters && (
+              {/* Кнопка очистки фильтров */}
+              {hasActiveFilters && (
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex justify-end">
                     <button
                       onClick={clearFilters}
                       className="text-sm text-gray-600 hover:text-gray-800 underline"
                     >
                       Очистить все фильтры
                     </button>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Активные фильтры */}
               {hasActiveFilters && (

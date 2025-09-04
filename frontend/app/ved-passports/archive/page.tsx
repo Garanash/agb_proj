@@ -14,7 +14,6 @@ import {
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters'
-import ArchiveStats from '../../../components/ArchiveStats'
 import PassportPreview from '../../../components/PassportPreview'
 
 interface NomenclatureItem {
@@ -69,99 +68,70 @@ export default function VEDPassportsArchivePage() {
   })
   const [showPassportModal, setShowPassportModal] = useState(false)
   const [selectedPassport, setSelectedPassport] = useState<PassportRecord | null>(null)
+  const [selectedPassports, setSelectedPassports] = useState<number[]>([])
+  const [selectAll, setSelectAll] = useState(false)
 
-  // Мемоизируем отфильтрованные паспорты
+  // Фильтруем паспорта локально по поисковому запросу (если сервер не поддерживает поиск)
   const filteredPassports = useMemo(() => {
     if (!passports.length) return []
-    
+
     let filtered = [...passports]
-    
-    // Применяем фильтры на клиентской стороне для быстрого отображения
+
+    // Фильтрация по поисковому запросу (локальная, если сервер не поддерживает)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase().trim()
       filtered = filtered.filter(passport =>
-        passport.passport_number.toLowerCase() === searchLower ||
-        passport.order_number.toLowerCase() === searchLower ||
-        passport.nomenclature.code_1c.toLowerCase() === searchLower ||
-        passport.nomenclature.name.toLowerCase() === searchLower ||
-        passport.nomenclature.article.toLowerCase() === searchLower
+        passport.passport_number.toLowerCase().includes(searchLower) ||
+        passport.order_number.toLowerCase().includes(searchLower) ||
+        passport.nomenclature.code_1c.toLowerCase().includes(searchLower) ||
+        passport.nomenclature.name.toLowerCase().includes(searchLower) ||
+        passport.nomenclature.article.toLowerCase().includes(searchLower)
       )
     }
-    
-    if (filters.product_type) {
-      filtered = filtered.filter(passport => 
-        passport.nomenclature.product_type === filters.product_type
-      )
-    }
-    
-    if (filters.matrix) {
-      filtered = filtered.filter(passport => 
-        passport.nomenclature.matrix === filters.matrix
-      )
-    }
-    
-    if (filters.status) {
-      filtered = filtered.filter(passport => 
-        passport.status === filters.status
-      )
-    }
-    
-    if (filters.order_number) {
-      const orderNumberLower = filters.order_number.toLowerCase().trim()
-      filtered = filtered.filter(passport =>
-        passport.order_number.toLowerCase() === orderNumberLower
-      )
-    }
-    
-    if (filters.code_1c) {
-      const code1cLower = filters.code_1c.toLowerCase().trim()
-      filtered = filtered.filter(passport =>
-        passport.nomenclature.code_1c.toLowerCase() === code1cLower
-      )
-    }
-    
-    if (filters.date_from) {
-      const fromDate = new Date(filters.date_from)
-      fromDate.setHours(0, 0, 0, 0) // Начало дня
-      filtered = filtered.filter(passport => 
-        new Date(passport.created_at) >= fromDate
-      )
-    }
-    
-    if (filters.date_to) {
-      const toDate = new Date(filters.date_to)
-      toDate.setHours(23, 59, 59, 999) // Включаем весь день
-      filtered = filtered.filter(passport => 
-        new Date(passport.created_at) <= toDate
-      )
-    }
-    
-    return filtered
-  }, [filters, passports])
 
-  const fetchPassports = useCallback(async () => {
+    return filtered
+  }, [filters.search, passports])
+
+  // Обновляем состояние selectAll при изменении selectedPassports
+  useEffect(() => {
+    if (filteredPassports.length > 0) {
+      const allSelected = filteredPassports.every(passport => selectedPassports.includes(passport.id))
+      setSelectAll(allSelected)
+    } else {
+      setSelectAll(false)
+    }
+  }, [selectedPassports, filteredPassports])
+
+  const fetchPassports = useCallback(async (useFilters = false) => {
     if (!token) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
-      // Строим URL с параметрами фильтрации
-      const params = new URLSearchParams()
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          params.append(key, value)
+      let url = `${getApiUrl()}/api/ved-passports/archive/`
+
+      // Используем фильтры при загрузке данных
+      if (useFilters) {
+        const params = new URLSearchParams()
+        // Передаем все фильтры на сервер, включая поиск
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) {
+            params.append(key, value)
+          }
+        })
+
+        if (params.toString()) {
+          url += '?' + params.toString()
         }
-      })
-      
-      const url = `${getApiUrl()}/api/ved-passports/archive/${params.toString() ? '?' + params.toString() : ''}`
-      
+      }
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         setPassports(data)
@@ -180,14 +150,21 @@ export default function VEDPassportsArchivePage() {
 
   const handleFiltersChange = useCallback((newFilters: SearchFilters) => {
     setFilters(newFilters)
-    // Применяем фильтры только на клиентской стороне, не перезагружаем данные
-    // Данные будут перезагружены только при явном запросе пользователя
-  }, [])
+    // Автоматически применяем фильтры при изменении
+    fetchPassports(true)
+  }, [fetchPassports])
 
   const handleApplyFilters = useCallback(() => {
     // Перезагружаем данные с сервера для точной фильтрации
-    fetchPassports()
+    fetchPassports(true)
   }, [fetchPassports])
+
+  // Загружаем все паспорта при первой загрузке компонента
+  useEffect(() => {
+    if (isAuthenticated && token && !hasLoadedPassports) {
+      fetchPassports(false) // Загружаем все паспорта без фильтров
+    }
+  }, [isAuthenticated, token, hasLoadedPassports, fetchPassports])
 
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -292,10 +269,149 @@ export default function VEDPassportsArchivePage() {
     setFilters(emptyFilters)
   }, [])
 
+  const handleSelectPassport = useCallback((passportId: number, checked: boolean) => {
+    setSelectedPassports(prev => {
+      if (checked) {
+        return [...prev, passportId]
+      } else {
+        return prev.filter(id => id !== passportId)
+      }
+    })
+  }, [])
+
+  const handleSelectAll = useCallback((checked: boolean) => {
+    setSelectAll(checked)
+    if (checked) {
+      setSelectedPassports(filteredPassports.map(p => p.id))
+    } else {
+      setSelectedPassports([])
+    }
+  }, [filteredPassports])
+
+  const exportBulkPassports = useCallback(async (format: 'pdf' | 'xlsx') => {
+    if (selectedPassports.length === 0) {
+      alert('Выберите паспорта для экспорта')
+      return
+    }
+
+    if (!token) return
+
+    try {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/ved-passports/export/bulk/${format}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          passport_ids: selectedPassports
+        })
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const contentDisposition = response.headers.get('Content-Disposition')
+        const filename = contentDisposition
+          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+          : `bulk_passports.${format}`
+
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        alert('Ошибка при экспорте паспортов')
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте паспортов:', error)
+      alert('Ошибка при экспорте паспортов')
+    }
+  }, [selectedPassports, token])
+
+  const exportAllPassports = useCallback(async (format: 'pdf' | 'xlsx') => {
+    if (!token) return
+
+    try {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/ved-passports/export/all/${format}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const contentDisposition = response.headers.get('Content-Disposition')
+        const filename = contentDisposition
+          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+          : `all_passports.${format}`
+
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        alert('Ошибка при экспорте паспортов')
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте паспортов:', error)
+      alert('Ошибка при экспорте паспортов')
+    }
+  }, [token])
+
+  const clearSelection = useCallback(() => {
+    setSelectedPassports([])
+    setSelectAll(false)
+  }, [])
+
   const viewPassport = useCallback((passport: PassportRecord) => {
     setSelectedPassport(passport)
     setShowPassportModal(true)
   }, [])
+
+  const exportPassport = useCallback(async (passportId: number, format: 'pdf' | 'xlsx') => {
+    if (!token) return
+
+    try {
+      const apiUrl = getApiUrl()
+      const response = await fetch(`${apiUrl}/api/ved-passports/${passportId}/export/${format}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const contentDisposition = response.headers.get('Content-Disposition')
+        const filename = contentDisposition
+          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+          : `passport_${passportId}.${format}`
+
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        alert('Ошибка при экспорте паспорта')
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте паспорта:', error)
+      alert('Ошибка при экспорте паспорта')
+    }
+  }, [token])
 
   const exportToExcel = useCallback(() => {
     if (filteredPassports.length === 0) return
@@ -397,17 +513,14 @@ export default function VEDPassportsArchivePage() {
           </div>
         </div>
 
-        {/* Статистика */}
-        <div className="mb-6">
-          <ArchiveStats />
-        </div>
+
 
         {/* Ошибка загрузки */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
             <div className="text-red-800">{error}</div>
             <button
-              onClick={fetchPassports}
+              onClick={() => fetchPassports(false)}
               className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
             >
               Попробовать снова
@@ -418,15 +531,6 @@ export default function VEDPassportsArchivePage() {
         {/* Расширенный поиск и фильтры */}
         <div className="mb-6">
           <AdvancedSearchFilters onFiltersChange={handleFiltersChange} />
-          {/* Кнопка применения фильтров */}
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={handleApplyFilters}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Применить фильтры и загрузить данные
-            </button>
-          </div>
         </div>
 
         {/* Результаты поиска */}
@@ -441,16 +545,53 @@ export default function VEDPassportsArchivePage() {
               )}
             </h3>
             {hasLoadedPassports && filteredPassports.length > 0 && (
-              <button
-                onClick={() => {
-                  // Здесь можно добавить экспорт в Excel/PDF
-                  alert('Функция экспорта будет добавлена позже')
-                }}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                Экспорт
-              </button>
+              <div className="flex items-center space-x-3">
+                {selectedPassports.length > 0 && (
+                  <>
+                    <span className="text-sm text-gray-600">
+                      Выбрано: {selectedPassports.length}
+                    </span>
+                    <button
+                      onClick={() => exportBulkPassports('pdf')}
+                      className="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700"
+                    >
+                      <DocumentIcon className="w-4 h-4 mr-2" />
+                      Экспорт PDF
+                    </button>
+                    <button
+                      onClick={() => exportBulkPassports('xlsx')}
+                      className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
+                    >
+                      <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
+                      Экспорт Excel
+                    </button>
+                    <button
+                      onClick={clearSelection}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Очистить выбор
+                    </button>
+                  </>
+                )}
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => exportAllPassports('pdf')}
+                    disabled={filteredPassports.length === 0}
+                    className="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <DocumentIcon className="w-4 h-4 mr-2" />
+                    Выгрузка всех PDF
+                  </button>
+                  <button
+                    onClick={() => exportAllPassports('xlsx')}
+                    disabled={filteredPassports.length === 0}
+                    className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
+                    Выгрузка всех Excel
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -467,7 +608,7 @@ export default function VEDPassportsArchivePage() {
                 Нажмите кнопку ниже для загрузки паспортов из архива
               </p>
               <button
-                onClick={fetchPassports}
+                onClick={() => fetchPassports(false)}
                 disabled={isLoading}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
@@ -484,6 +625,14 @@ export default function VEDPassportsArchivePage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Номер паспорта
                     </th>
@@ -510,6 +659,14 @@ export default function VEDPassportsArchivePage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredPassports.map((passport) => (
                     <tr key={passport.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedPassports.includes(passport.id)}
+                          onChange={(e) => handleSelectPassport(passport.id, e.target.checked)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {passport.passport_number}
                       </td>
@@ -563,6 +720,20 @@ export default function VEDPassportsArchivePage() {
                             title="Просмотр"
                           >
                             <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => exportPassport(passport.id, 'pdf')}
+                            className="text-red-600 hover:text-red-900"
+                            title="Экспорт в PDF"
+                          >
+                            <DocumentIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => exportPassport(passport.id, 'xlsx')}
+                            className="text-green-600 hover:text-green-900"
+                            title="Экспорт в Excel"
+                          >
+                            <DocumentArrowDownIcon className="h-4 w-4" />
                           </button>
                           <button
                             className="text-indigo-600 hover:text-indigo-900"

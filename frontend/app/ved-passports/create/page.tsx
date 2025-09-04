@@ -296,6 +296,59 @@ export default function CreateVEDPassportPage() {
     URL.revokeObjectURL(url)
   }
 
+  const exportCreatedPassports = async (format: 'pdf' | 'xlsx') => {
+    console.log('exportCreatedPassports called with format:', format)
+    console.log('createdPassports length:', createdPassports.length)
+    console.log('token:', token ? 'present' : 'missing')
+
+    if (createdPassports.length === 0) {
+      console.log('No passports to export')
+      return
+    }
+
+    if (!token) {
+      setErrorMessage('Требуется авторизация')
+      return
+    }
+
+    try {
+      const apiUrl = getApiUrl()
+      const passportIds = createdPassports.map(p => p.id)
+      const response = await fetch(`${apiUrl}/api/ved-passports/export/bulk/${format}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          passport_ids: passportIds
+        })
+      })
+
+      if (response.ok) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        const contentDisposition = response.headers.get('Content-Disposition')
+        const filename = contentDisposition
+          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+          : `created_passports.${format}`
+
+        link.setAttribute('download', filename)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        setErrorMessage('Ошибка при экспорте паспортов')
+      }
+    } catch (error) {
+      console.error('Ошибка при экспорте паспортов:', error)
+      setErrorMessage('Ошибка при экспорте паспортов')
+    }
+  }
+
   const clearCreatedPassports = () => {
     setCreatedPassports([])
     setSuccessMessage('')
@@ -495,8 +548,15 @@ export default function CreateVEDPassportPage() {
                 </h3>
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={exportToExcel}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    onClick={() => exportCreatedPassports('pdf')}
+                    className="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700"
+                  >
+                    <DocumentIcon className="w-4 h-4 mr-2" />
+                    Экспорт в PDF
+                  </button>
+                  <button
+                    onClick={() => exportCreatedPassports('xlsx')}
+                    className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
                   >
                     <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
                     Экспорт в Excel

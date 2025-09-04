@@ -29,6 +29,14 @@ async def init_database_data(db_session):
     """
     print("🚀 ИНИЦИАЛИЗАЦИЯ ДАННЫХ...")
 
+    # Счетчики для статистики
+    users_count = 0
+    employees_count = 0
+    nomenclatures_count = 0
+    passports_count = 0
+    news_count = 0
+    events_count = 0
+
     try:
         # 1. Создаем отделы (если их нет)
         print("📁 Создание отделов...")
@@ -83,6 +91,7 @@ async def init_database_data(db_session):
                 is_active=True
             )
             db_session.add(admin_user)
+            users_count += 1
 
         test_result = await db_session.execute(select(User).where(User.username == "testuser"))
         test_exists = test_result.scalar_one_or_none()
@@ -112,6 +121,7 @@ async def init_database_data(db_session):
                 is_active=True
             )
             db_session.add(test_user)
+            users_count += 1
 
         await db_session.flush()
 
@@ -723,6 +733,7 @@ async def init_database_data(db_session):
                 )
                 db_session.add(customer_user)
                 customer_users.append(customer_user)
+                users_count += 1
 
                 # Создаем профиль заказчика
                 customer_profile = CustomerProfile(
@@ -797,6 +808,7 @@ async def init_database_data(db_session):
                 )
                 db_session.add(contractor_user)
                 contractor_users.append(contractor_user)
+                users_count += 1
 
                 # Создаем профиль исполнителя
                 # Формируем профессиональную информацию
@@ -857,6 +869,7 @@ async def init_database_data(db_session):
                 position="Сервисный инженер"
             )
             db_session.add(service_engineer)
+            users_count += 1
             await db_session.flush()
             service_engineers_count = 1
         else:
@@ -917,14 +930,25 @@ async def init_database_data(db_session):
             requests_count = len(existing_requests)
 
         # Создание тестового Telegram бота
-        print("🤖 Создание Telegram бота...")
-        telegram_bot = TelegramBot(
-            name="Repair Bot",
-            token="123456789:AAFakeTokenForTestingPurposes123456789",  # Тестовый токен
-            is_active=True,
-            webhook_url=None
+        print("🤖 Проверка/создание Telegram бота...")
+        # Проверяем, существует ли уже бот с таким токеном
+        existing_bot_result = await db_session.execute(
+            select(TelegramBot).where(TelegramBot.token == "123456789:AAFakeTokenForTestingPurposes123456789")
         )
-        db_session.add(telegram_bot)
+        existing_bot = existing_bot_result.scalars().first()
+
+        if existing_bot:
+            print("🤖 Telegram бот уже существует, пропускаем создание")
+            telegram_bot = existing_bot
+        else:
+            print("🤖 Создание нового Telegram бота...")
+            telegram_bot = TelegramBot(
+                name="Repair Bot",
+                token="123456789:AAFakeTokenForTestingPurposes123456789",  # Тестовый токен
+                is_active=True,
+                webhook_url=None
+            )
+            db_session.add(telegram_bot)
 
         # Создание связи contractor1 с Telegram
         contractor_result = await db_session.execute(
@@ -933,15 +957,24 @@ async def init_database_data(db_session):
         contractor_user = contractor_result.scalars().first()
 
         if contractor_user:
-            telegram_user = TelegramUser(
-                user_id=contractor_user.id,
-                telegram_id=123456789,  # Тестовый Telegram ID
-                username="contractor_test",
-                first_name="Исполнитель",
-                last_name="Тестовый",
-                is_bot_user=False
+            # Проверяем, существует ли уже Telegram пользователь
+            existing_telegram_user_result = await db_session.execute(
+                select(TelegramUser).where(TelegramUser.telegram_id == 123456789)
             )
-            db_session.add(telegram_user)
+            existing_telegram_user = existing_telegram_user_result.scalars().first()
+
+            if not existing_telegram_user:
+                telegram_user = TelegramUser(
+                    user_id=contractor_user.id,
+                    telegram_id=123456789,  # Тестовый Telegram ID
+                    username="contractor_test",
+                    first_name="Исполнитель",
+                    last_name="Тестовый",
+                    is_bot_user=False
+                )
+                db_session.add(telegram_user)
+            else:
+                print("🤖 Telegram пользователь уже существует, пропускаем создание")
 
         await db_session.commit()
         print("✅ Telegram бот создан")

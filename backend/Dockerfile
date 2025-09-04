@@ -11,6 +11,11 @@ RUN apt-get update && apt-get install -y \
     procps \
     curl \
     postgresql-client \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libgdk-pixbuf-xlib-2.0-dev \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Копируем requirements и устанавливаем зависимости
