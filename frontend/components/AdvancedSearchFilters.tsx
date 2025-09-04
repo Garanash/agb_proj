@@ -58,31 +58,33 @@ export default function AdvancedSearchFilters({
   const [isLoading, setIsLoading] = useState(false)
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false)
 
-  // Автоматически применяем фильтры при изменении
-
-  const fetchFilterOptions = async () => {
-    if (!token) return
-    
-    setIsLoading(true)
-    try {
-      const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/ved-passports/archive/filters/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+  // Загружаем фильтры при открытии панели
+  useEffect(() => {
+    if (isExpanded && !hasLoadedFilters && token) {
+      const fetchFilterOptions = async () => {
+        setIsLoading(true)
+        try {
+          const apiUrl = getApiUrl();
+          const response = await fetch(`${apiUrl}/api/ved-passports/archive/filters/`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            setFilterOptions(data)
+            setHasLoadedFilters(true)
+          }
+        } catch (error) {
+          console.error('Ошибка при загрузке фильтров:', error)
+        } finally {
+          setIsLoading(false)
         }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setFilterOptions(data)
-        setHasLoadedFilters(true)
       }
-    } catch (error) {
-      console.error('Ошибка при загрузке фильтров:', error)
-    } finally {
-      setIsLoading(false)
+      fetchFilterOptions()
     }
-  }
+  }, [isExpanded, hasLoadedFilters, token])
 
   const handleFilterChange = (field: keyof SearchFilters, value: string) => {
     const newFilters = {
@@ -203,16 +205,11 @@ export default function AdvancedSearchFilters({
       {/* Расширенные фильтры */}
       {isExpanded && (
         <div className="p-4 space-y-4">
-          {/* Кнопка загрузки фильтров */}
-          {!hasLoadedFilters && (
-            <div className="text-center">
-              <button
-                onClick={fetchFilterOptions}
-                disabled={isLoading}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-              >
-                {isLoading ? 'Загрузка...' : 'Загрузить доступные фильтры'}
-              </button>
+          {/* Индикатор загрузки фильтров */}
+          {isLoading && (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-600">Загрузка фильтров...</p>
             </div>
           )}
 

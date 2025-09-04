@@ -216,9 +216,9 @@ async def create_bulk_passports(
 
     created_passports = []
     errors = []
-    BATCH_SIZE = 50  # Размер пакета для обработки
-    MAX_TOTAL_ITEMS = 500  # Максимальное количество паспортов
-    MAX_ITEMS_TYPES = 100  # Максимальное количество типов позиций
+    BATCH_SIZE = 100  # Размер пакета для обработки
+    MAX_TOTAL_ITEMS = 1000  # Максимальное количество паспортов
+    MAX_ITEMS_TYPES = 200  # Максимальное количество типов позиций
 
     try:
         # Проверяем размер пакета
@@ -570,10 +570,12 @@ async def get_ved_passports_archive(
         if search:
             search_term = search.strip()
             search_filter = (
-                VedPassport.passport_number == search_term |
-                VedPassport.order_number == search_term |
-                VEDNomenclature.code_1c == search_term |
-                VEDNomenclature.article == search_term
+                (VedPassport.passport_number == search_term) |
+                (VedPassport.order_number == search_term) |
+                (VEDNomenclature.code_1c == search_term) |
+                (VEDNomenclature.article == search_term) |
+                (VEDNomenclature.name == search_term) |
+                (VEDNomenclature.matrix == search_term)
             )
             filters.append(search_filter)
         
@@ -1266,7 +1268,10 @@ async def export_bulk_passports_pdf(
         raise HTTPException(status_code=403, detail="Доступ запрещен")
 
     try:
-        # Получаем выбранные паспорта пользователя
+        if not request.passport_ids:
+            raise HTTPException(status_code=400, detail="Не выбраны паспорта для экспорта")
+
+        # Получаем выбранные паспорта пользователя с сортировкой по ID
         result = await db.execute(
             select(VedPassport)
             .options(joinedload(VedPassport.nomenclature))
@@ -1274,6 +1279,7 @@ async def export_bulk_passports_pdf(
                 VedPassport.id.in_(request.passport_ids),
                 VedPassport.created_by == current_user.id
             )
+            .order_by(VedPassport.id)  # Сохраняем порядок выбора
         )
         passports = result.scalars().all()
 
@@ -1283,8 +1289,21 @@ async def export_bulk_passports_pdf(
         if len(passports) > 500:  # Увеличиваем лимит
             raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 500)")
 
+        # Проверяем, что все выбранные паспорта найдены
+        found_ids = {p.id for p in passports}
+        missing_ids = set(request.passport_ids) - found_ids
+        if missing_ids:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Не найдены паспорта с ID: {', '.join(map(str, missing_ids))}"
+            )
+
+        # Сортируем паспорта в том же порядке, что и в запросе
+        id_to_passport = {p.id: p for p in passports}
+        sorted_passports = [id_to_passport[pid] for pid in request.passport_ids]
+
         # Генерируем PDF с новым макетом
-        pdf_content = generate_bulk_passports_pdf(passports)
+        pdf_content = generate_bulk_passports_pdf(sorted_passports)
 
         # Возвращаем файл
         return Response(

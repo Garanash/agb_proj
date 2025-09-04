@@ -736,12 +736,6 @@ export default function VEDPassportsArchivePage() {
                             <DocumentArrowDownIcon className="h-4 w-4" />
                           </button>
                           <button
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Редактировать"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button
                             className="text-red-600 hover:text-red-900"
                             title="Удалить"
                             onClick={() => handleDelete(passport.id)}
