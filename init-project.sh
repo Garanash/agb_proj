@@ -83,7 +83,7 @@ PYTHONWARNINGS=ignore:Unverified HTTPS request
 AUTO_INIT_DATA=true
 
 # Frontend - Next.js
-NEXT_PUBLIC_API_URL=http://localhost/api
+NEXT_PUBLIC_API_URL=/api
 NODE_ENV=production
 
 # Nginx
@@ -172,7 +172,7 @@ log "4. Подготовка к сборке..."
 
 # Обновляем npm в контейнере frontend
 log "Обновление npm в контейнере frontend..."
-docker-compose run --rm frontend sh -c "npm install -g npm@latest" || {
+docker-compose run --rm frontend sh -c "npm install -g npm@10.2.4" || {
     log_error "Ошибка при обновлении npm"
     exit 1
 }

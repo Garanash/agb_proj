@@ -1,11 +1,11 @@
 # Фронтенд - Next.js
-FROM node:20-alpine
+FROM node:20.11.1-alpine
 
 WORKDIR /app
 
-# Устанавливаем системные зависимости и обновляем npm
+# Устанавливаем системные зависимости и обновляем npm до стабильной версии
 RUN apk add --no-cache libc6-compat && \
-    npm install -g npm@latest && \
+    npm install -g npm@10.2.4 && \
     npm cache clean --force
 
 # Копируем package.json и package-lock.json
