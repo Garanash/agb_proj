@@ -53,17 +53,8 @@ else
     exit 1
 fi
 
-# Остановка и удаление контейнеров
-log "2. Остановка и удаление контейнеров..."
-if docker-compose down -v --remove-orphans; then
-    log "✓ Контейнеры остановлены и удалены"
-else
-    log_error "Ошибка при остановке контейнеров"
-    exit 1
-fi
-
 # Генерация production.env
-log "3. Создание файла конфигурации production.env..."
+log "2. Создание файла конфигурации production.env..."
 
 # Генерация случайных паролей
 DB_PASSWORD=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
@@ -121,6 +112,15 @@ else
     exit 1
 fi
 
+# Создание символической ссылки .env -> production.env
+ln -sf production.env .env
+if [ $? -eq 0 ]; then
+    log "✓ Создана символическая ссылка .env"
+else
+    log_error "Ошибка при создании символической ссылки .env"
+    exit 1
+fi
+
 # Сохранение учетных данных
 log "Сохранение учетных данных..."
 cat > credentials.txt << EOL
@@ -147,8 +147,17 @@ else
 fi
 
 # Установка прав на файлы
-chmod 600 production.env credentials.txt
-chown root:root production.env credentials.txt
+chmod 600 production.env credentials.txt .env
+chown root:root production.env credentials.txt .env
+
+# Остановка и удаление контейнеров
+log "3. Остановка и удаление контейнеров..."
+if docker-compose down -v --remove-orphans; then
+    log "✓ Контейнеры остановлены и удалены"
+else
+    log_error "Ошибка при остановке контейнеров"
+    exit 1
+fi
 
 # Сборка и запуск проекта
 log "4. Сборка проекта..."
