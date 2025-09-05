@@ -9,7 +9,6 @@ import {
   ClipboardDocumentIcon,
   DocumentIcon,
   EyeIcon,
-  DocumentArrowDownIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
@@ -59,7 +58,7 @@ export default function CreateVEDPassportPage() {
   const [formData, setFormData] = useState<PassportFormData>({
     orderNumber: '',
     nomenclatureId: null,
-    quantity: 1
+    quantity: 0
   })
   const [selectedNomenclature, setSelectedNomenclature] = useState<NomenclatureItem | null>(null)
   const [bulkItems, setBulkItems] = useState<BulkInputItem[]>([])
@@ -90,11 +89,26 @@ export default function CreateVEDPassportPage() {
     }))
   }
 
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Если поле пустое, устанавливаем 0, иначе парсим число
+    const quantity = value === '' ? 0 : parseInt(value) || 0
+    setFormData(prev => ({
+      ...prev,
+      quantity: quantity
+    }))
+  }
+
 
 
   const createSinglePassport = async () => {
     if (!formData.orderNumber || !formData.nomenclatureId) {
       setErrorMessage('Пожалуйста, заполните все обязательные поля')
+      return
+    }
+
+    if (formData.orderNumber === '0' || formData.orderNumber.trim() === '') {
+      setErrorMessage('Номер заказа не может быть "0" или пустым')
       return
     }
 
@@ -120,7 +134,7 @@ export default function CreateVEDPassportPage() {
           title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : undefined,
           items: [{
             code_1c: selectedNomenclature?.code_1c,
-            quantity: formData.quantity
+            quantity: formData.quantity === 0 ? 1 : formData.quantity
           }]
         })
       })
@@ -168,6 +182,16 @@ export default function CreateVEDPassportPage() {
   }
 
   const createBulkPassports = async () => {
+    if (!formData.orderNumber) {
+      setErrorMessage('Пожалуйста, введите номер заказа поставщику')
+      return
+    }
+
+    if (formData.orderNumber === '0' || formData.orderNumber.trim() === '') {
+      setErrorMessage('Номер заказа не может быть "0" или пустым')
+      return
+    }
+
     if (!bulkItems.length) {
       setErrorMessage('Пожалуйста, добавьте позиции для создания паспортов')
       return
@@ -268,7 +292,7 @@ export default function CreateVEDPassportPage() {
 
     // Создаем CSV данные с правильной кодировкой
     const BOM = '\uFEFF' // BOM для UTF-8
-    const headers = ['Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул', 'Матрица', 'Статус', 'Дата создания']
+    const headers = ['Номер паспорта', 'Номер заказа поставщику', 'Код 1С', 'Наименование', 'Артикул', 'Матрица', 'Дата создания']
     const csvData = [
       headers.join(';'), // Используем точку с запятой вместо запятой
       ...createdPassports.map(passport => [
@@ -278,7 +302,6 @@ export default function CreateVEDPassportPage() {
         passport.nomenclature.name.replace(/"/g, '""'), // Экранируем кавычки
         passport.nomenclature.article,
         passport.nomenclature.matrix,
-        passport.status,
         new Date(passport.created_at).toLocaleDateString('ru-RU')
       ].join(';'))
     ].join('\r\n') // Используем Windows line endings
@@ -447,7 +470,7 @@ export default function CreateVEDPassportPage() {
                 {/* Номер заказа */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Номер заказа покупателя *
+                    Номер заказа поставщику *
                   </label>
                   <input
                     type="text"
@@ -477,15 +500,15 @@ export default function CreateVEDPassportPage() {
                     Количество экземпляров *
                   </label>
                   <input
-                    type="number"
+                    type="text"
                     name="quantity"
-                    value={formData.quantity}
-                    onChange={handleInputChange}
-                    min="1"
+                    value={formData.quantity === 0 ? '' : formData.quantity.toString()}
+                    onChange={handleQuantityChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1"
                   />
                   <p className="mt-1 text-sm text-gray-500">
-                    Будет создано {formData.quantity} паспортов (по одному на каждый экземпляр)
+                    Будет создано {formData.quantity === 0 ? 1 : formData.quantity} паспортов (по одному на каждый экземпляр)
                   </p>
                 </div>
 
@@ -495,7 +518,7 @@ export default function CreateVEDPassportPage() {
                   disabled={isSubmitting || !formData.orderNumber || !formData.nomenclatureId}
                   className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Создание...' : `Создать ${formData.quantity} паспорт(ов) ВЭД`}
+                  {isSubmitting ? 'Создание...' : `Создать ${formData.quantity === 0 ? 1 : formData.quantity} паспорт(ы) ВЭД`}
                 </button>
               </div>
             ) : (
@@ -505,7 +528,7 @@ export default function CreateVEDPassportPage() {
                 {/* Номер заказа для массового создания */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Номер заказа покупателя
+                    Номер заказа поставщику *
                   </label>
                   <input
                     type="text"
@@ -513,7 +536,8 @@ export default function CreateVEDPassportPage() {
                     value={formData.orderNumber}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Введите номер заказа (необязательно)"
+                    placeholder="Введите номер заказа"
+                    required
                   />
                 </div>
 
@@ -528,7 +552,7 @@ export default function CreateVEDPassportPage() {
                 {/* Кнопка массового создания */}
                 <button
                   onClick={createBulkPassports}
-                  disabled={isSubmitting || bulkItems.length === 0}
+                  disabled={isSubmitting || bulkItems.length === 0 || !formData.orderNumber}
                   className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Создание...' : 'Создать паспорты ВЭД'}
@@ -555,13 +579,6 @@ export default function CreateVEDPassportPage() {
                     Экспорт в PDF
                   </button>
                   <button
-                    onClick={() => exportCreatedPassports('xlsx')}
-                    className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
-                  >
-                    <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                    Экспорт в Excel
-                  </button>
-                  <button
                     onClick={clearCreatedPassports}
                     className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
@@ -572,25 +589,22 @@ export default function CreateVEDPassportPage() {
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="w-full divide-y divide-gray-200 table-fixed">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="w-48 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Номер паспорта
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Номер заказа
+                    <th className="w-56 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Номер заказа поставщику
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="w-80 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Номенклатура
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Статус
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Дата создания
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="w-24 px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Действия
                     </th>
                   </tr>
@@ -598,13 +612,13 @@ export default function CreateVEDPassportPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {createdPassports.map((passport) => (
                     <tr key={passport.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="w-48 px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {passport.passport_number}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="w-56 px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {passport.order_number}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="w-80 px-6 py-4">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
                             {passport.nomenclature.code_1c}
@@ -614,13 +628,7 @@ export default function CreateVEDPassportPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          <CheckCircleIcon className="w-4 h-4 mr-1" />
-                          {passport.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="w-32 px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(passport.created_at).toLocaleDateString('ru-RU', {
                           year: 'numeric',
                           month: '2-digit',
@@ -629,7 +637,7 @@ export default function CreateVEDPassportPage() {
                           minute: '2-digit'
                         })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="w-24 px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => viewPassport(passport)}
                           className="text-blue-600 hover:text-blue-900"

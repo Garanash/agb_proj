@@ -212,113 +212,8 @@ e-mail: contact@almazgeobur.ru                                                  
 
 def generate_passport_pdf(passport):
     """Генерирует PDF паспорта с правильной кодировкой и новым макетом"""
-    # Создаем PDF в памяти
-    buffer = io.BytesIO()
-    
-    # Устанавливаем отступы страницы
-    page_width, page_height = A4
-    margin = 30  # отступ 30 мм со всех сторон
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        leftMargin=margin,
-        rightMargin=margin,
-        topMargin=margin,
-        bottomMargin=margin
-    )
-    
-    # Настраиваем шрифты
-    normal_font = setup_cyrillic_fonts()
-    
-    # Создаем стили
-    title_style, subtitle_style, normal_style = create_passport_styles(normal_font)
-    
-    # Создаем содержимое
-    story = []
-    
-    # Создаем контактную информацию в одну строку
-    contact_info = """ООО "Алмазгеобур" 125362, г. Москва, улица Водников, дом 2, стр. 14, оф. 11, тел.:+7 495 229 82 94
-LLP "Almazgeobur" 125362, Moscow, Vodnikov Street, 2, building. 14, of. 11, tel.:+7 495 229 82 94,
-e-mail: contact@almazgeobur.ru                                                                                almazgeobur.ru"""
-
-    # Создаем таблицу с логотипом и контактными данными
-    header_data = [[None, contact_info]]
-
-    # Добавляем логотип
-    logo_img = create_logo_image()
-    if logo_img:
-        logo_cell = Image(logo_img, width=40*mm, height=12*mm)
-        header_data[0][0] = logo_cell
-
-    # Создаем заголовочную таблицу
-    header_table = Table(header_data, colWidths=[45*mm, page_width - 2*margin - 47*mm])
-    header_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), normal_font),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-        ('ALIGN', (1, 0), (1, 0), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('ENCODING', (0, 0), (-1, -1), 'utf-8'),
-    ]))
-
-    # Создаем стиль для переноса текста
-    wrapped_style = ParagraphStyle(
-        'WrappedText',
-        parent=normal_style,
-        fontSize=8,
-        leading=10,
-        spaceBefore=0,
-        spaceAfter=0,
-    )
-
-    # Создаем параграф с названием номенклатуры для автоматического переноса
-    tool_type = Paragraph(passport.nomenclature.name or "Алмазная буровая коронка ALFA 3-5", wrapped_style)
-
-    # Основная таблица с данными паспорта
-    passport_data = [
-        ["Артикул / Stock Code", "Типоразмер / Tool size", "Серийный номер / Serial Number"],
-        [passport.nomenclature.article or "3501040", passport.nomenclature.matrix or "NQ", passport.passport_number or "AGB 3-5 NQ 0000125"],
-        ["Матрица / Matrix", "Высота матрицы / Imp Depth", "Промывочные отверстия / Waterways", "Буровой инструмент / Tool type"],
-        [passport.nomenclature.matrix or "3-5", passport.nomenclature.height or "12 mm", "8 mm", tool_type],
-        ["2025", f"AGB{passport.nomenclature.article or '3501040'}-{passport.passport_number or '0000125'}", "", ""]
-    ]
-
-    # Создаем основную таблицу
-    table = Table(passport_data, colWidths=[45*mm, 45*mm, 55*mm, page_width - 2*margin - 147*mm])
-    table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, -1), normal_font),
-        ('FONTSIZE', (0, 0), (-1, -1), 8),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-        ('BACKGROUND', (0, 2), (-1, 2), colors.lightgrey),
-        ('SPAN', (3, 2), (3, 3)),  # Объединяем ячейку для "Буровой инструмент"
-        ('SPAN', (1, 4), (3, 4)),  # Объединяем ячейку для штрихкода
-        ('ALIGN', (1, 4), (3, 4), 'CENTER'),  # Центрируем штрихкод
-        ('ENCODING', (0, 0), (-1, -1), 'utf-8'),
-    ]))
-
-    # Создаем внешнюю таблицу с рамкой
-    outer_data = [[header_table], [Spacer(1, 8)], [table]]
-    outer_table = Table(outer_data, colWidths=[page_width - 2*margin])
-    outer_table.setStyle(TableStyle([
-        ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-        ('LEFTPADDING', (0, 0), (-1, -1), 5),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-    ]))
-    
-    story.append(outer_table)
-    
-    # Генерируем PDF
-    doc.build(story)
-    buffer.seek(0)
-    
-    return buffer.getvalue()
+    # Используем ту же функцию, что и для массового экспорта, но с одним паспортом
+    return generate_bulk_passports_pdf([passport])
 
 
 def generate_bulk_passports_pdf(passports):
@@ -406,7 +301,7 @@ e-mail: contact@almazgeobur.ru                                                  
             ]))
 
             # Создаем параграф с названием номенклатуры для автоматического переноса
-            tool_type = Paragraph(passport.nomenclature.name or "Алмазная буровая коронка ALFA 3-5", wrapped_style)
+            tool_type = Paragraph("Алмазная буровая коронка / Diamond drill bit", wrapped_style)
 
             # Создаем стили для заголовков
             header_style = ParagraphStyle(
@@ -421,17 +316,17 @@ e-mail: contact@almazgeobur.ru                                                  
 
             # Создаем параграфы для двухстрочных заголовков
             headers = [
-                Paragraph("Артикул\nStock Code", header_style),
-                Paragraph("Типоразмер\nTool size", header_style),
-                Paragraph("Серийный номер\nSerial Number", header_style),
+                Paragraph("Артикул / Stock Code", header_style),
+                Paragraph("Типоразмер / Tool size", header_style),
+                Paragraph("Серийный номер / Serial Number", header_style),
                 ""  # Пустая ячейка для tool type
             ]
 
             sub_headers = [
-                Paragraph("Матрица\nMatrix", header_style),
-                Paragraph("Высота матрицы\nImp Depth", header_style),
-                Paragraph("Промывочные отверстия\nWaterways", header_style),
-                Paragraph("Буровой инструмент\nTool type", header_style)
+                Paragraph("Матрица / Matrix", header_style),
+                Paragraph("Высота матрицы / Imp Depth", header_style),
+                Paragraph("Промывочные отверстия / Waterways", header_style),
+                Paragraph("Буровой инструмент / Tool type", header_style)
             ]
 
             # Основная таблица с данными паспорта
@@ -446,8 +341,12 @@ e-mail: contact@almazgeobur.ru                                                  
                  passport.nomenclature.height or "12 mm", 
                  "8 mm",
                  tool_type],  # Tool type перемещен вниз
-                ["2025", "", "", ""]  # Убран штрихкод
+                ["", "", "", "2025"]  # Дата производства перенесена вправо
             ]
+            
+            # Добавляем заголовок для даты производства
+            date_header = Paragraph("Дата производства / Production date", header_style)
+            passport_data.append([date_header, "", "", ""])
 
             # Создаем основную таблицу
             table = Table(passport_data, colWidths=[45*mm, 45*mm, 55*mm, page_width - 2*margin - 147*mm])

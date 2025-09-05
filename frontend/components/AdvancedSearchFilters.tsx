@@ -274,7 +274,7 @@ export default function AdvancedSearchFilters({
                 {/* Номер заказа */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Номер заказа
+                    Номер заказа поставщику
                   </label>
                   <input
                     type="text"

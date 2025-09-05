@@ -159,7 +159,7 @@ export default function PassportPreview({ passport, isOpen, onClose }: PassportP
                 </div>
                 <div className="flex">
                   <div className="w-1/3 bg-gray-50 px-4 py-3 font-medium text-gray-700 border-r border-gray-200">
-                    Номер заказа
+                    Номер заказа поставщику
                   </div>
                   <div className="w-2/3 px-4 py-3 text-gray-900">
                     {passport.order_number}

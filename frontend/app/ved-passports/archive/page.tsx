@@ -8,7 +8,6 @@ import {
   EyeIcon,
   PencilIcon,
   TrashIcon,
-  DocumentArrowDownIcon,
   PlusIcon,
   DocumentIcon
 } from '@heroicons/react/24/outline'
@@ -70,6 +69,111 @@ export default function VEDPassportsArchivePage() {
   const [selectedPassport, setSelectedPassport] = useState<PassportRecord | null>(null)
   const [selectedPassports, setSelectedPassports] = useState<number[]>([])
   const [selectAll, setSelectAll] = useState(false)
+  
+  // Состояния для управления столбцами
+  const [columnVisibility, setColumnVisibility] = useState({
+    checkbox: true,
+    passport: true,
+    order: true,
+    nomenclature: true,
+    date: true,
+    actions: true
+  })
+  
+  const [columnWidths, setColumnWidths] = useState({
+    checkbox: 8,
+    passport: 80,
+    order: 40,
+    nomenclature: 180,
+    date: 35,
+    actions: 50
+  })
+  
+  const [showTableSettings, setShowTableSettings] = useState(false)
+  
+  // Состояния для перетаскивания столбцов
+  const [isResizing, setIsResizing] = useState(false)
+  const [resizingColumn, setResizingColumn] = useState<keyof typeof columnWidths | null>(null)
+  const [startX, setStartX] = useState(0)
+  const [startWidth, setStartWidth] = useState(0)
+
+  // Функции для управления столбцами
+  const toggleColumnVisibility = (column: keyof typeof columnVisibility) => {
+    setColumnVisibility(prev => ({
+      ...prev,
+      [column]: !prev[column]
+    }))
+  }
+
+  const updateColumnWidth = (column: keyof typeof columnWidths, width: number) => {
+    setColumnWidths(prev => ({
+      ...prev,
+      [column]: Math.max(20, Math.min(500, width)) // Ограничиваем от 20 до 500px
+    }))
+  }
+
+  const resetTableSettings = () => {
+    setColumnVisibility({
+      checkbox: true,
+      passport: true,
+      order: true,
+      nomenclature: true,
+      date: true,
+      actions: true
+    })
+    setColumnWidths({
+      checkbox: 8,
+      passport: 80,
+      order: 40,
+      nomenclature: 180,
+      date: 35,
+      actions: 50
+    })
+  }
+
+  // Функции для перетаскивания столбцов
+  const handleMouseDown = (e: React.MouseEvent, column: keyof typeof columnWidths) => {
+    e.preventDefault()
+    setIsResizing(true)
+    setResizingColumn(column)
+    setStartX(e.clientX)
+    setStartWidth(columnWidths[column])
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing || !resizingColumn) return
+    
+    const deltaX = e.clientX - startX
+    const newWidth = Math.max(20, Math.min(500, startWidth + deltaX))
+    updateColumnWidth(resizingColumn, newWidth)
+  }
+
+  const handleMouseUp = () => {
+    setIsResizing(false)
+    setResizingColumn(null)
+  }
+
+  // Добавляем обработчики событий мыши
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    } else {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing, resizingColumn, startX, startWidth])
 
   // Фильтруем паспорта локально по поисковому запросу (если сервер не поддерживает поиск)
   const filteredPassports = useMemo(() => {
@@ -418,7 +522,7 @@ export default function VEDPassportsArchivePage() {
 
     // Создаем CSV данные с правильной кодировкой
     const BOM = '\uFEFF' // BOM для UTF-8
-    const headers = ['Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул', 'Матрица', 'Тип продукта', 'Количество', 'Статус', 'Дата создания', 'Дата обновления']
+    const headers = ['Номер паспорта', 'Номер заказа поставщику', 'Код 1С', 'Наименование', 'Артикул', 'Матрица', 'Тип продукта', 'Дата создания', 'Дата обновления']
     const csvData = [
       headers.join(';'), // Используем точку с запятой вместо запятой
       ...filteredPassports.map(passport => [
@@ -429,8 +533,6 @@ export default function VEDPassportsArchivePage() {
         passport.nomenclature.article,
         passport.nomenclature.matrix,
         passport.nomenclature.product_type,
-        passport.quantity,
-        passport.status,
         new Date(passport.created_at).toLocaleDateString('ru-RU'),
         new Date(passport.updated_at).toLocaleDateString('ru-RU')
       ].join(';'))
@@ -494,14 +596,6 @@ export default function VEDPassportsArchivePage() {
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <button
-                onClick={exportToExcel}
-                disabled={filteredPassports.length === 0}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                Экспорт в Excel
-              </button>
               <Link
                 href="/ved-passports/create"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -559,13 +653,6 @@ export default function VEDPassportsArchivePage() {
                       Экспорт PDF
                     </button>
                     <button
-                      onClick={() => exportBulkPassports('xlsx')}
-                      className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
-                    >
-                      <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                      Экспорт Excel
-                    </button>
-                    <button
                       onClick={clearSelection}
                       className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
@@ -583,12 +670,11 @@ export default function VEDPassportsArchivePage() {
                     Выгрузка всех PDF
                   </button>
                   <button
-                    onClick={() => exportAllPassports('xlsx')}
-                    disabled={filteredPassports.length === 0}
-                    className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => setShowTableSettings(true)}
+                    className="inline-flex items-center px-3 py-2 bg-gray-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-gray-700"
                   >
-                    <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                    Выгрузка всех Excel
+                    <PencilIcon className="w-4 h-4 mr-2" />
+                    Настройки таблицы
                   </button>
                 </div>
               </div>
@@ -621,59 +707,157 @@ export default function VEDPassportsArchivePage() {
               <p className="text-gray-600">Загрузка паспортов...</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Номер паспорта
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Номер заказа
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Номенклатура
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Количество
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Статус
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Дата создания
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Действия
-                    </th>
-                  </tr>
-                </thead>
+            <div className="w-full">
+                                            <div className="overflow-x-auto" style={{ maxWidth: '95vw' }}>
+                <table className="w-full divide-y divide-gray-200 text-xs" style={{ width: '100%', maxWidth: '95vw', tableLayout: 'fixed' }}>
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {columnVisibility.checkbox && (
+                        <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.checkbox}px` }}>
+                          <div className="flex items-center justify-between">
+                            <input
+                              type="checkbox"
+                              checked={selectAll}
+                              onChange={(e) => handleSelectAll(e.target.checked)}
+                              className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <button
+                              onClick={() => toggleColumnVisibility('checkbox')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'checkbox')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                      {columnVisibility.passport && (
+                        <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.passport}px` }}>
+                          <div className="flex items-center justify-between">
+                            <span>Паспорт</span>
+                            <button
+                              onClick={() => toggleColumnVisibility('passport')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'passport')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                      {columnVisibility.order && (
+                        <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.order}px` }}>
+                          <div className="flex items-center justify-between">
+                            <span>Заказ</span>
+                            <button
+                              onClick={() => toggleColumnVisibility('order')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'order')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                      {columnVisibility.nomenclature && (
+                        <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.nomenclature}px` }}>
+                          <div className="flex items-center justify-between">
+                            <span>Номенклатура</span>
+                            <button
+                              onClick={() => toggleColumnVisibility('nomenclature')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'nomenclature')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                      {columnVisibility.date && (
+                        <th className="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.date}px` }}>
+                          <div className="flex items-center justify-between">
+                            <span>Дата</span>
+                            <button
+                              onClick={() => toggleColumnVisibility('date')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'date')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                      {columnVisibility.actions && (
+                        <th className="px-1 py-1 text-right text-xs font-medium text-gray-500 uppercase tracking-wider group relative" style={{ width: `${columnWidths.actions}px` }}>
+                          <div className="flex items-center justify-between">
+                            <span>Действия</span>
+                            <button
+                              onClick={() => toggleColumnVisibility('actions')}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-gray-200 rounded"
+                              title="Скрыть столбец"
+                            >
+                              <EyeIcon className="h-3 w-3 text-gray-400 hover:text-gray-600" />
+                            </button>
+                          </div>
+                          <div
+                            className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            onMouseDown={(e) => handleMouseDown(e, 'actions')}
+                            title="Перетащите для изменения ширины"
+                          />
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredPassports.map((passport) => (
                     <tr key={passport.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedPassports.includes(passport.id)}
-                          onChange={(e) => handleSelectPassport(passport.id, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {passport.passport_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {passport.order_number}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      {columnVisibility.checkbox && (
+                        <td className="px-1 py-1 whitespace-nowrap" style={{ width: `${columnWidths.checkbox}px` }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedPassports.includes(passport.id)}
+                            onChange={(e) => handleSelectPassport(passport.id, e.target.checked)}
+                            className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                        </td>
+                      )}
+                      {columnVisibility.passport && (
+                        <td className="px-1 py-1 text-xs font-medium text-gray-900 break-words" style={{ width: `${columnWidths.passport}px` }}>
+                          {passport.passport_number}
+                        </td>
+                      )}
+                      {columnVisibility.order && (
+                        <td className="px-1 py-1 text-xs text-gray-900 break-words" style={{ width: `${columnWidths.order}px` }}>
+                          {passport.order_number}
+                        </td>
+                      )}
+                      {columnVisibility.nomenclature && (
+                        <td className="px-1 py-1 text-xs" style={{ width: `${columnWidths.nomenclature}px` }}>
                         <div>
                           <div className="flex items-center space-x-2 mb-1">
                             <span className="text-sm font-medium text-gray-900">
@@ -700,19 +884,15 @@ export default function VEDPassportsArchivePage() {
                             )}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {passport.quantity} шт
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(passport.status)}`}>
-                          {getStatusText(passport.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(passport.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        </td>
+                      )}
+                      {columnVisibility.date && (
+                        <td className="px-1 py-1 text-xs text-gray-500 break-words" style={{ width: `${columnWidths.date}px` }}>
+                          {formatDate(passport.created_at)}
+                        </td>
+                      )}
+                      {columnVisibility.actions && (
+                        <td className="px-1 py-1 text-right text-xs font-medium" style={{ width: `${columnWidths.actions}px` }}>
                         <div className="flex justify-end space-x-2">
                           <button
                             onClick={() => viewPassport(passport)}
@@ -729,13 +909,6 @@ export default function VEDPassportsArchivePage() {
                             <DocumentIcon className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => exportPassport(passport.id, 'xlsx')}
-                            className="text-green-600 hover:text-green-900"
-                            title="Экспорт в Excel"
-                          >
-                            <DocumentArrowDownIcon className="h-4 w-4" />
-                          </button>
-                          <button
                             className="text-red-600 hover:text-red-900"
                             title="Удалить"
                             onClick={() => handleDelete(passport.id)}
@@ -743,11 +916,13 @@ export default function VEDPassportsArchivePage() {
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
-                      </td>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -785,6 +960,85 @@ export default function VEDPassportsArchivePage() {
         isOpen={showPassportModal}
         onClose={() => setShowPassportModal(false)}
       />
+
+      {/* Модальное окно настроек таблицы */}
+      {showTableSettings && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Настройки таблицы</h3>
+              
+              {/* Настройки видимости столбцов */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Видимость столбцов</h4>
+                <div className="space-y-2">
+                  {Object.entries(columnVisibility).map(([key, visible]) => (
+                    <label key={key} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={visible}
+                        onChange={() => toggleColumnVisibility(key as keyof typeof columnVisibility)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        {key === 'checkbox' ? 'Чекбокс' :
+                         key === 'passport' ? 'Паспорт' :
+                         key === 'order' ? 'Заказ' :
+                         key === 'nomenclature' ? 'Номенклатура' :
+                         key === 'date' ? 'Дата' :
+                         key === 'actions' ? 'Действия' : key}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Настройки ширины столбцов */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Ширина столбцов (px)</h4>
+                <div className="space-y-3">
+                  {Object.entries(columnWidths).map(([key, width]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <label className="text-sm text-gray-700 w-24">
+                        {key === 'checkbox' ? 'Чекбокс' :
+                         key === 'passport' ? 'Паспорт' :
+                         key === 'order' ? 'Заказ' :
+                         key === 'nomenclature' ? 'Номенклатура' :
+                         key === 'date' ? 'Дата' :
+                         key === 'actions' ? 'Действия' : key}
+                      </label>
+                      <input
+                        type="number"
+                        min="20"
+                        max="500"
+                        value={width}
+                        onChange={(e) => updateColumnWidth(key as keyof typeof columnWidths, parseInt(e.target.value) || 20)}
+                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Кнопки */}
+              <div className="flex justify-between">
+                <button
+                  onClick={resetTableSettings}
+                  className="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Сбросить
+                </button>
+                <button
+                  onClick={() => setShowTableSettings(false)}
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Применить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

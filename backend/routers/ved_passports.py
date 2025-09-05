@@ -1125,89 +1125,8 @@ async def export_passport_xlsx(
         if passport.created_by != current_user.id:
             raise HTTPException(status_code=403, detail="Доступ запрещен")
 
-        # Создаем XLSX в памяти
-        buffer = BytesIO()
-        workbook = xlsxwriter.Workbook(buffer)
-        worksheet = workbook.add_worksheet('Паспорт')
-
-        # Форматы
-        title_format = workbook.add_format({
-            'bold': True,
-            'font_size': 16,
-            'align': 'center'
-        })
-
-        header_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#f0f0f0',
-            'border': 1
-        })
-
-        cell_format = workbook.add_format({
-            'border': 1
-        })
-
-        # Заголовок
-        worksheet.merge_range('A1:B1', 'ООО "Алмазгеобур"', title_format)
-        worksheet.merge_range('A2:B2', 'Паспорт бурового оборудования', title_format)
-
-        # Контактные данные
-        worksheet.write('A4', 'Адрес:', cell_format)
-        worksheet.write('B4', '125362, г. Москва, улица Водников, дом 2, стр. 14, оф. 11', cell_format)
-        worksheet.write('A5', 'Телефон:', cell_format)
-        worksheet.write('B5', '+7 495 229 82 94', cell_format)
-        worksheet.write('A6', 'Email:', cell_format)
-        worksheet.write('B6', 'contact@almazgeobur.ru', cell_format)
-
-        # Номер паспорта
-        worksheet.write('A8', 'Номер паспорта:', header_format)
-        worksheet.write('B8', passport.passport_number, cell_format)
-
-        # Данные паспорта
-        row = 10
-        data = [
-            ["Код 1С", passport.nomenclature.code_1c],
-            ["Наименование", passport.nomenclature.name],
-            ["Артикул", passport.nomenclature.article],
-            ["Матрица", passport.nomenclature.matrix],
-        ]
-
-        if passport.nomenclature.drilling_depth:
-            data.append(["Глубина бурения", passport.nomenclature.drilling_depth])
-
-        if passport.nomenclature.height:
-            data.append(["Высота", passport.nomenclature.height])
-
-        if passport.nomenclature.thread:
-            data.append(["Резьба", passport.nomenclature.thread])
-
-        data.extend([
-            ["Тип продукта", passport.nomenclature.product_type],
-            ["Количество", f"{passport.quantity} шт"],
-            ["Номер заказа", passport.order_number],
-            ["Дата создания", passport.created_at.strftime("%d.%m.%Y %H:%M")]
-        ])
-
-        for label, value in data:
-            worksheet.write(f'A{row}', label, header_format)
-            worksheet.write(f'B{row}', value, cell_format)
-            row += 1
-
-        # Устанавливаем ширину колонок
-        worksheet.set_column('A:A', 30)
-        worksheet.set_column('B:B', 50)
-
-        workbook.close()
-        buffer.seek(0)
-
-        # Возвращаем файл
-        return Response(
-            content=buffer.getvalue(),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={
-                'Content-Disposition': f'attachment; filename=passport_{passport.passport_number}.xlsx'
-            }
-        )
+        # Используем ту же функцию, что и для массового экспорта
+        return await export_all_passports_xlsx_internal([passport], current_user)
 
     except Exception as e:
         print(f"Ошибка при экспорте паспорта в XLSX: {e}")
@@ -1235,8 +1154,8 @@ async def export_all_passports_pdf(
         if not passports:
             raise HTTPException(status_code=404, detail="Паспорта не найдены")
 
-        if len(passports) > 100:  # Ограничение для предотвращения перегрузки
-            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 100)")
+        if len(passports) > 10000:  # Увеличиваем лимит для больших экспортов
+            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 10000)")
 
         # Генерируем PDF с новым макетом
         pdf_content = generate_bulk_passports_pdf(passports)
@@ -1286,8 +1205,8 @@ async def export_bulk_passports_pdf(
         if not passports:
             raise HTTPException(status_code=404, detail="Выбранные паспорта не найдены")
 
-        if len(passports) > 500:  # Увеличиваем лимит
-            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 500)")
+        if len(passports) > 10000:  # Увеличиваем лимит для больших экспортов
+            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 10000)")
 
         # Проверяем, что все выбранные паспорта найдены
         found_ids = {p.id for p in passports}
@@ -1321,6 +1240,109 @@ async def export_bulk_passports_pdf(
         raise HTTPException(status_code=500, detail=f"Ошибка при экспорте: {str(e)}")
 
 
+async def export_all_passports_xlsx_internal(passports: List[VedPassport], current_user: User):
+    """Внутренняя функция для экспорта паспортов в XLSX"""
+    try:
+        if not passports:
+            raise HTTPException(status_code=404, detail="Паспорта не найдены")
+
+        if len(passports) > 2000:  # Ограничение для предотвращения перегрузки
+            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 2000)")
+
+        print(f"DEBUG: Найдено {len(passports)} паспортов для экспорта")
+        for i, passport in enumerate(passports):
+            print(f"DEBUG: Паспорт {i+1}: {passport.passport_number}, nomenclature: {passport.nomenclature}")
+
+        # Создаем XLSX в памяти
+        buffer = BytesIO()
+        workbook = xlsxwriter.Workbook(buffer)
+
+        # Создаем лист со сводной таблицей
+        summary_sheet = workbook.add_worksheet('Сводка паспортов')
+
+        # Форматы
+        header_format = workbook.add_format({
+            'bold': True,
+            'bg_color': '#4472C4',
+            'font_color': 'white',
+            'border': 1,
+            'align': 'center'
+        })
+
+        cell_format = workbook.add_format({
+            'border': 1,
+            'align': 'left'
+        })
+
+        # Заголовки
+        headers = ['Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул', 'Матрица',
+                  'Глубина бурения', 'Высота', 'Резьба', 'Тип продукта',
+                  'Количество', 'Дата создания']
+
+        for col, header in enumerate(headers):
+            summary_sheet.write(0, col, header, header_format)
+
+        # Данные
+        for row, passport in enumerate(passports, 1):
+            try:
+                print(f"DEBUG: Обрабатываем паспорт {row}: {passport.passport_number}")
+                
+                # Безопасное получение данных nomenclature
+                nomenclature = passport.nomenclature if passport.nomenclature else None
+                
+                summary_sheet.write(row, 0, passport.passport_number or '', cell_format)
+                summary_sheet.write(row, 1, passport.order_number or '', cell_format)
+                summary_sheet.write(row, 2, nomenclature.code_1c if nomenclature else '', cell_format)
+                summary_sheet.write(row, 3, nomenclature.name if nomenclature else '', cell_format)
+                summary_sheet.write(row, 4, nomenclature.article if nomenclature else '', cell_format)
+                summary_sheet.write(row, 5, nomenclature.matrix if nomenclature else '', cell_format)
+                summary_sheet.write(row, 6, nomenclature.drilling_depth if nomenclature else '', cell_format)
+                summary_sheet.write(row, 7, nomenclature.height if nomenclature else '', cell_format)
+                summary_sheet.write(row, 8, nomenclature.thread if nomenclature else '', cell_format)
+                summary_sheet.write(row, 9, nomenclature.product_type if nomenclature else '', cell_format)
+                summary_sheet.write(row, 10, passport.quantity or 0, cell_format)
+                summary_sheet.write(row, 11, passport.created_at.strftime("%d.%m.%Y %H:%M") if passport.created_at else '', cell_format)
+                
+                print(f"DEBUG: Паспорт {row} обработан успешно")
+            except Exception as e:
+                print(f"ERROR: Ошибка при обработке паспорта {row}: {e}")
+                # Записываем пустую строку в случае ошибки
+                for col in range(12):
+                    summary_sheet.write(row, col, '', cell_format)
+
+        # Устанавливаем ширину колонок
+        summary_sheet.set_column('A:A', 20)  # Номер паспорта
+        summary_sheet.set_column('B:B', 15)  # Номер заказа
+        summary_sheet.set_column('C:C', 15)  # Код 1С
+        summary_sheet.set_column('D:D', 30)  # Наименование
+        summary_sheet.set_column('E:E', 15)  # Артикул
+        summary_sheet.set_column('F:F', 15)  # Матрица
+        summary_sheet.set_column('G:G', 15)  # Глубина бурения
+        summary_sheet.set_column('H:H', 10)  # Высота
+        summary_sheet.set_column('I:I', 10)  # Резьба
+        summary_sheet.set_column('J:J', 20)  # Тип продукта
+        summary_sheet.set_column('K:K', 12)  # Количество
+        summary_sheet.set_column('L:L', 18)  # Дата создания
+
+        workbook.close()
+        buffer.seek(0)
+
+        # Возвращаем файл
+        return Response(
+            content=buffer.getvalue(),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={
+                'Content-Disposition': f'attachment; filename=bulk_passports_{len(passports)}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Ошибка при экспорте паспортов в XLSX: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при экспорте: {str(e)}")
+
+
 @router.get("/export/all/xlsx")
 async def export_all_passports_xlsx(
     current_user: User = Depends(get_current_user),
@@ -1339,78 +1361,8 @@ async def export_all_passports_xlsx(
         )
         passports = result.scalars().all()
 
-        if not passports:
-            raise HTTPException(status_code=404, detail="Паспорта не найдены")
-
-        if len(passports) > 200:  # Ограничение для предотвращения перегрузки
-            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 200)")
-
-        # Создаем XLSX в памяти
-        buffer = BytesIO()
-        workbook = xlsxwriter.Workbook(buffer)
-
-        # Основной лист со списком
-        summary_sheet = workbook.add_worksheet('Список паспортов')
-
-        # Форматы
-        header_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#f0f0f0',
-            'border': 1
-        })
-
-        cell_format = workbook.add_format({
-            'border': 1
-        })
-
-        # Заголовки
-        headers = ['Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул',
-                  'Матрица', 'Глубина бурения', 'Высота', 'Резьба', 'Тип продукта',
-                  'Количество', 'Дата создания']
-
-        for col, header in enumerate(headers):
-            summary_sheet.write(0, col, header, header_format)
-
-        # Данные
-        for row, passport in enumerate(passports, 1):
-            summary_sheet.write(row, 0, passport.passport_number, cell_format)
-            summary_sheet.write(row, 1, passport.order_number, cell_format)
-            summary_sheet.write(row, 2, passport.nomenclature.code_1c, cell_format)
-            summary_sheet.write(row, 3, passport.nomenclature.name, cell_format)
-            summary_sheet.write(row, 4, passport.nomenclature.article, cell_format)
-            summary_sheet.write(row, 5, passport.nomenclature.matrix, cell_format)
-            summary_sheet.write(row, 6, passport.nomenclature.drilling_depth or '', cell_format)
-            summary_sheet.write(row, 7, passport.nomenclature.height or '', cell_format)
-            summary_sheet.write(row, 8, passport.nomenclature.thread or '', cell_format)
-            summary_sheet.write(row, 9, passport.nomenclature.product_type, cell_format)
-            summary_sheet.write(row, 10, passport.quantity, cell_format)
-            summary_sheet.write(row, 11, passport.created_at.strftime("%d.%m.%Y %H:%M"), cell_format)
-
-        # Устанавливаем ширину колонок
-        summary_sheet.set_column('A:A', 20)  # Номер паспорта
-        summary_sheet.set_column('B:B', 15)  # Номер заказа
-        summary_sheet.set_column('C:C', 15)  # Код 1С
-        summary_sheet.set_column('D:D', 40)  # Наименование
-        summary_sheet.set_column('E:E', 15)  # Артикул
-        summary_sheet.set_column('F:F', 10)  # Матрица
-        summary_sheet.set_column('G:G', 15)  # Глубина бурения
-        summary_sheet.set_column('H:H', 10)  # Высота
-        summary_sheet.set_column('I:I', 10)  # Резьба
-        summary_sheet.set_column('J:J', 15)  # Тип продукта
-        summary_sheet.set_column('K:K', 12)  # Количество
-        summary_sheet.set_column('L:L', 18)  # Дата создания
-
-        workbook.close()
-        buffer.seek(0)
-
-        # Возвращаем файл
-        return Response(
-            content=buffer.getvalue(),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={
-                'Content-Disposition': f'attachment; filename=bulk_passports_{len(passports)}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-            }
-        )
+        # Используем внутреннюю функцию
+        return await export_all_passports_xlsx_internal(passports, current_user)
 
     except HTTPException:
         raise
@@ -1441,78 +1393,8 @@ async def export_bulk_passports_xlsx(
         )
         passports = result.scalars().all()
 
-        if not passports:
-            raise HTTPException(status_code=404, detail="Выбранные паспорта не найдены")
-
-        if len(passports) > 200:  # Ограничение для предотвращения перегрузки
-            raise HTTPException(status_code=400, detail="Слишком много паспортов для экспорта (максимум 200)")
-
-        # Создаем XLSX в памяти
-        buffer = BytesIO()
-        workbook = xlsxwriter.Workbook(buffer)
-
-        # Основной лист со списком
-        summary_sheet = workbook.add_worksheet('Список паспортов')
-
-        # Форматы
-        header_format = workbook.add_format({
-            'bold': True,
-            'bg_color': '#f0f0f0',
-            'border': 1
-        })
-
-        cell_format = workbook.add_format({
-            'border': 1
-        })
-
-        # Заголовки
-        headers = ['Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул',
-                  'Матрица', 'Глубина бурения', 'Высота', 'Резьба', 'Тип продукта',
-                  'Количество', 'Дата создания']
-
-        for col, header in enumerate(headers):
-            summary_sheet.write(0, col, header, header_format)
-
-        # Заполняем данные
-        for row, passport in enumerate(passports, 1):
-            summary_sheet.write(row, 0, passport.passport_number, cell_format)
-            summary_sheet.write(row, 1, passport.order_number, cell_format)
-            summary_sheet.write(row, 2, passport.nomenclature.code_1c, cell_format)
-            summary_sheet.write(row, 3, passport.nomenclature.name, cell_format)
-            summary_sheet.write(row, 4, passport.nomenclature.article, cell_format)
-            summary_sheet.write(row, 5, passport.nomenclature.matrix, cell_format)
-            summary_sheet.write(row, 6, passport.nomenclature.drilling_depth or '', cell_format)
-            summary_sheet.write(row, 7, passport.nomenclature.height or '', cell_format)
-            summary_sheet.write(row, 8, passport.nomenclature.thread or '', cell_format)
-            summary_sheet.write(row, 9, passport.nomenclature.product_type, cell_format)
-            summary_sheet.write(row, 10, passport.quantity, cell_format)
-            summary_sheet.write(row, 11, passport.created_at.strftime('%d.%m.%Y %H:%M'), cell_format)
-
-        # Устанавливаем ширину колонок
-        summary_sheet.set_column('A:A', 20)  # Номер паспорта
-        summary_sheet.set_column('B:B', 15)  # Номер заказа
-        summary_sheet.set_column('C:C', 15)  # Код 1С
-        summary_sheet.set_column('D:D', 30)  # Наименование
-        summary_sheet.set_column('E:E', 20)  # Артикул
-        summary_sheet.set_column('F:F', 15)  # Матрица
-        summary_sheet.set_column('G:G', 15)  # Глубина бурения
-        summary_sheet.set_column('H:H', 15)  # Высота
-        summary_sheet.set_column('I:I', 15)  # Резьба
-        summary_sheet.set_column('J:J', 15)  # Тип продукта
-        summary_sheet.set_column('K:K', 10)  # Количество
-        summary_sheet.set_column('L:L', 20)  # Дата создания
-
-        workbook.close()
-        buffer.seek(0)
-
-        # Возвращаем файл
-        return Response(
-            content=buffer.getvalue(),
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={
-                'Content-Disposition': f'attachment; filename=bulk_passports_{len(passports)}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-            }
-        )
+        # Используем внутреннюю функцию
+        return await export_all_passports_xlsx_internal(passports, current_user)
 
     except HTTPException:
         raise

@@ -153,8 +153,9 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     }
   }
 
-  const handleQuantityChange = (index: number, newQuantity: number) => {
-    if (newQuantity <= 0) return
+  const handleQuantityChange = (index: number, value: string) => {
+    const newQuantity = value === '' ? 0 : parseInt(value) || 0
+    if (newQuantity < 0) return
     
     const newItems = [...items]
     newItems[index].quantity = newQuantity
@@ -291,11 +292,11 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
                     <div className="flex items-center space-x-2">
                       <label className="text-sm text-gray-700">Количество:</label>
                       <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 1)}
+                        type="text"
+                        value={item.quantity.toString()}
+                        onChange={(e) => handleQuantityChange(index, e.target.value)}
                         className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0"
                       />
                     </div>
                   )}
