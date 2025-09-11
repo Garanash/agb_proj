@@ -1,12 +1,10 @@
-from fastapi import APIRouter, FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from database import engine, Base
 from datetime import datetime
 import os
-import sys
 import asyncio
 
 @asynccontextmanager
@@ -18,7 +16,7 @@ async def lifespan(app: FastAPI):
     # Инициализируем данные если их нет
     if os.getenv("AUTO_INIT_DATA", "true").lower() == "true":
         try:
-            from init_data import init_database_data
+            from scripts.init_data import init_database_data
             from database import AsyncSessionLocal
             
             async def check_and_init():
@@ -53,35 +51,25 @@ app = FastAPI(
 #     allow_headers=["*"],
 # )
 
-# Подключение основных роутеров
-from routers import (
-    auth_router, users_router, departments_router, company_employees_router,
-    news_router, events_router, chat_router, chat_folders_router
-)
-from routers.ved_passports import router as ved_passports_router
-from routers.customers import router as customers_router
-from routers.contractors import router as contractors_router
-from routers.repair_requests import router as repair_requests_router
-from routers.telegram import router as telegram_router
+# Подключение версионированного API
+from api.router import api_router
 
-# Подключаем роутеры с правильными путями
-app.include_router(users_router, prefix="/api/users", tags=["users"])
-app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
-# Временно отключаем дополнительные роутеры
-app.include_router(news_router, prefix="/api/news", tags=["news"])
-app.include_router(events_router, prefix="/api/events", tags=["events"])
-app.include_router(departments_router, prefix="/api/departments", tags=["departments"])
-app.include_router(company_employees_router, prefix="/api/company-employees", tags=["company_employees"])
-app.include_router(ved_passports_router, prefix="/api/ved-passports", tags=["ved_passports"])
-# Временно отключаем chat роутеры
-app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
-app.include_router(chat_folders_router, prefix="/api/chat/folders", tags=["chat_folders"])
+# Подключаем версионированный API
+app.include_router(api_router, prefix="/api")
 
-# Новые роутеры для заказчиков, исполнителей и заявок
-app.include_router(customers_router, prefix="/api", tags=["customers"])
-app.include_router(contractors_router, prefix="/api", tags=["contractors"])
-app.include_router(repair_requests_router, prefix="/api", tags=["repair-requests"])
-app.include_router(telegram_router, prefix="/api", tags=["telegram"])
+# Подключаем роутеры v1 напрямую
+try:
+    from api.v1.router import api_router as v1_router
+    app.include_router(v1_router, prefix="/api/v1")
+except ImportError:
+    pass
+
+# Подключаем роутеры v2 напрямую
+try:
+    from api.v2.router import api_router as v2_router
+    app.include_router(v2_router, prefix="/api/v2")
+except ImportError:
+    pass
 
 # Добавляем middleware для обработки больших запросов
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -134,7 +122,7 @@ if os.path.exists("uploads"):
 
 @app.get("/api/health")
 async def health_check():
-    """Проверка здоровья сервиса и базы данных"""
+    """Проверка здоровья сервиса и базы данных (legacy endpoint)"""
     try:
         # Проверяем подключение к базе данных
         from database import AsyncSessionLocal
@@ -147,7 +135,8 @@ async def health_check():
             "status": "healthy", 
             "service": "Felix Backend",
             "database": "connected",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "note": "Use /api/v1/health for versioned health check"
         }
     except Exception as e:
         return {
@@ -168,20 +157,13 @@ async def api_root():
     return {
         "message": "Felix API",
         "version": "1.0.0",
-        "endpoints": {
-            "users": "/api/users",
-            "auth": "/api/auth",
-            "news": "/api/news",
-            "events": "/api/events",
-            "departments": "/api/departments",
-            "company_employees": "/api/company-employees",
-            "ved_passports": "/api/ved-passports",
-            "chat": "/api/chat",
-            "chat_folders": "/api/chat/folders",
-            "customers": "/api/customers",
-            "contractors": "/api/contractors",
-            "repair_requests": "/api/repair-requests"
-        }
+        "api_versions": {
+            "v1": "/api/v1",
+            "v1_info": "/api/v1/info",
+            "v1_health": "/api/v1/health"
+        },
+        "documentation": "/docs",
+        "openapi": "/openapi.json"
     }
 
 @app.get("/api/debug/routes")

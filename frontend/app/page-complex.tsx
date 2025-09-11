@@ -2,9 +2,15 @@
 
 import { useState } from 'react'
 import { getApiUrl } from '@/utils/api';
-import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
-import { useAuth } from '@/hooks'
+import Calendar from '@/components/Calendar'
+import NewsWidget from '@/components/NewsWidget'
+import PageLayout from '@/components/PageLayout'
+import { useAuth } from '@/components/SimpleAuthContext'
 import Link from 'next/link'
+import RegistrationModal from '@/components/RegistrationModal'
+
+// Отключаем статическую генерацию
+export const dynamic = 'force-dynamic'
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth()

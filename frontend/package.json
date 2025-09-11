@@ -9,7 +9,10 @@
     "lint": "next lint",
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
     "dev:clean": "npm run clean && npm run dev",
-    "build:clean": "npm run clean && npm run build"
+    "build:clean": "npm run clean && npm run build",
+    "update-imports": "node scripts/update-imports.js",
+    "create-component": "node scripts/create-component.js",
+    "reorganize": "npm run update-imports && npm run lint"
   },
   "dependencies": {
     "next": "14.1.0",
