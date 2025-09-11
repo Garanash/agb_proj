@@ -6,7 +6,7 @@ services:
     image: postgres:15-alpine
     container_name: agb_postgres_prod
     env_file:
-      - production.env
+      - ../env/production.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agb_felix_prod}
       POSTGRES_USER: ${POSTGRES_USER:-felix_prod_user}
@@ -14,7 +14,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-production-db.sh:/docker-entrypoint-initdb.d/01-init-production-db.sh:ro
+      - ../../scripts/setup/init-production-db.sh:/docker-entrypoint-initdb.d/01-init-production-db.sh:ro
     networks:
       - app-network
     restart: unless-stopped
@@ -68,7 +68,7 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: agb_frontend_prod
     env_file:
-      - production.env
+      - ../env/production.env
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NODE_ENV=production
@@ -100,8 +100,8 @@ services:
       backend:
         condition: service_healthy
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - ../../infrastructure/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ../../infrastructure/ssl:/etc/nginx/ssl:ro
       - uploads_data:/app/uploads
     networks:
       - app-network

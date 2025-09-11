@@ -6,7 +6,7 @@ services:
     image: postgres:15-alpine
     container_name: test_platform_postgres
     env_file:
-      - .env
+      - ../env/.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-test_platform_db}
       POSTGRES_USER: ${POSTGRES_USER:-test_user}
@@ -33,7 +33,7 @@ services:
     container_name: test_platform_backend
     command: ./start.sh
     env_file:
-      - .env
+      - ../env/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-test_user}:${POSTGRES_PASSWORD:-test_password}@postgres:5432/${POSTGRES_DB:-test_platform_db}
       SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-this-in-production}
@@ -66,7 +66,7 @@ services:
       dockerfile: Dockerfile
     container_name: test_platform_frontend
     env_file:
-      - .env
+      - ../env/.env
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
       NODE_ENV: ${NODE_ENV:-production}
@@ -94,8 +94,8 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - ../../infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../infrastructure/ssl:/etc/nginx/ssl:ro
       - uploads_data:/app/uploads:ro
     networks:
       - test-network
