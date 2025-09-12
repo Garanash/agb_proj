@@ -41,7 +41,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     setError('')
 
     try {
-      await axios.post(`${getApiUrl()}/api/users/`, formData)
+      await axios.post(`${getApiUrl()}/api/v1/users/`, formData)
       onUserCreated()
       onClose()
       // Сбрасываем форму

@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api'
-import LoginSuccessModal from './LoginSuccessModal'
+import { getApiUrl } from '@/utils'
+import LoginSuccessModal from '@/components/features/auth'
 
 interface ContractorRegistrationFormProps {
   onSuccess?: (username: string) => void
@@ -76,7 +76,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         specialization: formData.specialization
       }
 
-      const response = await fetch(`${getApiUrl()}/api/contractors/register`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/contractors/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

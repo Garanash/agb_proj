@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
-import LoginForm from '@/components/LoginForm'
-import Logo from '@/components/Logo'
-import RegistrationModal from '@/components/RegistrationModal'
+import { getApiUrl } from '@/utils';
+import { LoginForm } from '@/components/features/auth'
+import { Logo } from '@/components/ui'
+import { RegistrationModal } from '@/components/features/auth'
 
 export default function LoginPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthContext';
-import PageLayout from '@/components/PageLayout';
-import ChatBotEditor from '@/components/ChatBotEditor';
+import { useAuth } from '@/hooks';
+import { PageLayout } from '@/components/layout';
+import { ChatBotEditor } from '@/components/features/chat';
 
 interface ChatBot {
   id: number;
@@ -41,7 +41,7 @@ const BotsPage = () => {
       
       try {
         const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/chat/bots/`, {
+        const response = await fetch(`${apiUrl}/api/v1/chat/bots/`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -65,7 +65,7 @@ const BotsPage = () => {
     if (!confirm(`Вы уверены, что хотите удалить бота "${bot.name}"?`)) return;
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/bots/${bot.id}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/bots/${bot.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -190,7 +190,7 @@ const BotsPage = () => {
           // Перезагружаем список ботов
           try {
             const apiUrl = getApiUrl();
-        const response = await fetch(`${apiUrl}/api/chat/bots/`, {
+        const response = await fetch(`${apiUrl}/api/v1/chat/bots/`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }

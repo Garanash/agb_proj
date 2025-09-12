@@ -68,7 +68,7 @@ const Calendar: React.FC = () => {
       const startOfMonth = moment(currentDate).startOf('month').format('YYYY-MM-DD')
       const endOfMonth = moment(currentDate).endOf('month').format('YYYY-MM-DD')
       
-      const response = await axios.get(`${getApiUrl()}/api/events/`, {
+      const response = await axios.get(`${getApiUrl()}/api/v1/events/`, {
         params: {
           start_date: startOfMonth,
           end_date: endOfMonth
@@ -161,7 +161,7 @@ const Calendar: React.FC = () => {
     if (!confirm(`Вы уверены, что хотите удалить событие "${event.title}"?`)) return
 
     try {
-      await axios.delete(`${getApiUrl()}/api/events/${event.id}`)
+      await axios.delete(`${getApiUrl()}/api/v1/events/${event.id}`)
       fetchEvents() // Перезагружаем события
       setShowDayModal(false)
     } catch (error: any) {

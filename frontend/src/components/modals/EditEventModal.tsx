@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
-import Modal from './Modal'
-import { useAuth } from './AuthContext'
+import { formatApiError } from '@/utils'
+import Modal from '@/components/ui'
+import { useAuth } from '@/hooks'
 
 interface User {
   id: number
@@ -78,8 +78,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get(`${getApiUrl()}/api/users/chat-users`),
-          axios.get(`${getApiUrl()}/api/departments/list`)
+          axios.get(`${getApiUrl()}/api/v1/users/chat-users`),
+          axios.get(`${getApiUrl()}/api/v1/departments/list`)
         ])
         
         setUsers(usersResponse.data)
@@ -175,7 +175,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         updateData.participants = formData.participants
       }
 
-      await axios.put(`${getApiUrl()}/api/events/${event.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/v1/events/${event.id}`, updateData)
       
       onEventUpdated()
       onClose()

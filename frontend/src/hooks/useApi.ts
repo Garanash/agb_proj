@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { getApiEndpoint } from '@/utils/api'
+import { getApiEndpoint } from '@/utils'
 import type { ApiResponse } from '@/types'
 
 interface UseApiOptions {

@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { UserPlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils/api';
-import PageLayout from '@/components/PageLayout'
-import CreateUserModal from '@/components/CreateUserModal'
-import EditUserModal from '@/components/EditUserModal'
-import { useAuth } from '@/components/AuthContext'
+import { getApiUrl } from '@/utils';
+import { PageLayout } from '@/components/layout'
+import { CreateUserModal } from '@/components/features/users'
+import { EditUserModal } from '@/components/features/users'
+import { useAuth } from '@/hooks'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '@/utils'
 
 interface User {
   id: number
@@ -52,8 +52,8 @@ export default function Users() {
     try {
       setIsLoading(true)
       const [activeResponse, deactivatedResponse] = await Promise.all([
-        axios.get(`${getApiUrl()}/api/users/list`),
-        axios.get(`${getApiUrl()}/api/users/deactivated/`)
+        axios.get(`${getApiUrl()}/api/v1/users/list`),
+        axios.get(`${getApiUrl()}/api/v1/users/deactivated/`)
       ])
       setUsers(activeResponse.data)
       setDeactivatedUsers(deactivatedResponse.data)
@@ -72,7 +72,7 @@ export default function Users() {
     if (!confirm('Вы уверены, что хотите деактивировать этого пользователя?')) return
 
     try {
-      await axios.delete(`${getApiUrl()}/api/users/${userId}`)
+      await axios.delete(`${getApiUrl()}/api/v1/users/${userId}`)
       fetchUsers() // Перезагружаем список
     } catch (error: any) {
       alert(formatApiError(error, 'Ошибка при деактивации пользователя'))
@@ -83,7 +83,7 @@ export default function Users() {
     if (!confirm('Вы уверены, что хотите активировать этого пользователя?')) return
 
     try {
-      await axios.post(`${getApiUrl()}/api/users/${userId}/activate`)
+      await axios.post(`${getApiUrl()}/api/v1/users/${userId}/activate`)
       fetchUsers() // Перезагружаем список
     } catch (error: any) {
       alert(formatApiError(error, 'Ошибка при активации пользователя'))

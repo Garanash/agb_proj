@@ -7,7 +7,7 @@ from datetime import datetime
 
 from database import get_db
 from models import User, TelegramBot, TelegramUser, TelegramNotification, RepairRequest, ContractorResponse, UserRole
-from schemas import (
+from ..schemas import (
     TelegramBot as TelegramBotSchema,
     TelegramBotCreate,
     TelegramBotUpdate,
@@ -18,7 +18,7 @@ from schemas import (
     TelegramWebhookUpdate,
     TelegramBotCommand
 )
-from dependencies import get_current_user
+from .auth import get_current_user
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 

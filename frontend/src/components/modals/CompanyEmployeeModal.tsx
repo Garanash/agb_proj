@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '@/utils'
 
 interface CompanyEmployee {
   id: number
@@ -103,8 +103,8 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get(`${getApiUrl()}/api/departments/list`)
-      setDepartments(response.data)
+      const response = await axios.get(`${getApiUrl()}/api/v1/departments/list`)
+      setDepartments(response.data.departments || [])
     } catch (error) {
       console.error('Ошибка загрузки отделов:', error)
     }
@@ -126,12 +126,12 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     try {
       if (employee) {
         // Обновление
-        await axios.put(`${getApiUrl()}/api/company-employees/${employee.id}`, formData)
+        await axios.put(`${getApiUrl()}/api/v1/company-employees/${employee.id}`, formData)
         onEmployeeUpdated()
         onClose()
       } else {
         // Создание
-        const response = await axios.post(`${getApiUrl()}/api/company-employees/`, formData)
+        const response = await axios.post(`${getApiUrl()}/api/v1/company-employees/`, formData)
         console.log('Сотрудник создан успешно:', response.data)
         onEmployeeCreated()
         onClose()
@@ -251,11 +251,11 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={0}>Выберите отдел</option>
-                {departments.map(dept => (
+                {departments && Array.isArray(departments) ? departments.map(dept => (
                   <option key={dept.id} value={dept.id}>
                     {dept.name}
                   </option>
-                ))}
+                )) : null}
               </select>
             </div>
 

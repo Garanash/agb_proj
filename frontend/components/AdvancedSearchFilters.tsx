@@ -65,7 +65,7 @@ export default function AdvancedSearchFilters({
         setIsLoading(true)
         try {
           const apiUrl = getApiUrl();
-          const response = await fetch(`${apiUrl}/api/ved-passports/archive/filters/`, {
+          const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/filters/`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

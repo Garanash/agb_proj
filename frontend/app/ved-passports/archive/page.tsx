@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useAuth } from '../../../components/AuthContext'
 import { 
   ArrowLeftIcon,
@@ -177,7 +177,7 @@ export default function VEDPassportsArchivePage() {
 
   // Фильтруем паспорта локально по поисковому запросу (если сервер не поддерживает поиск)
   const filteredPassports = useMemo(() => {
-    if (!passports.length) return []
+    if (!passports || !Array.isArray(passports) || !passports.length) return []
 
     let filtered = [...passports]
 
@@ -198,7 +198,7 @@ export default function VEDPassportsArchivePage() {
 
   // Обновляем состояние selectAll при изменении selectedPassports
   useEffect(() => {
-    if (filteredPassports.length > 0) {
+    if (filteredPassports && Array.isArray(filteredPassports) && filteredPassports.length > 0) {
       const allSelected = filteredPassports.every(passport => selectedPassports.includes(passport.id))
       setSelectAll(allSelected)
     } else {
@@ -213,7 +213,7 @@ export default function VEDPassportsArchivePage() {
     setError(null)
 
     try {
-      let url = `${getApiUrl()}/api/ved-passports/archive/`
+      let url = `${getApiUrl()}/api/v1/ved-passports/archive/`
 
       // Используем фильтры при загрузке данных
       if (useFilters) {
@@ -328,7 +328,7 @@ export default function VEDPassportsArchivePage() {
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/${id}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -393,7 +393,7 @@ export default function VEDPassportsArchivePage() {
   }, [filteredPassports])
 
   const exportBulkPassports = useCallback(async (format: 'pdf' | 'xlsx') => {
-    if (selectedPassports.length === 0) {
+    if (!selectedPassports || !Array.isArray(selectedPassports) || selectedPassports.length === 0) {
       alert('Выберите паспорта для экспорта')
       return
     }
@@ -402,7 +402,7 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/ved-passports/export/bulk/${format}`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -442,7 +442,7 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/ved-passports/export/all/${format}`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/all/${format}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -487,7 +487,7 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/ved-passports/${passportId}/export/${format}`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/${passportId}/export/${format}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -518,7 +518,7 @@ export default function VEDPassportsArchivePage() {
   }, [token])
 
   const exportToExcel = useCallback(() => {
-    if (filteredPassports.length === 0) return
+    if (!filteredPassports || !Array.isArray(filteredPassports) || filteredPassports.length === 0) return
 
     // Создаем CSV данные с правильной кодировкой
     const BOM = '\uFEFF' // BOM для UTF-8
@@ -632,18 +632,18 @@ export default function VEDPassportsArchivePage() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
               Результаты поиска
-              {hasLoadedPassports && filteredPassports.length !== passports.length && (
+              {hasLoadedPassports && filteredPassports && Array.isArray(filteredPassports) && passports && Array.isArray(passports) && filteredPassports.length !== passports.length && (
                 <span className="ml-2 text-sm text-gray-500">
                   (показано {filteredPassports.length} из {passports.length})
                 </span>
               )}
             </h3>
-            {hasLoadedPassports && filteredPassports.length > 0 && (
+            {hasLoadedPassports && filteredPassports && Array.isArray(filteredPassports) && filteredPassports.length > 0 && (
               <div className="flex items-center space-x-3">
-                {selectedPassports.length > 0 && (
+                {selectedPassports && Array.isArray(selectedPassports) && selectedPassports.length > 0 && (
                   <>
                     <span className="text-sm text-gray-600">
-                      Выбрано: {selectedPassports.length}
+                      Выбрано: {selectedPassports && Array.isArray(selectedPassports) ? selectedPassports.length : 0}
                     </span>
                     <button
                       onClick={() => exportBulkPassports('pdf')}
@@ -663,7 +663,7 @@ export default function VEDPassportsArchivePage() {
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => exportAllPassports('pdf')}
-                    disabled={filteredPassports.length === 0}
+                    disabled={!filteredPassports || !Array.isArray(filteredPassports) || filteredPassports.length === 0}
                     className="inline-flex items-center px-3 py-2 bg-red-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <DocumentIcon className="w-4 h-4 mr-2" />
@@ -927,7 +927,7 @@ export default function VEDPassportsArchivePage() {
           )}
 
           {/* Пустое состояние */}
-          {hasLoadedPassports && filteredPassports.length === 0 && !isLoading && (
+          {hasLoadedPassports && filteredPassports && Array.isArray(filteredPassports) && filteredPassports.length === 0 && !isLoading && (
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
                 <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">

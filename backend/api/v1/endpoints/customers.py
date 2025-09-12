@@ -6,13 +6,13 @@ import bcrypt
 
 from database import get_db
 from models import User, CustomerProfile, UserRole
-from schemas import (
+from ..schemas import (
     CustomerRegistration,
     CustomerProfile as CustomerProfileSchema,
     CustomerProfileUpdate,
-    User as UserSchema
+    UserResponse as UserSchema
 )
-from dependencies import get_current_user
+from .auth import get_current_user
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 

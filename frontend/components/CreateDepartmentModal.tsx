@@ -40,7 +40,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
     setError('')
 
     try {
-      await axios.post(`${getApiUrl()}/api/departments/`, formData)
+      await axios.post(`${getApiUrl()}/api/v1/departments/`, formData)
       
       // Сбрасываем форму
       setFormData({

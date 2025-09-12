@@ -55,7 +55,7 @@ export default function CreateChatRoomModal({
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/departments/list`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/departments/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -71,7 +71,7 @@ export default function CreateChatRoomModal({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/users/chat-users`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -89,7 +89,7 @@ export default function CreateChatRoomModal({
 
   const fetchBots = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/bots/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/bots/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -110,7 +110,7 @@ export default function CreateChatRoomModal({
 
     try {
       // Создаем чат с участниками
-      const createRoomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
+      const createRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

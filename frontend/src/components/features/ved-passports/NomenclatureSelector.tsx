@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { MagnifyingGlassIcon, ChevronDownIcon, ChevronUpIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 
 interface NomenclatureItem {
   id: number
@@ -64,7 +64,7 @@ export default function NomenclatureSelector({
     
     setIsLoading(true)
     try {
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/nomenclature/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -198,36 +198,38 @@ export default function NomenclatureSelector({
                 {searchTerm ? 'Номенклатура не найдена' : 'Номенклатура пуста'}
               </div>
             ) : (
-              filteredNomenclature.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-3 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                  onClick={() => handleSelect(item)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-gray-900">
-                          {item.code_1c}
-                        </span>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProductTypeColor(item.product_type)}`}>
-                          {getProductTypeText(item.product_type)}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-900 mb-1">
-                        {item.name}
-                      </div>
-                      <div className="text-xs text-gray-500 space-x-2">
-                        <span>Артикул: {item.article}</span>
-                        <span>Матрица: {item.matrix}</span>
-                        {item.drilling_depth && <span>Глубина: {item.drilling_depth}</span>}
-                        {item.height && <span>Высота: {item.height}</span>}
-                        {item.thread && <span>Резьба: {item.thread}</span>}
+              <div className="max-h-60 overflow-y-auto">
+                {filteredNomenclature && Array.isArray(filteredNomenclature) && filteredNomenclature.map((item) => (
+                  <div
+                    key={item.id}
+                    className="px-3 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    onClick={() => handleSelect(item)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium text-gray-900">
+                            {item.code_1c}
+                          </span>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProductTypeColor(item.product_type)}`}>
+                            {getProductTypeText(item.product_type)}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-900 mb-1">
+                          {item.name}
+                        </div>
+                        <div className="text-xs text-gray-500 space-x-2">
+                          <span>Артикул: {item.article}</span>
+                          <span>Матрица: {item.matrix}</span>
+                          {item.drilling_depth && <span>Глубина: {item.drilling_depth}</span>}
+                          {item.height && <span>Высота: {item.height}</span>}
+                          {item.thread && <span>Резьба: {item.thread}</span>}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         </div>

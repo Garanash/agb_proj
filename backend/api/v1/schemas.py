@@ -2,7 +2,7 @@
 API v1 - Общие схемы и модели данных
 """
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict, field_validator
 from typing import Optional, List, Any, Dict, Union
 from datetime import datetime
 from enum import Enum
@@ -10,8 +10,22 @@ from enum import Enum
 from .shared.constants import UserRoles, RequestStatus, FileTypes
 
 
+class BaseResponseModel(BaseModel):
+    """Базовый класс для всех схем ответов с валидацией datetime полей"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    @field_validator('*', mode='before')
+    @classmethod
+    def convert_datetime_to_string(cls, v, info):
+        if info.field_name in ['created_at', 'updated_at'] and isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
+
 class APIResponse(BaseModel):
     """Базовая схема ответа API"""
+    model_config = ConfigDict(from_attributes=True)
+    
     success: bool = Field(default=True, description="Статус выполнения операции")
     message: Optional[str] = Field(None, description="Сообщение о результате операции")
     data: Optional[Any] = Field(None, description="Данные ответа")
@@ -19,6 +33,8 @@ class APIResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема ошибки API"""
     success: bool = Field(default=False, description="Статус выполнения операции")
     error: str = Field(description="Описание ошибки")
@@ -28,6 +44,8 @@ class ErrorResponse(BaseModel):
 
 
 class PaginationParams(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Параметры пагинации"""
     page: int = Field(default=1, ge=1, description="Номер страницы")
     size: int = Field(default=20, ge=1, le=100, description="Размер страницы")
@@ -48,6 +66,8 @@ class PaginatedResponse(APIResponse):
 
 
 class HealthCheckResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема ответа проверки здоровья"""
     status: str = Field(description="Статус сервиса")
     service: str = Field(description="Название сервиса")
@@ -57,6 +77,8 @@ class HealthCheckResponse(BaseModel):
 
 
 class VersionInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Информация о версии API"""
     version: str = Field(description="Версия API")
     name: str = Field(description="Название API")
@@ -67,6 +89,8 @@ class VersionInfo(BaseModel):
 
 # Схемы для пользователей
 class UserBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Базовая схема пользователя"""
     username: str = Field(description="Имя пользователя")
     email: str = Field(description="Email адрес")
@@ -98,6 +122,8 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема для обновления пользователя"""
     username: Optional[str] = Field(None, description="Имя пользователя")
     email: Optional[str] = Field(None, description="Email адрес")
@@ -116,21 +142,36 @@ class UserUpdate(BaseModel):
         return v
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseResponseModel):
     """Схема ответа с информацией о пользователе"""
     id: int = Field(description="ID пользователя")
+    username: str = Field(description="Имя пользователя")
+    role: str = Field(description="Роль пользователя")
+    is_active: bool = Field(description="Активен ли пользователь")
     created_at: str = Field(description="Дата создания")
-    last_login: Optional[str] = Field(None, description="Последний вход")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
 
 
 # Схемы для аутентификации
 class LoginRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема запроса входа"""
+    username: str = Field(description="Имя пользователя")
+    password: str = Field(description="Пароль")
+
+
+class UserLogin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема запроса входа"""
     username: str = Field(description="Имя пользователя")
     password: str = Field(description="Пароль")
 
 
 class LoginResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема ответа входа"""
     access_token: str = Field(description="Токен доступа")
     token_type: str = Field(default="bearer", description="Тип токена")
@@ -138,7 +179,690 @@ class LoginResponse(BaseModel):
     user: UserResponse = Field(description="Информация о пользователе")
 
 
+class UserProfileUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления профиля пользователя"""
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email адрес")
+    phone: Optional[str] = Field(None, description="Номер телефона")
+    position: Optional[str] = Field(None, description="Должность")
+
+
+class PasswordReset(BaseModel):
+    """Схема сброса пароля"""
+    old_password: str = Field(description="Старый пароль")
+    new_password: str = Field(description="Новый пароль")
+
+
+class Department(BaseResponseModel):
+    """Схема отдела"""
+    id: int = Field(description="ID отдела")
+    name: str = Field(description="Название отдела")
+    description: Optional[str] = Field(None, description="Описание отдела")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class DepartmentList(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема списка отделов"""
+    departments: List[Department] = Field(description="Список отделов")
+    total: int = Field(description="Общее количество отделов")
+
+
+class DepartmentCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания отдела"""
+    name: str = Field(description="Название отдела")
+    description: Optional[str] = Field(None, description="Описание отдела")
+    head_id: Optional[int] = Field(None, description="ID руководителя отдела")
+
+
+class DepartmentUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления отдела"""
+    name: Optional[str] = Field(None, description="Название отдела")
+    description: Optional[str] = Field(None, description="Описание отдела")
+
+
+class DepartmentCreateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема ответа создания отдела"""
+    success: bool = Field(description="Статус операции")
+    message: str = Field(description="Сообщение")
+    data: Department = Field(description="Данные отдела")
+
+
+class CompanyEmployee(BaseResponseModel):
+    """Схема сотрудника компании"""
+    id: int = Field(description="ID сотрудника")
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    position: Optional[str] = Field(None, description="Должность")
+    department_id: int = Field(description="ID отдела")
+    department_name: Optional[str] = Field(None, description="Название отдела")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class CompanyEmployeeList(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема списка сотрудников компании"""
+    employees: List[CompanyEmployee] = Field(description="Список сотрудников")
+    total: int = Field(description="Общее количество сотрудников")
+
+
+class CompanyEmployeeCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания сотрудника компании"""
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    position: Optional[str] = Field(None, description="Должность")
+    department_id: int = Field(description="ID отдела")
+
+
+class CompanyEmployeeUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления сотрудника компании"""
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    position: Optional[str] = Field(None, description="Должность")
+    department_id: Optional[int] = Field(None, description="ID отдела")
+
+
+class CompanyEmployeeCreateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема ответа создания сотрудника компании"""
+    success: bool = Field(description="Статус операции")
+    message: str = Field(description="Сообщение")
+    data: CompanyEmployee = Field(description="Данные сотрудника")
+
+
+class ContractorRegistration(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема регистрации подрядчика"""
+    username: str = Field(description="Имя пользователя")
+    password: str = Field(description="Пароль")
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+
+
+class ContractorProfile(BaseResponseModel):
+    """Схема профиля подрядчика"""
+    id: int = Field(description="ID профиля")
+    user_id: int = Field(description="ID пользователя")
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+    bio: Optional[str] = Field(None, description="О себе")
+    skills: Optional[str] = Field(None, description="Навыки")
+    experience: Optional[str] = Field(None, description="Опыт работы")
+    portfolio_url: Optional[str] = Field(None, description="Ссылка на портфолио")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ContractorProfileUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления профиля подрядчика"""
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+    bio: Optional[str] = Field(None, description="О себе")
+    skills: Optional[str] = Field(None, description="Навыки")
+    experience: Optional[str] = Field(None, description="Опыт работы")
+    portfolio_url: Optional[str] = Field(None, description="Ссылка на портфолио")
+
+
+class CustomerRegistration(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема регистрации заказчика"""
+    username: str = Field(description="Имя пользователя")
+    password: str = Field(description="Пароль")
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+
+
+class CustomerProfile(BaseResponseModel):
+    """Схема профиля заказчика"""
+    id: int = Field(description="ID профиля")
+    user_id: int = Field(description="ID пользователя")
+    first_name: str = Field(description="Имя")
+    last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class CustomerProfileUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления профиля заказчика"""
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    email: Optional[str] = Field(None, description="Email")
+    phone: Optional[str] = Field(None, description="Телефон")
+    company_name: Optional[str] = Field(None, description="Название компании")
+    inn: Optional[str] = Field(None, description="ИНН")
+    address: Optional[str] = Field(None, description="Адрес")
+
+
+class RepairRequest(BaseResponseModel):
+    """Схема заявки на ремонт"""
+    id: int = Field(description="ID заявки")
+    customer_id: int = Field(description="ID заказчика")
+    title: str = Field(description="Название заявки")
+    description: str = Field(description="Описание заявки")
+    status: str = Field(description="Статус заявки")
+    priority: str = Field(description="Приоритет заявки")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class RepairRequestCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания заявки на ремонт"""
+    title: str = Field(description="Название заявки")
+    description: str = Field(description="Описание заявки")
+    priority: str = Field(description="Приоритет заявки")
+
+
+class RepairRequestUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления заявки на ремонт"""
+    title: Optional[str] = Field(None, description="Название заявки")
+    description: Optional[str] = Field(None, description="Описание заявки")
+    status: Optional[str] = Field(None, description="Статус заявки")
+    priority: Optional[str] = Field(None, description="Приоритет заявки")
+
+
+class ContractorResponse(BaseResponseModel):
+    """Схема ответа подрядчика"""
+    id: int = Field(description="ID ответа")
+    request_id: int = Field(description="ID заявки")
+    contractor_id: int = Field(description="ID подрядчика")
+    message: str = Field(description="Сообщение")
+    price: Optional[float] = Field(None, description="Цена")
+    status: str = Field(description="Статус ответа")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ContractorResponseCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания ответа подрядчика"""
+    message: str = Field(description="Сообщение")
+    price: Optional[float] = Field(None, description="Цена")
+
+
+class ContractorResponseUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления ответа подрядчика"""
+    message: Optional[str] = Field(None, description="Сообщение")
+    price: Optional[float] = Field(None, description="Цена")
+    status: Optional[str] = Field(None, description="Статус ответа")
+
+
+class VEDNomenclature(BaseResponseModel):
+    """Схема номенклатуры ВЭД"""
+    id: int = Field(description="ID номенклатуры")
+    code_1c: str = Field(description="Код 1С")
+    name: str = Field(description="Название")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class VedPassport(BaseResponseModel):
+    """Схема ВЭД паспорта"""
+    id: int = Field(description="ID паспорта")
+    nomenclature_id: int = Field(description="ID номенклатуры")
+    code_1c: str = Field(description="Код 1С")
+    name: str = Field(description="Название")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class VedPassportCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания ВЭД паспорта"""
+    nomenclature_id: int = Field(description="ID номенклатуры")
+    code_1c: str = Field(description="Код 1С")
+    name: str = Field(description="Название")
+
+
+class VedPassportUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления ВЭД паспорта"""
+    nomenclature_id: Optional[int] = Field(None, description="ID номенклатуры")
+    code_1c: Optional[str] = Field(None, description="Код 1С")
+    name: Optional[str] = Field(None, description="Название")
+
+
+class BulkPassportCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема массового создания ВЭД паспортов"""
+    passports: List[VedPassportCreate] = Field(description="Список паспортов")
+
+
+class PassportGenerationResult(BaseModel):
+    """Схема результата генерации паспортов"""
+    success: bool = Field(description="Статус операции")
+    message: str = Field(description="Сообщение")
+    generated_count: int = Field(description="Количество сгенерированных паспортов")
+    errors: List[str] = Field(description="Список ошибок")
+
+
+class News(BaseResponseModel):
+    """Схема новости"""
+    id: int = Field(description="ID новости")
+    title: str = Field(description="Заголовок")
+    content: str = Field(description="Содержание")
+    author_id: int = Field(description="ID автора")
+    author_name: Optional[str] = Field(None, description="Имя автора")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class NewsCreate(BaseModel):
+    """Схема создания новости"""
+    title: str = Field(description="Заголовок")
+    content: str = Field(description="Содержание")
+
+
+class NewsUpdate(BaseModel):
+    """Схема обновления новости"""
+    title: Optional[str] = Field(None, description="Заголовок")
+    content: Optional[str] = Field(None, description="Содержание")
+
+
+class EventResponse(BaseResponseModel):
+    """Схема ответа события"""
+    id: int = Field(description="ID события")
+    title: str = Field(description="Название события")
+    description: str = Field(description="Описание события")
+    start_date: str = Field(description="Дата начала")
+    end_date: str = Field(description="Дата окончания")
+    location: Optional[str] = Field(None, description="Место проведения")
+    max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
+    current_participants: int = Field(description="Текущее количество участников")
+    participants: List[dict] = Field(default=[], description="Список участников")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class EventCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания события"""
+    title: str = Field(description="Название события")
+    description: str = Field(description="Описание события")
+    start_date: str = Field(description="Дата начала")
+    end_date: str = Field(description="Дата окончания")
+    location: Optional[str] = Field(None, description="Место проведения")
+    max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
+
+
+class EventUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления события"""
+    title: Optional[str] = Field(None, description="Название события")
+    description: Optional[str] = Field(None, description="Описание события")
+    start_date: Optional[str] = Field(None, description="Дата начала")
+    end_date: Optional[str] = Field(None, description="Дата окончания")
+    location: Optional[str] = Field(None, description="Место проведения")
+    max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
+
+
+class TeamMember(BaseResponseModel):
+    """Схема участника команды"""
+    id: int = Field(description="ID участника команды")
+    user_id: int = Field(description="ID пользователя")
+    role: str = Field(description="Роль в команде")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class TeamMemberCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания участника команды"""
+    user_id: int = Field(description="ID пользователя")
+    role: str = Field(description="Роль в команде")
+
+
+class TeamMemberUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления участника команды"""
+    role: Optional[str] = Field(None, description="Роль в команде")
+
+
+class TeamMemberWithUser(BaseResponseModel):
+    """Схема участника команды с информацией о пользователе"""
+    id: int = Field(description="ID участника команды")
+    user_id: int = Field(description="ID пользователя")
+    role: str = Field(description="Роль в команде")
+    user: UserResponse = Field(description="Информация о пользователе")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatRoom(BaseResponseModel):
+    """Схема чат комнаты"""
+    id: int = Field(description="ID чат комнаты")
+    name: str = Field(description="Название комнаты")
+    description: Optional[str] = Field(None, description="Описание комнаты")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatRoomCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания чат комнаты"""
+    name: str = Field(description="Название комнаты")
+    description: Optional[str] = Field(None, description="Описание комнаты")
+
+
+class ChatRoomUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления чат комнаты"""
+    name: Optional[str] = Field(None, description="Название комнаты")
+    description: Optional[str] = Field(None, description="Описание комнаты")
+
+
+class ChatRoomCreateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема ответа создания чат комнаты"""
+    success: bool = Field(description="Статус операции")
+    message: str = Field(description="Сообщение")
+    data: ChatRoom = Field(description="Данные чат комнаты")
+
+
+class ChatRoomDetailResponse(BaseResponseModel):
+    """Схема детального ответа чат комнаты"""
+    id: int = Field(description="ID чат комнаты")
+    name: str = Field(description="Название комнаты")
+    description: Optional[str] = Field(None, description="Описание комнаты")
+    participants: List[UserResponse] = Field(description="Участники комнаты")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatBot(BaseResponseModel):
+    """Схема чат бота"""
+    id: int = Field(description="ID чат бота")
+    name: str = Field(description="Название бота")
+    description: Optional[str] = Field(None, description="Описание бота")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatBotCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания чат бота"""
+    name: str = Field(description="Название бота")
+    description: Optional[str] = Field(None, description="Описание бота")
+
+
+class ChatBotUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления чат бота"""
+    name: Optional[str] = Field(None, description="Название бота")
+    description: Optional[str] = Field(None, description="Описание бота")
+
+
+class ChatFolder(BaseResponseModel):
+    """Схема папки чатов"""
+    id: int = Field(description="ID папки")
+    name: str = Field(description="Название папки")
+    description: Optional[str] = Field(None, description="Описание папки")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatFolderCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания папки чатов"""
+    name: str = Field(description="Название папки")
+    description: Optional[str] = Field(None, description="Описание папки")
+
+
+class ChatFolderUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления папки чатов"""
+    name: Optional[str] = Field(None, description="Название папки")
+    description: Optional[str] = Field(None, description="Описание папки")
+
+
+class ChatMessage(BaseResponseModel):
+    """Схема сообщения чата"""
+    id: int = Field(description="ID сообщения")
+    room_id: int = Field(description="ID чат комнаты")
+    user_id: int = Field(description="ID пользователя")
+    content: str = Field(description="Содержание сообщения")
+    message_type: str = Field(description="Тип сообщения")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatMessageCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания сообщения чата"""
+    content: str = Field(description="Содержание сообщения")
+    message_type: str = Field(description="Тип сообщения")
+
+
+class ChatMessageUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления сообщения чата"""
+    content: Optional[str] = Field(None, description="Содержание сообщения")
+    message_type: Optional[str] = Field(None, description="Тип сообщения")
+
+
+class ChatMessageResponse(BaseResponseModel):
+    """Схема ответа сообщения чата"""
+    id: int = Field(description="ID сообщения")
+    room_id: int = Field(description="ID чат комнаты")
+    user_id: int = Field(description="ID пользователя")
+    user_name: Optional[str] = Field(None, description="Имя пользователя")
+    content: str = Field(description="Содержание сообщения")
+    message_type: str = Field(description="Тип сообщения")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class ChatParticipant(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема участника чата"""
+    id: int = Field(description="ID участника")
+    room_id: int = Field(description="ID чат комнаты")
+    user_id: int = Field(description="ID пользователя")
+    joined_at: str = Field(description="Дата присоединения")
+    left_at: Optional[str] = Field(None, description="Дата выхода")
+
+
+class ChatParticipantCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания участника чата"""
+    user_id: int = Field(description="ID пользователя")
+
+
+class ChatParticipantResponse(BaseResponseModel):
+    """Схема ответа участника чата"""
+    id: int = Field(description="ID участника")
+    room_id: int = Field(description="ID чат комнаты")
+    user_id: int = Field(description="ID пользователя")
+    user_name: Optional[str] = Field(None, description="Имя пользователя")
+    joined_at: str = Field(description="Дата присоединения")
+    left_at: Optional[str] = Field(None, description="Дата выхода")
+
+
+class ChatFolderRoomAdd(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема добавления комнаты в папку"""
+    room_id: int = Field(description="ID чат комнаты")
+
+
+class TelegramBot(BaseResponseModel):
+    """Схема Telegram бота"""
+    id: int = Field(description="ID бота")
+    name: str = Field(description="Название бота")
+    token: str = Field(description="Токен бота")
+    webhook_url: Optional[str] = Field(None, description="URL webhook")
+    is_active: bool = Field(description="Активен ли бот")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class TelegramBotCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания Telegram бота"""
+    name: str = Field(description="Название бота")
+    token: str = Field(description="Токен бота")
+    webhook_url: Optional[str] = Field(None, description="URL webhook")
+
+
+class TelegramBotUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления Telegram бота"""
+    name: Optional[str] = Field(None, description="Название бота")
+    token: Optional[str] = Field(None, description="Токен бота")
+    webhook_url: Optional[str] = Field(None, description="URL webhook")
+    is_active: Optional[bool] = Field(None, description="Активен ли бот")
+
+
+class TelegramUser(BaseResponseModel):
+    """Схема Telegram пользователя"""
+    id: int = Field(description="ID пользователя")
+    telegram_id: int = Field(description="Telegram ID")
+    username: Optional[str] = Field(None, description="Имя пользователя")
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+
+
+class TelegramUserCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема создания Telegram пользователя"""
+    telegram_id: int = Field(description="Telegram ID")
+    username: Optional[str] = Field(None, description="Имя пользователя")
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+
+
+class TelegramUserUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления Telegram пользователя"""
+    username: Optional[str] = Field(None, description="Имя пользователя")
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+
+
+class TelegramNotification(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема Telegram уведомления"""
+    id: int = Field(description="ID уведомления")
+    user_id: int = Field(description="ID пользователя")
+    message: str = Field(description="Сообщение")
+    sent_at: str = Field(description="Дата отправки")
+    status: str = Field(description="Статус отправки")
+
+
+class TelegramWebhookUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема обновления webhook"""
+    webhook_url: str = Field(description="URL webhook")
+
+
+class TelegramBotCommand(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема команды Telegram бота"""
+    command: str = Field(description="Команда")
+    description: str = Field(description="Описание команды")
+
+
 class RegisterRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема запроса регистрации"""
     username: str = Field(description="Имя пользователя")
     email: str = Field(description="Email адрес")
@@ -150,6 +874,8 @@ class RegisterRequest(BaseModel):
 
 # Схемы для файлов
 class FileUpload(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     """Схема загрузки файла"""
     filename: str = Field(description="Имя файла")
     content_type: str = Field(description="MIME тип файла")
@@ -163,7 +889,7 @@ class FileUpload(BaseModel):
         return v
 
 
-class FileResponse(BaseModel):
+class FileResponse(BaseResponseModel):
     """Схема ответа с информацией о файле"""
     id: int = Field(description="ID файла")
     filename: str = Field(description="Имя файла")

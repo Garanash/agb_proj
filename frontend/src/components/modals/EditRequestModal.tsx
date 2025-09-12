@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api'
+import { getApiUrl } from '@/utils'
 
 interface EditRequestModalProps {
   isOpen: boolean
@@ -49,7 +49,7 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${request.id}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${request.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { usePathname } from 'next/navigation'
-import Sidebar from './Sidebar'
+import { Sidebar } from '@/components/layout'
 
 interface AppLayoutProps {
   children: React.ReactNode

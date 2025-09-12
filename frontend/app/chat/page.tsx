@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthContext';
-import { getApiUrl, getWsUrl } from '@/utils/api';
-import PageLayout from '@/components/PageLayout';
+import { useAuth } from '@/hooks';
+import { getApiUrl, getWsUrl } from '@/utils';
+import { PageLayout } from '@/components/layout';
 
-import CreateChatRoomModal from '@/components/CreateChatRoomModal';
-import ChatParticipantsModal from '@/components/ChatParticipantsModal';
-import ChatFoldersModal from '@/components/ChatFoldersModal';
+import { CreateChatRoomModal } from '@/components/features/chat';
+import { ChatParticipantsModal } from '@/components/features/chat';
+import { ChatFoldersModal } from '@/components/features/chat';
 
 interface ChatRoom {
   id: number;
@@ -128,22 +128,22 @@ const ChatPage = () => {
 
       try {
         const [roomsResponse, usersResponse, foldersResponse, unreadResponse] = await Promise.all([
-          fetch(`${getApiUrl()}/api/chat/rooms/`, {
+          fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/users/chat-users`, {
+          fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/chat/folders/`, {
+          fetch(`${getApiUrl()}/api/v1/chat/folders/`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/chat/unread-summary`, {
+          fetch(`${getApiUrl()}/api/v1/chat/unread-summary`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -198,7 +198,7 @@ const ChatPage = () => {
     if (selectedRoom && token && selectedRoom.id) {
       try {
         console.log(`🔌 Подключение к WebSocket для чата ${selectedRoom.id}`);
-        const ws = new WebSocket(`${getWsUrl()}/api/chat/ws/${selectedRoom.id}?token=${token}`);
+        const ws = new WebSocket(`${getWsUrl()}/api/v1/chat/ws/${selectedRoom.id}?token=${token}`);
         
         ws.onopen = () => {
           console.log(`✅ WebSocket подключен к чату ${selectedRoom.id}`);
@@ -339,7 +339,7 @@ const ChatPage = () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/unread-count`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/unread-count`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -362,7 +362,7 @@ const ChatPage = () => {
     if (!token) return;
     
     try {
-      await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/mark-read`, {
+      await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/mark-read`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -381,7 +381,7 @@ const ChatPage = () => {
 
   const handleRoomSelect = async (room: ChatRoomListItem) => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${room.id}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${room.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -458,7 +458,7 @@ const ChatPage = () => {
     if (!selectedRoom) return;
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${selectedRoom.id}/messages/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/messages/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -522,7 +522,7 @@ const ChatPage = () => {
     try {
       console.log(`🚪 Покидаем чат ${selectedRoom.id}...`);
       
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${selectedRoom.id}/leave`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/leave`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -624,7 +624,7 @@ const ChatPage = () => {
     
     // Перезагружаем информацию о чате перед открытием модала
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${selectedRoom.id}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -674,14 +674,14 @@ const ChatPage = () => {
                       <h3 className="font-medium">{folder.name}</h3>
                     </div>
                     <span className="text-sm text-gray-500">
-                      {rooms.filter(room => room.folders.some(f => f.folder_id === folder.id)).length}
+                      {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders.some(f => f.folder_id === folder.id)).length : 0}
                     </span>
                   </div>
                 </div>
                 {selectedFolder?.id === folder.id && (
                   <div className="pl-8 divide-y divide-gray-200">
-                    {rooms
-                      .filter(room => room.folders.some(f => f.folder_id === folder.id))
+                    {rooms && Array.isArray(rooms) ? rooms
+                      .filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id))
                       .map(room => (
                         <div
                           key={room.id}
@@ -703,7 +703,7 @@ const ChatPage = () => {
                           </div>
                         </div>
                       ))
-                    }
+                    : null}
                   </div>
                 )}
               </div>
@@ -714,8 +714,8 @@ const ChatPage = () => {
           <div className="mt-4">
             <h3 className="px-4 py-2 text-sm font-medium text-gray-500">Чаты без папки</h3>
             <div className="divide-y divide-gray-200">
-              {rooms
-                .filter(room => !room.folders.length)
+              {rooms && Array.isArray(rooms) ? rooms
+                .filter(room => !room.folders || !room.folders.length)
                 .map(room => (
                   <div
                     key={room.id}
@@ -737,7 +737,7 @@ const ChatPage = () => {
                     </div>
                   </div>
                 ))
-              }
+              : null}
             </div>
           </div>
         </div>
@@ -755,7 +755,7 @@ const ChatPage = () => {
                       onClick={handleOpenParticipantsModal}
                       className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                     >
-                      Участники ({selectedRoom.participants.length})
+                      Участники ({selectedRoom.participants && Array.isArray(selectedRoom.participants) ? selectedRoom.participants.length : 0})
                     </button>
                     <button
                       onClick={() => setIsFoldersModalOpen(true)}
@@ -873,7 +873,7 @@ const ChatPage = () => {
         onRoomCreated={async () => {
           // Перезагружаем список бесед
           try {
-            const response = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
+            const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -898,7 +898,7 @@ const ChatPage = () => {
           onParticipantsUpdated={async () => {
             // Перезагружаем информацию о комнате
             try {
-              const response = await fetch(`${getApiUrl()}/api/chat/rooms/${selectedRoom.id}`, {
+              const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`
                 }
@@ -924,7 +924,7 @@ const ChatPage = () => {
           onFolderSelected={async (folderId) => {
             // Перезагружаем список бесед
             try {
-              const response = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
+              const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
                 headers: {
                   'Authorization': `Bearer ${token}`
                 }

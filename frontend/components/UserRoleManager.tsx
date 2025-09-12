@@ -44,7 +44,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
   const fetchAvailableRoles = async () => {
     try {
       const apiUrl = getApiUrl()
-      const response = await axios.get(`${apiUrl}/api/roles/available-roles`, {
+      const response = await axios.get(`${apiUrl}/api/v1/roles/available-roles`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setAvailableRoles(response.data)
@@ -58,7 +58,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
     try {
       const apiUrl = getApiUrl()
       await axios.post(
-        `${apiUrl}/api/roles/users/${user.id}/roles`,
+        `${apiUrl}/api/v1/roles/users/${user.id}/roles`,
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -78,7 +78,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
     setLoading(true)
     try {
       const apiUrl = getApiUrl()
-      await axios.delete(`${apiUrl}/api/roles/users/${user.id}/roles/${role}`, {
+      await axios.delete(`${apiUrl}/api/v1/roles/users/${user.id}/roles/${role}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
 

@@ -39,7 +39,7 @@ export const getApiEndpoint = (endpoint: string, version: string = DEFAULT_API_V
     return `${baseUrl}/api${cleanEndpoint}`;
   }
   
-  return `${baseUrl}/api/${version}${cleanEndpoint}`;
+  return `${baseUrl}/api/v1/${version}${cleanEndpoint}`;
 };
 
 // Полный URL для WebSocket
@@ -47,7 +47,7 @@ export const getWsEndpoint = (endpoint: string, version: string = DEFAULT_API_VE
   const baseUrl = getWsUrl();
   // Убираем начальный слэш из endpoint если он есть
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${baseUrl}/api/${version}${cleanEndpoint}`;
+  return `${baseUrl}/api/v1/${version}${cleanEndpoint}`;
 };
 
 // Утилиты для работы с версиями API
@@ -73,6 +73,6 @@ export const getApiHealth = async (version: string = DEFAULT_API_VERSION) => {
 
 // Примеры использования:
 // getApiEndpoint('users/list') -> http://localhost/api/v1/users/list
-// getApiEndpoint('users/list', 'v2') -> http://localhost/api/v2/users/list
+// getApiEndpoint('users/list', 'v2') -> http://localhost/api/v1/v2/users/list
 // getApiEndpoint('/v1/users/list') -> http://localhost/api/v1/users/list
 // getWsEndpoint('chat/ws/123') -> ws://localhost/api/v1/chat/ws/123

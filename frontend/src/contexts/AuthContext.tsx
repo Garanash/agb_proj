@@ -1,13 +1,13 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import type { User, AuthContextType } from '@/types';
 import axios from 'axios'
 
 // Типы импортированы из @/types
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // useAuth перенесен в @/hooks/useAuth
 
@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const apiUrl = getApiUrl()
       console.log('API URL for token validation:', apiUrl)
-      const response = await axios.get(`${apiUrl}/api/auth/me`)
+      const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
       setUser(response.data)
       console.log('User loaded:', response.data)
     } catch (error) {
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const apiUrl = getApiUrl()
-      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+      const response = await axios.post(`${apiUrl}/api/v1/auth/login`, {
         username,
         password
       })
@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       const apiUrl = getApiUrl()
-      await axios.post(`${apiUrl}/api/auth/logout`)
+      await axios.post(`${apiUrl}/api/v1/auth/logout`)
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     try {
       const apiUrl = getApiUrl()
-      const response = await axios.get(`${apiUrl}/api/auth/me`)
+      const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
       setUser(response.data)
     } catch (error) {
       console.error('Refresh user error:', error)

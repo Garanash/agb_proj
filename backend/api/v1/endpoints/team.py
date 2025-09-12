@@ -6,13 +6,13 @@ from typing import List
 
 from database import get_db
 from models import User, TeamMember
-from schemas import (
+from ..schemas import (
     TeamMember as TeamMemberSchema,
     TeamMemberCreate,
     TeamMemberUpdate,
     TeamMemberWithUser
 )
-from routers.auth import get_current_user
+from .auth import get_current_user
 
 router = APIRouter()
 

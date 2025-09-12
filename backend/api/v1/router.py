@@ -21,6 +21,97 @@ try:
 except ImportError:
     pass
 
+# Подключаем endpoints
+try:
+    from .endpoints.auth import router as auth_router
+    api_router.include_router(auth_router, prefix="/auth", tags=["🔐 Аутентификация"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.users import router as users_router
+    api_router.include_router(users_router, prefix="/users", tags=["👥 Пользователи"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.departments import router as departments_router
+    api_router.include_router(departments_router, prefix="/departments", tags=["🏢 Отделы"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.company_employees import router as company_employees_router
+    api_router.include_router(company_employees_router, prefix="/company-employees", tags=["👨‍💼 Сотрудники компании"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.contractors import router as contractors_router
+    api_router.include_router(contractors_router, prefix="/contractors", tags=["🔧 Подрядчики"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.customers import router as customers_router
+    api_router.include_router(customers_router, prefix="/customers", tags=["👤 Клиенты"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.repair_requests import router as repair_requests_router
+    api_router.include_router(repair_requests_router, prefix="/repair-requests", tags=["🔧 Заявки на ремонт"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.ved_passports import router as ved_passports_router
+    api_router.include_router(ved_passports_router, prefix="/ved-passports", tags=["📋 ВЭД паспорта"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.news import router as news_router
+    api_router.include_router(news_router, prefix="/news", tags=["📰 Новости"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.events import router as events_router
+    api_router.include_router(events_router, prefix="/events", tags=["📅 События"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.team import router as team_router
+    api_router.include_router(team_router, prefix="/team", tags=["👥 Команда"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.roles import router as roles_router
+    api_router.include_router(roles_router, prefix="/roles", tags=["🔐 Роли"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.chat import router as chat_router
+    api_router.include_router(chat_router, prefix="/chat", tags=["💬 Чат"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.chat_folders import router as chat_folders_router
+    api_router.include_router(chat_folders_router, prefix="/chat-folders", tags=["📁 Папки чата"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.telegram import router as telegram_router
+    api_router.include_router(telegram_router, prefix="/telegram", tags=["📱 Telegram"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

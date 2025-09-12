@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
@@ -20,9 +20,9 @@ import {
   ArchiveBoxIcon as ArchiveIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
-import UserProfile from './UserProfile'
-import { useAuth } from './AuthContext'
-import TextLogo from './TextLogo'
+import { UserProfile } from '@/components/features/users'
+import { useAuth } from '@/hooks'
+import { TextLogo } from '@/components/ui'
 
 interface NavigationItem {
   name: string

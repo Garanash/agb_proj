@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -29,7 +29,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (!isLoading && isAuthenticated && pathname === '/login') {
       router.push('/')
     }
-  }, [isAuthenticated, isLoading, router, pathname])
+
+    // Проверяем доступ к админке
+    if (!isLoading && isAuthenticated && pathname.startsWith('/admin')) {
+      if (!user || user.role !== 'admin') {
+        router.push('/')
+      }
+    }
+  }, [isAuthenticated, isLoading, router, pathname, user])
 
   // Показываем загрузку пока проверяем аутентификацию
   if (isLoading) {

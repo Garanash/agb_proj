@@ -61,8 +61,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         console.log('Загружаем пользователей и отделы...')
         const apiUrl = getApiUrl();
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get(`${apiUrl}/api/users/chat-users`),
-          axios.get(`${apiUrl}/api/departments/list`)
+          axios.get(`${apiUrl}/api/v1/users/chat-users`),
+          axios.get(`${apiUrl}/api/v1/departments/list`)
         ])
         
 
@@ -155,7 +155,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         participants: formData.participants
       }
 
-      await axios.post(`${getApiUrl()}/api/events/`, eventData)
+      await axios.post(`${getApiUrl()}/api/v1/events/`, eventData)
       
       onEventAdded()
       onClose()

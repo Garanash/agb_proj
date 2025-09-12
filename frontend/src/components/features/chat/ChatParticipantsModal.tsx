@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext';
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks';
 
 interface User {
   id: number;
@@ -69,12 +69,12 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          fetch(`${getApiUrl()}/api/users/chat-users`, {
+          fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/departments/list`, {
+          fetch(`${getApiUrl()}/api/v1/departments/list`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -107,7 +107,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         // Дополнительно загружаем полную информацию об участниках чата
         if (roomId) {
           try {
-            const roomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}`, {
+            const roomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -165,8 +165,8 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     
     try {
       // Добавляем каждого пользователя по отдельности
-      const addPromises = selectedUsers.map(userId =>
-        fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/`, {
+      const addPromises = selectedUsers && Array.isArray(selectedUsers) ? selectedUsers.map(userId =>
+        fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -174,7 +174,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
           },
           body: JSON.stringify({ user_id: userId }),
         })
-      );
+      ) : [];
 
       const responses = await Promise.all(addPromises);
       const failedResponses = responses.filter(r => !r.ok);
@@ -199,7 +199,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/${participantId}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participantId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -225,7 +225,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -317,7 +317,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
             <div className="mb-6">
               <h4 className="font-medium text-gray-900 mb-4">Текущие участники</h4>
               <div className="space-y-3">
-                {participants.map(participant => (
+                {participants && Array.isArray(participants) ? participants.map(participant => (
                   <div
                     key={participant.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -382,7 +382,11 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                       </div>
                     )}
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center py-4 text-gray-500">
+                    Участники не загружены
+                  </div>
+                )}
               </div>
             </div>
 
@@ -392,7 +396,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                 <h4 className="font-medium text-gray-900 mb-4">Добавить участников</h4>
                 <select
                   multiple
-                  value={selectedUsers.map(String)}
+                  value={selectedUsers && Array.isArray(selectedUsers) ? selectedUsers.map(String) : []}
                   onChange={(e) => {
                     const selectedOptions = Array.from(e.target.selectedOptions);
                     const selectedIds = selectedOptions.map(option => parseInt(option.value));
@@ -400,30 +404,29 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
                 >
-                  {Object.entries(departments).map(([deptId, deptName]) => {
+                  {departments && Object.entries(departments).map(([deptId, deptName]) => {
                     const deptUsers = users.filter(user => user.department_id === parseInt(deptId));
                     if (deptUsers.length === 0) return null;
                     
                     return (
                       <optgroup key={deptId} label={deptName}>
-                        {deptUsers.map(user => (
+                        {deptUsers && Array.isArray(deptUsers) ? deptUsers.map(user => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.last_name}
                           </option>
-                        ))}
+                        )) : null}
                       </optgroup>
                     );
                   })}
-                  {users.filter(user => !user.department_id).length > 0 && (
+                  {users && Array.isArray(users) && users.filter(user => !user.department_id).length > 0 && (
                     <optgroup label="Без отдела">
-                      {users
+                      {users && Array.isArray(users) ? users
                         .filter(user => !user.department_id)
                         .map(user => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.last_name}
                           </option>
-                        ))
-                      }
+                        )) : null}
                     </optgroup>
                   )}
                 </select>

@@ -1,15 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import Image from 'next/image'
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import PageLayout from '@/components/PageLayout'
-import { useAuth } from '@/components/AuthContext'
+import { PageLayout } from '@/components/layout'
+import { useAuth } from '@/hooks'
 import axios from 'axios'
-import CreateDepartmentModal from '@/components/CreateDepartmentModal'
-import EditDepartmentModal from '@/components/EditDepartmentModal'
-import CompanyEmployeeModal from '@/components/CompanyEmployeeModal'
+import { CreateDepartmentModal, EditDepartmentModal, CompanyEmployeeModal } from '@/components/modals'
 
 export default function About() {
   const { user } = useAuth()
@@ -33,11 +31,11 @@ export default function About() {
     const fetchData = async () => {
       try {
         const [departmentsResponse, employeesResponse] = await Promise.all([
-          axios.get(`${getApiUrl()}/api/departments/list`),
-          axios.get(`${getApiUrl()}/api/company-employees/`)
+          axios.get(`${getApiUrl()}/api/v1/departments/list`),
+          axios.get(`${getApiUrl()}/api/v1/company-employees/`)
         ])
-        setDepartments(departmentsResponse.data)
-        setCompanyEmployees(employeesResponse.data)
+        setDepartments(departmentsResponse.data.departments || [])
+        setCompanyEmployees(employeesResponse.data.employees || [])
       } catch (error) {
         console.error('Ошибка при загрузке данных:', error)
       } finally {
@@ -53,9 +51,9 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get(`${getApiUrl()}/api/departments/list`)
+        const response = await axios.get(`${getApiUrl()}/api/v1/departments/list`)
         console.log('Обновляем список отделов:', response.data)
-        setDepartments(response.data)
+        setDepartments(response.data.departments || [])
       } catch (error) {
         console.error('Ошибка при загрузке отделов:', error)
       }
@@ -67,9 +65,9 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get(`${getApiUrl()}/api/departments/list`)
+        const response = await axios.get(`${getApiUrl()}/api/v1/departments/list`)
         console.log('Обновляем список отделов после редактирования:', response.data)
-        setDepartments(response.data)
+        setDepartments(response.data.departments || [])
       } catch (error) {
         console.error('Ошибка при загрузке отделов:', error)
       }
@@ -81,9 +79,9 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get(`${getApiUrl()}/api/company-employees/`)
+        const response = await axios.get(`${getApiUrl()}/api/v1/company-employees/`)
         console.log('Обновляем список сотрудников:', response.data)
-        setCompanyEmployees(response.data)
+        setCompanyEmployees(response.data.employees || [])
       } catch (error) {
         console.error('Ошибка при загрузке сотрудников:', error)
       }
@@ -95,9 +93,9 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
-        const response = await axios.get(`${getApiUrl()}/api/company-employees/`)
+        const response = await axios.get(`${getApiUrl()}/api/v1/company-employees/`)
         console.log('Обновляем список сотрудников после редактирования:', response.data)
-        setCompanyEmployees(response.data)
+        setCompanyEmployees(response.data.employees || [])
       } catch (error) {
         console.error('Ошибка при загрузке сотрудников:', error)
       }
@@ -108,9 +106,9 @@ export default function About() {
     if (!confirm('Вы уверены, что хотите удалить этого сотрудника?')) return
     
     try {
-      await axios.delete(`${getApiUrl()}/api/company-employees/${employeeId}`)
+      await axios.delete(`${getApiUrl()}/api/v1/company-employees/${employeeId}`)
       // Обновляем список сотрудников без перезагрузки страницы
-      setCompanyEmployees(prev => prev.filter(emp => emp.id !== employeeId))
+      setCompanyEmployees(prev => prev && Array.isArray(prev) ? prev.filter(emp => emp.id !== employeeId) : [])
     } catch (error) {
       console.error('Ошибка при удалении сотрудника:', error)
       alert('Ошибка при удалении сотрудника')
@@ -121,9 +119,9 @@ export default function About() {
     if (!confirm('Вы уверены, что хотите удалить этот отдел?')) return
     
     try {
-      await axios.delete(`${getApiUrl()}/api/departments/${departmentId}`)
+      await axios.delete(`${getApiUrl()}/api/v1/departments/${departmentId}`)
       // Обновляем список отделов без перезагрузки страницы
-      setDepartments(prev => prev.filter(dept => dept.id !== departmentId))
+      setDepartments(prev => prev && Array.isArray(prev) ? prev.filter(dept => dept.id !== departmentId) : [])
     } catch (error) {
       console.error('Ошибка при удалении отдела:', error)
       alert('Ошибка при удалении отдела')
@@ -231,7 +229,7 @@ export default function About() {
               )}
             </div>
             <div className="space-y-4">
-              {departments.map((department) => (
+              {departments && departments.length > 0 ? departments.map((department) => (
                 <div key={department.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   <div className="flex items-center">
                     <button
@@ -269,13 +267,10 @@ export default function About() {
                   {openDepartment === department.name && (
                     <div className="px-6 py-4 bg-white">
                       <div className="space-y-4">
-                        
-                        
-                        
                         {/* Сотрудники отдела */}
                         <div>
                           <div className="space-y-2">
-                            {companyEmployees
+                            {companyEmployees && Array.isArray(companyEmployees) && companyEmployees.length > 0 ? companyEmployees
                               .filter(emp => emp.department_id === department.id && emp.is_active)
                               .map(employee => (
                                 <div key={employee.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -305,8 +300,9 @@ export default function About() {
                                     </div>
                                   )}
                                 </div>
-                              ))}
-                            {companyEmployees.filter(emp => emp.department_id === department.id && emp.is_active).length === 0 && (
+                              )) : null}
+                            {(!companyEmployees || !Array.isArray(companyEmployees) || companyEmployees.length === 0 || 
+                              companyEmployees.filter(emp => emp.department_id === department.id && emp.is_active).length === 0) && (
                               <div className="text-sm text-gray-500 italic">В отделе пока нет сотрудников</div>
                             )}
                           </div>
@@ -315,7 +311,11 @@ export default function About() {
                     </div>
                   )}
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-8 text-gray-500">
+                  {isLoading ? 'Загрузка отделов...' : 'Отделы не найдены'}
+                </div>
+              )}
             </div>
           </div>
         </div>

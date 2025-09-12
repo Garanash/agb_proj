@@ -71,8 +71,8 @@ const ChatBotEditor: React.FC<ChatBotEditorProps> = ({
 
     try {
       const url = bot
-        ? `${getApiUrl()}/api/chat/bots/${bot.id}`
-        : `${getApiUrl()}/api/chat/bots/`;
+        ? `${getApiUrl()}/api/v1/chat/bots/${bot.id}`
+        : `${getApiUrl()}/api/v1/chat/bots/`;
       const method = bot ? 'PUT' : 'POST';
 
       const response = await fetch(url, {

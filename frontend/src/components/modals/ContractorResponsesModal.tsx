@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api'
+import { getApiUrl } from '@/utils'
 
 interface ContractorResponse {
   id: number
@@ -58,7 +58,7 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}/responses`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/responses`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -66,7 +66,7 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
 
       if (response.ok) {
         const data = await response.json()
-        setResponses(data)
+        setResponses(Array.isArray(data) ? data : [])
       } else {
         setError('Ошибка при загрузке откликов')
       }
@@ -139,7 +139,7 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
             </div>
           ) : (
             <div className="space-y-4">
-              {responses.map((response) => (
+              {responses && Array.isArray(responses) ? responses.map((response) => (
                 <div key={response.id} className="border border-gray-200 rounded-lg p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -218,7 +218,11 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
                     </div>
                   )}
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">Ошибка загрузки откликов</p>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { useAuth } from '@/components/AuthContext'
+import { useAuth } from '@/hooks'
 import { useRouter } from 'next/navigation'
 
 export default function Dashboard() {

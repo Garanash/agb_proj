@@ -6,8 +6,8 @@ from typing import List
 
 from database import get_db
 from models import Department, User, UserRole
-from schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreateResponse, DepartmentCreate, DepartmentUpdate
-from routers.auth import get_current_user
+from ..schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreateResponse, DepartmentCreate, DepartmentUpdate
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def check_admin(current_user: User):
         )
 
 
-@router.get("/list", response_model=List[DepartmentList])
+@router.get("/list", response_model=DepartmentList)
 async def get_departments(
     db: AsyncSession = Depends(get_db)
 ):
@@ -36,11 +36,43 @@ async def get_departments(
         )
     )
     departments = result.scalars().all()
-    return departments
+    
+    # Преобразуем datetime в строки для корректной сериализации
+    departments_list = []
+    for dept in departments:
+        dept_dict = {
+            "id": dept.id,
+            "name": dept.name,
+            "description": dept.description,
+            "is_active": dept.is_active,
+            "created_at": dept.created_at.isoformat(),
+            "updated_at": dept.updated_at.isoformat() if dept.updated_at else None,
+            "head_id": dept.head_id,
+            "head": {
+                "id": dept.head.id,
+                "username": dept.head.username,
+                "role": dept.head.role.value if hasattr(dept.head.role, 'value') else str(dept.head.role),
+                "is_active": dept.head.is_active
+            } if dept.head else None,
+            "employees": [
+                {
+                    "id": emp.id,
+                    "username": emp.username,
+                    "role": emp.role.value if hasattr(emp.role, 'value') else str(emp.role),
+                    "is_active": emp.is_active
+                } for emp in dept.employees
+            ] if dept.employees else []
+        }
+        departments_list.append(dept_dict)
+    
+    return DepartmentList(
+        departments=departments_list,
+        total=len(departments_list)
+    )
 
 
 # Редирект роуты для совместимости с frontend
-@router.get("/", response_model=List[DepartmentList])
+@router.get("/", response_model=DepartmentList)
 async def get_departments_root(
     db: AsyncSession = Depends(get_db)
 ):
@@ -132,7 +164,11 @@ async def create_department(
     )
     created_department = result.scalar_one()
     
-    return created_department
+    return DepartmentCreateResponse(
+        success=True,
+        message="Отдел успешно создан",
+        data=created_department
+    )
 
 
 @router.put("/{department_id}", response_model=DepartmentCreateResponse)

@@ -2,6 +2,10 @@
  * Barrel export для news компонентов
  */
 
-export { default as NewsWidget } from './NewsWidget'
+// Named exports
 export { default as CreateNewsModal } from './CreateNewsModal'
 export { default as EditNewsModal } from './EditNewsModal'
+export { default as NewsWidget } from './NewsWidget'
+
+// Default export for backward compatibility
+export { default } from './NewsWidget'

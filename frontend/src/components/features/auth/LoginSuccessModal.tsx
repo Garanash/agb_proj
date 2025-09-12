@@ -1,14 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-
-interface LoginSuccessModalProps {
-  isOpen: boolean
-  onClose: () => void
-  username: string
-  password?: string
-  userType: 'customer' | 'contractor'
-}
+import type { LoginSuccessModalProps } from '@/types'
 
 const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
   isOpen,

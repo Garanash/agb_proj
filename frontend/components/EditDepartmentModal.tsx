@@ -71,7 +71,7 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({
       if (formData.name !== department.name) updateData.name = formData.name
       if (formData.description !== (department.description || '')) updateData.description = formData.description
 
-      await axios.put(`${getApiUrl()}/api/departments/${department.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/v1/departments/${department.id}`, updateData)
       
       onDepartmentUpdated()
     } catch (error: any) {

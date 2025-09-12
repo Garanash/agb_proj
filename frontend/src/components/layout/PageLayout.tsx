@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '@/utils/api';
-import TextLogo from './TextLogo'
+import { getApiUrl } from '@/utils';
+import { TextLogo } from '@/components/ui'
 
 interface PageLayoutProps {
   title: string

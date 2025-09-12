@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 
 from database import get_db
 from models import User
-from schemas import UserLogin, LoginResponse, User as UserSchema, UserProfileUpdate
+from ..schemas import LoginRequest, LoginResponse, UserResponse as UserSchema, UserProfileUpdate
 
 router = APIRouter()
 
@@ -115,7 +115,7 @@ async def get_current_user_optional(
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(user_credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Вход в систему"""
     user = await authenticate_user(db, user_credentials.username, user_credentials.password)
     if not user:
@@ -135,7 +135,15 @@ async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db))
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
-        user=UserSchema.from_orm(user)
+        expires_in=access_token_expires.total_seconds(),
+        user=UserSchema(
+            id=user.id,
+            username=user.username,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at.isoformat(),
+            updated_at=user.updated_at.isoformat() if user.updated_at else None
+        )
     )
 
 
@@ -191,3 +199,11 @@ async def update_profile(
     await db.refresh(user)
     
     return user
+
+
+@router.get("/me", response_model=UserSchema)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
+):
+    """Получение информации о текущем пользователе"""
+    return current_user

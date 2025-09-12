@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { AuthProvider } from '@/contexts'
-import { AuthGuard, AppLayout } from '@/components'
+import { ClientProviders } from '@/components/providers'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -24,13 +23,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <AuthGuard>
-            <AppLayout>
-              {children}
-            </AppLayout>
-          </AuthGuard>
-        </AuthProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   )

@@ -43,7 +43,7 @@ const NewsWidget: React.FC = () => {
       }
       params.append('limit', '10')
 
-      const response = await fetch(`${getApiUrl()}/api/news/?${params}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/news/?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }

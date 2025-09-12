@@ -9,6 +9,13 @@ import sys
 import time
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
+import sys
+import os
+
+# Добавляем корневую папку backend в путь
+backend_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, backend_root)
+
 from database import AsyncSessionLocal
 from models import User, VEDNomenclature
 from passlib.context import CryptContext
@@ -95,7 +102,7 @@ async def init_database():
     
     try:
         # Импортируем функцию инициализации из init_data.py
-        from init_data import init_database_data
+        from scripts.init_data import init_database_data
         
         async with AsyncSessionLocal() as db:
             await init_database_data(db)

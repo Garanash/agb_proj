@@ -2,5 +2,6 @@
  * Barrel export для контекстов
  */
 
+// Named exports
 export { AuthContext, AuthProvider } from './AuthContext'
-export { SimpleAuthContext } from './SimpleAuthContext'
+export { default as SimpleAuthContext } from './SimpleAuthContext'

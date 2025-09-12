@@ -41,6 +41,14 @@ export interface LoginFormProps {
   onClose?: () => void
 }
 
+export interface LoginSuccessModalProps {
+  isOpen: boolean
+  onClose: () => void
+  username: string
+  password: string
+  userType: string
+}
+
 export interface NewsItem {
   id: number
   title: string

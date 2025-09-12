@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 import { 
   DocumentIcon, 
   ChartBarIcon, 
@@ -49,7 +49,7 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
     
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/ved-passports/archive/stats`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -201,7 +201,7 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
               </div>
 
               {/* По статусам */}
-              {Object.entries(stats.status_counts).map(([status, count]) => (
+              {stats && stats.status_counts ? Object.entries(stats.status_counts).map(([status, count]) => (
                 <div key={status} className="text-center">
                   <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                     {getStatusIcon(status)}
@@ -209,7 +209,7 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
                   <div className="text-2xl font-bold text-gray-900">{count}</div>
                   <div className="text-sm text-gray-500">{getStatusText(status)}</div>
                 </div>
-              ))}
+              )) : null}
             </div>
 
             {/* Детальная статистика */}
@@ -218,12 +218,12 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">По типам продуктов</h4>
                 <div className="space-y-2">
-                  {Object.entries(stats.product_type_counts).map(([type, count]) => (
+                  {stats && stats.product_type_counts ? Object.entries(stats.product_type_counts).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">{getProductTypeText(type)}</span>
                       <span className="text-sm font-medium text-gray-900">{count}</span>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </div>
 
@@ -231,23 +231,23 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">По матрицам</h4>
                 <div className="space-y-2">
-                  {Object.entries(stats.matrix_counts).map(([matrix, count]) => (
+                  {stats && stats.matrix_counts ? Object.entries(stats.matrix_counts).map(([matrix, count]) => (
                     <div key={matrix} className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">{matrix}</span>
                       <span className="text-sm font-medium text-gray-900">{count}</span>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </div>
             </div>
 
             {/* Последние созданные паспорты */}
-            {stats.recent_passports.length > 0 && (
+            {stats && stats.recent_passports && Array.isArray(stats.recent_passports) && stats.recent_passports.length > 0 && (
               <div className="mt-6">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">Последние созданные паспорты</h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="space-y-3">
-                    {stats.recent_passports.map((passport) => (
+                    {stats && stats.recent_passports && Array.isArray(stats.recent_passports) ? stats.recent_passports.map((passport) => (
                       <div key={passport.id} className="flex items-center justify-between text-sm">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -263,7 +263,7 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
                           <div className="text-gray-500">{formatDate(passport.created_at)}</div>
                         </div>
                       </div>
-                    ))}
+                    )) : null}
                   </div>
                 </div>
               </div>

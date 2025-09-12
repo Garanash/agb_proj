@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 import { 
   MagnifyingGlassIcon, 
   FunnelIcon, 
@@ -65,7 +65,7 @@ export default function AdvancedSearchFilters({
         setIsLoading(true)
         try {
           const apiUrl = getApiUrl();
-          const response = await fetch(`${apiUrl}/api/ved-passports/archive/filters/`, {
+          const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/filters/`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -227,11 +227,11 @@ export default function AdvancedSearchFilters({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все типы</option>
-                    {filterOptions.product_types.map(type => (
+                    {filterOptions && filterOptions.product_types && Array.isArray(filterOptions.product_types) ? filterOptions.product_types.map(type => (
                       <option key={type} value={type}>
                         {getProductTypeText(type)}
                       </option>
-                    ))}
+                    )) : null}
                   </select>
                 </div>
 
@@ -246,9 +246,9 @@ export default function AdvancedSearchFilters({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все матрицы</option>
-                    {filterOptions.matrices.map(matrix => (
+                    {filterOptions && filterOptions.matrices && Array.isArray(filterOptions.matrices) ? filterOptions.matrices.map(matrix => (
                       <option key={matrix} value={matrix}>{matrix}</option>
-                    ))}
+                    )) : null}
                   </select>
                 </div>
 
@@ -263,11 +263,11 @@ export default function AdvancedSearchFilters({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все статусы</option>
-                    {filterOptions.statuses.map(status => (
+                    {filterOptions && filterOptions.statuses && Array.isArray(filterOptions.statuses) ? filterOptions.statuses.map(status => (
                       <option key={status} value={status}>
                         {getStatusText(status)}
                       </option>
-                    ))}
+                    )) : null}
                   </select>
                 </div>
 
@@ -359,7 +359,7 @@ export default function AdvancedSearchFilters({
                 <div className="pt-4 border-t border-gray-200">
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Активные фильтры:</h4>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(filters).map(([key, value]) => {
+                    {filters && Object.entries(filters).map(([key, value]) => {
                       if (!value) return null
                       
                       let displayValue = value

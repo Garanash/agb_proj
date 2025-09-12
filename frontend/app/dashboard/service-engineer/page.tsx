@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/components/AuthContext'
+import { useAuth } from '@/hooks'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getApiUrl } from '@/utils/api'
-import EditRequestModal from '@/components/EditRequestModal'
-import ContractorResponsesModal from '@/components/ContractorResponsesModal'
+import { getApiUrl } from '@/utils'
+import { EditRequestModal } from '@/components/modals'
+import { ContractorResponsesModal } from '@/components/modals'
 
 interface RepairRequest {
   id: number
@@ -119,7 +119,7 @@ export default function ServiceEngineerDashboard() {
 
   const loadRequests = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -137,7 +137,7 @@ export default function ServiceEngineerDashboard() {
   const loadContractors = async () => {
     try {
       // Получаем профили всех исполнителей через новый endpoint
-      const response = await fetch(`${getApiUrl()}/api/contractors/profiles`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profiles`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -150,7 +150,7 @@ export default function ServiceEngineerDashboard() {
         const contractorsData = []
         for (const profile of profilesData) {
           try {
-            const userResponse = await fetch(`${getApiUrl()}/api/users/${profile.user_id}`, {
+            const userResponse = await fetch(`${getApiUrl()}/api/v1/users/${profile.user_id}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -196,7 +196,7 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +257,7 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}/send-to-bot`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/send-to-bot`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -285,7 +285,7 @@ export default function ServiceEngineerDashboard() {
     if (!selectedRequestId || !token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${selectedRequestId}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${selectedRequestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

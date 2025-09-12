@@ -6,8 +6,8 @@ from typing import List, Optional
 
 from database import get_db
 from models import News, User, UserRole
-from schemas import News as NewsSchema, NewsCreate, NewsUpdate
-from routers.auth import get_current_user, get_current_user_optional
+from ..schemas import News as NewsSchema, NewsCreate, NewsUpdate
+from .auth import get_current_user, get_current_user_optional
 
 router = APIRouter()
 
@@ -45,7 +45,21 @@ async def get_news(
     result = await db.execute(query)
     news = result.scalars().all()
 
-    return news
+    # Преобразуем datetime в строки для корректной сериализации
+    news_list = []
+    for item in news:
+        news_dict = {
+            "id": item.id,
+            "title": item.title,
+            "content": item.content,
+            "author_id": item.author_id,
+            "author_name": item.author_name,
+            "created_at": item.created_at.isoformat(),
+            "updated_at": item.updated_at.isoformat() if item.updated_at else None
+        }
+        news_list.append(news_dict)
+
+    return news_list
 
 
 # Редирект роуты для совместимости с frontend

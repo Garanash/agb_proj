@@ -1,13 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
-import AddEventModal from './AddEventModal'
-import EditEventModal from './EditEventModal'
-import { useAuth } from './AuthContext'
+import { formatApiError } from '@/utils'
+import { AddEventModal, EditEventModal } from '@/components/modals'
+import { useAuth } from '@/hooks'
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import 'moment/locale/ru'
 
@@ -68,7 +67,7 @@ const Calendar: React.FC = () => {
       const startOfMonth = moment(currentDate).startOf('month').format('YYYY-MM-DD')
       const endOfMonth = moment(currentDate).endOf('month').format('YYYY-MM-DD')
       
-      const response = await axios.get(`${getApiUrl()}/api/events/`, {
+      const response = await axios.get(`${getApiUrl()}/api/v1/events/`, {
         params: {
           start_date: startOfMonth,
           end_date: endOfMonth
@@ -161,7 +160,7 @@ const Calendar: React.FC = () => {
     if (!confirm(`Вы уверены, что хотите удалить событие "${event.title}"?`)) return
 
     try {
-      await axios.delete(`${getApiUrl()}/api/events/${event.id}`)
+      await axios.delete(`${getApiUrl()}/api/v1/events/${event.id}`)
       fetchEvents() // Перезагружаем события
       setShowDayModal(false)
     } catch (error: any) {
@@ -269,7 +268,7 @@ const Calendar: React.FC = () => {
                   {day.format('D')}
                 </div>
                 <div className="mt-1 space-y-1">
-                  {dayEvents.slice(0, 3).map(event => (
+                  {dayEvents && Array.isArray(dayEvents) ? dayEvents.slice(0, 3).map(event => (
                     <div
                       key={event.id}
                       className={`text-xs p-1 rounded text-white truncate ${
@@ -284,8 +283,8 @@ const Calendar: React.FC = () => {
                       {event.is_public && '🌍 '}
                       {event.title}
                     </div>
-                  ))}
-                  {dayEvents.length > 3 && (
+                  )) : null}
+                  {dayEvents && Array.isArray(dayEvents) && dayEvents.length > 3 && (
                     <div className="text-xs text-gray-500">
                       +{dayEvents.length - 3} еще
                     </div>
@@ -326,9 +325,9 @@ const Calendar: React.FC = () => {
               {/* События дня */}
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 mb-4">События на этот день</h4>
-                {getEventsForDate(selectedDate).length > 0 ? (
+                {getEventsForDate(selectedDate) && Array.isArray(getEventsForDate(selectedDate)) && getEventsForDate(selectedDate).length > 0 ? (
                   <div className="space-y-3">
-                    {getEventsForDate(selectedDate).map(event => (
+                    {getEventsForDate(selectedDate) && Array.isArray(getEventsForDate(selectedDate)) ? getEventsForDate(selectedDate).map(event => (
                       <div
                         key={event.id}
                         className={`p-4 rounded-lg border-l-4 ${
@@ -355,18 +354,18 @@ const Calendar: React.FC = () => {
                             {event.description && (
                               <p className="text-sm text-gray-700 mt-2">{event.description}</p>
                             )}
-                            {event.participants.length > 0 && (
+                            {event.participants && Array.isArray(event.participants) && event.participants.length > 0 && (
                               <div className="mt-2">
                                 <p className="text-sm text-gray-600">Участники:</p>
                                 <div className="flex flex-wrap gap-2 mt-1">
-                                  {event.participants.map(participant => (
+                                  {event.participants && Array.isArray(event.participants) ? event.participants.map(participant => (
                                     <span
                                       key={participant.id}
                                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                                     >
                                       {participant.user.first_name} {participant.user.last_name}
                                     </span>
-                                  ))}
+                                  )) : null}
                                 </div>
                               </div>
                             )}
@@ -403,9 +402,9 @@ const Calendar: React.FC = () => {
                               </>
                             )}
                           </div>
-                        </div>
                       </div>
-                    ))}
+                    </div>
+                  )) : null}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">

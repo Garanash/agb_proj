@@ -58,7 +58,7 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/${requestId}/responses`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/responses`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

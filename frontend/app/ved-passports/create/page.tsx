@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useAuth } from '../../../components/AuthContext'
 import { 
   ArrowLeftIcon,
@@ -123,7 +123,7 @@ export default function CreateVEDPassportPage() {
 
     try {
       // Используем bulk API даже для одного паспорта для оптимизации
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/bulk/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ export default function CreateVEDPassportPage() {
         quantity: item.quantity
       }))
 
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/bulk/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -337,7 +337,7 @@ export default function CreateVEDPassportPage() {
     try {
       const apiUrl = getApiUrl()
       const passportIds = createdPassports.map(p => p.id)
-      const response = await fetch(`${apiUrl}/api/ved-passports/export/bulk/${format}`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

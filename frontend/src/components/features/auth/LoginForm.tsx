@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useAuth } from '@/hooks';
 import type { LoginFormProps } from '@/types';
 

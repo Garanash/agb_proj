@@ -1,6 +1,8 @@
+'use client'
+
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext';
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks';
 
 interface Department {
   id: number;
@@ -55,7 +57,7 @@ export default function CreateChatRoomModal({
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/departments/list`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/departments/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -71,7 +73,7 @@ export default function CreateChatRoomModal({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/users/chat-users`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -89,7 +91,7 @@ export default function CreateChatRoomModal({
 
   const fetchBots = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/bots/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/bots/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -110,7 +112,7 @@ export default function CreateChatRoomModal({
 
     try {
       // Создаем чат с участниками
-      const createRoomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/`, {
+      const createRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,12 +170,12 @@ export default function CreateChatRoomModal({
 
   if (!isOpen) return null;
 
-  const usersByDepartment = departments.map((dept: Department) => ({
+  const usersByDepartment = departments && Array.isArray(departments) ? departments.map((dept: Department) => ({
     department: dept,
-    users: users.filter((user: User) => user.department_id === dept.id),
-  }));
+    users: users && Array.isArray(users) ? users.filter((user: User) => user.department_id === dept.id) : [],
+  })) : [];
 
-  const usersWithoutDepartment = users.filter((user: User) => user.department_id === null);
+  const usersWithoutDepartment = users && Array.isArray(users) ? users.filter((user: User) => user.department_id === null) : [];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -215,11 +217,11 @@ export default function CreateChatRoomModal({
             </div>
             
             {/* Боты */}
-            {bots.length > 0 && (
+            {bots && Array.isArray(bots) && bots.length > 0 && (
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2">ИИ Боты</h3>
                 <div className="space-y-2">
-                  {bots.map(bot => (
+                  {bots && Array.isArray(bots) ? bots.map(bot => (
                     <div key={bot.id} className="flex items-center">
                       <input
                         type="checkbox"
@@ -240,18 +242,18 @@ export default function CreateChatRoomModal({
                         )}
                       </label>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </div>
             )}
 
             {/* Пользователи по отделам */}
             {usersByDepartment.map(({ department, users }) => (
-              users.length > 0 && (
+              users && Array.isArray(users) && users.length > 0 && (
                 <div key={department.id} className="mb-4">
                   <h3 className="text-lg font-semibold mb-2">{department.name}</h3>
                   <div className="space-y-2">
-                    {users.map(user => (
+                    {users && Array.isArray(users) ? users.map(user => (
                       <div key={user.id} className="flex items-center">
                         <input
                           type="checkbox"
@@ -280,18 +282,18 @@ export default function CreateChatRoomModal({
                           </span>
                         </label>
                       </div>
-                    ))}
+                    )) : null}
                   </div>
                 </div>
               )
             ))}
 
             {/* Пользователи без отдела */}
-            {usersWithoutDepartment.length > 0 && (
+            {usersWithoutDepartment && Array.isArray(usersWithoutDepartment) && usersWithoutDepartment.length > 0 && (
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2">Без отдела</h3>
                 <div className="space-y-2">
-                  {usersWithoutDepartment.map(user => (
+                  {usersWithoutDepartment && Array.isArray(usersWithoutDepartment) ? usersWithoutDepartment.map(user => (
                     <div key={user.id} className="flex items-center">
                       <input
                         type="checkbox"
@@ -320,7 +322,7 @@ export default function CreateChatRoomModal({
                         </span>
                       </label>
                     </div>
-                  ))}
+                  )) : null}
                 </div>
               </div>
             )}

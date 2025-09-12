@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import Link from 'next/link'
 
 export default function TestPage() {

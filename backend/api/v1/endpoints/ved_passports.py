@@ -21,7 +21,7 @@ from PIL import Image as PILImage
 
 from database import get_db
 from models import User, UserRole, VEDNomenclature, VedPassport
-from schemas import (
+from ..schemas import (
     VEDNomenclature as VEDNomenclatureSchema,
     VedPassport as VedPassportSchema,
     VedPassportCreate,
@@ -29,7 +29,7 @@ from schemas import (
     BulkPassportCreate,
     PassportGenerationResult
 )
-from routers.auth import get_current_user
+from .auth import get_current_user
 
 
 class NomenclatureImportItem(BaseModel):

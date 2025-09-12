@@ -9,7 +9,7 @@ from models import (
     User, CustomerProfile, ContractorProfile, RepairRequest,
     ContractorResponse, UserRole, RequestStatus, ResponseStatus
 )
-from schemas import (
+from ..schemas import (
     RepairRequestCreate,
     RepairRequestUpdate,
     RepairRequest as RepairRequestSchema,
@@ -17,7 +17,7 @@ from schemas import (
     ContractorResponse as ContractorResponseSchema,
     ContractorResponseUpdate
 )
-from dependencies import get_current_user
+from .auth import get_current_user
 
 # Импорт Telegram функций
 try:

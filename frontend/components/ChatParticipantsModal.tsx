@@ -69,12 +69,12 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          fetch(`${getApiUrl()}/api/users/chat-users`, {
+          fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }),
-          fetch(`${getApiUrl()}/api/departments/list`, {
+          fetch(`${getApiUrl()}/api/v1/departments/list`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -107,7 +107,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         // Дополнительно загружаем полную информацию об участниках чата
         if (roomId) {
           try {
-            const roomResponse = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}`, {
+            const roomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
@@ -166,7 +166,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     try {
       // Добавляем каждого пользователя по отдельности
       const addPromises = selectedUsers.map(userId =>
-        fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/`, {
+        fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -199,7 +199,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/${participantId}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participantId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -225,7 +225,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

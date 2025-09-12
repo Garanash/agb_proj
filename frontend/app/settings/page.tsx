@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { 
   UserIcon, 
   BellIcon, 
@@ -9,8 +9,8 @@ import {
   PaintBrushIcon,
   GlobeAltIcon 
 } from '@heroicons/react/24/outline'
-import PageLayout from '@/components/PageLayout'
-import { useAuth } from '@/components/AuthContext'
+import { PageLayout } from '@/components/layout'
+import { useAuth } from '@/hooks'
 
 export default function Settings() {
   const { user } = useAuth()

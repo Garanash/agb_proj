@@ -54,7 +54,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     
     setIsLoading(true)
     try {
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/nomenclature/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

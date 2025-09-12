@@ -5,8 +5,8 @@ from typing import List
 
 from database import get_db
 from models import CompanyEmployee, Department, User, UserRole
-from schemas import CompanyEmployee as CompanyEmployeeSchema, CompanyEmployeeList, CompanyEmployeeCreateResponse, CompanyEmployeeCreate, CompanyEmployeeUpdate
-from routers.auth import get_current_user
+from ..schemas import CompanyEmployee as CompanyEmployeeSchema, CompanyEmployeeList, CompanyEmployeeCreateResponse, CompanyEmployeeCreate, CompanyEmployeeUpdate
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -37,7 +37,7 @@ async def create_company_employee(
     return db_employee
 
 
-@router.get("/", response_model=List[CompanyEmployeeList])
+@router.get("/", response_model=CompanyEmployeeList)
 async def get_company_employees(
     department_id: int = None,
     current_user: User = Depends(get_current_user),
@@ -53,7 +53,29 @@ async def get_company_employees(
     
     result = await db.execute(query)
     employees = result.scalars().all()
-    return employees
+    
+    # Сериализуем сотрудников
+    employees_list = []
+    for emp in employees:
+        emp_dict = {
+            "id": emp.id,
+            "first_name": emp.first_name,
+            "last_name": emp.last_name,
+            "middle_name": emp.middle_name,
+            "department_id": emp.department_id,
+            "position": emp.position,
+            "email": emp.email,
+            "phone": emp.phone,
+            "is_active": emp.is_active,
+            "created_at": emp.created_at.isoformat(),
+            "updated_at": emp.updated_at.isoformat() if emp.updated_at else None
+        }
+        employees_list.append(emp_dict)
+    
+    return CompanyEmployeeList(
+        employees=employees_list,
+        total=len(employees_list)
+    )
 
 
 @router.get("/{employee_id}", response_model=CompanyEmployeeSchema)

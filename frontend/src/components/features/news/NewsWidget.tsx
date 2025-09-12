@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { useRouter } from 'next/navigation'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks'
 import moment from 'moment'
 import 'moment/locale/ru'
 
@@ -43,21 +43,21 @@ const NewsWidget: React.FC = () => {
       }
       params.append('limit', '10')
 
-      const response = await fetch(`${getApiUrl()}/api/news/?${params}`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/news/?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
       })
       if (response.ok) {
         const newsData = await response.json()
-        const formattedNews = newsData.map((item: any) => ({
+        const formattedNews = Array.isArray(newsData) ? newsData.map((item: any) => ({
           id: item.id.toString(),
           title: item.title,
           content: item.content,
           author: item.author_name,
           publishedAt: new Date(item.created_at),
           category: item.category
-        }))
+        })) : []
         setNews(formattedNews)
       } else {
         console.error('Failed to fetch news:', response.status)

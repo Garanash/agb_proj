@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api'
-import LoginSuccessModal from './LoginSuccessModal'
+import { getApiUrl } from '@/utils'
+import { LoginSuccessModal } from '@/components/features/auth'
 
 interface CustomerRegistrationFormProps {
   onSuccess?: (username: string, password?: string) => void
@@ -69,7 +69,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
 
       console.log('📤 Отправка данных регистрации:', registrationData)
 
-      const response = await fetch(`${getApiUrl()}/api/customers/register`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/customers/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

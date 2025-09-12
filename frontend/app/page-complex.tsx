@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
-import Calendar from '@/components/Calendar'
-import NewsWidget from '@/components/NewsWidget'
-import PageLayout from '@/components/PageLayout'
-import { useAuth } from '@/components/SimpleAuthContext'
+import { getApiUrl } from '@/utils';
+import { Calendar } from '@/components/ui'
+import { NewsWidget } from '@/components/features/news'
+import { PageLayout } from '@/components/layout'
+import { useAuth } from '@/hooks'
 import Link from 'next/link'
-import RegistrationModal from '@/components/RegistrationModal'
+import { RegistrationModal } from '@/components/features/auth'
 
 // Отключаем статическую генерацию
 export const dynamic = 'force-dynamic'

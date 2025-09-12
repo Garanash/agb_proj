@@ -103,7 +103,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
   const fetchDepartments = async () => {
     try {
-      const response = await axios.get(`${getApiUrl()}/api/departments/list`)
+      const response = await axios.get(`${getApiUrl()}/api/v1/departments/list`)
       setDepartments(response.data)
     } catch (error) {
       console.error('Ошибка загрузки отделов:', error)
@@ -126,12 +126,12 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     try {
       if (employee) {
         // Обновление
-        await axios.put(`${getApiUrl()}/api/company-employees/${employee.id}`, formData)
+        await axios.put(`${getApiUrl()}/api/v1/company-employees/${employee.id}`, formData)
         onEmployeeUpdated()
         onClose()
       } else {
         // Создание
-        const response = await axios.post(`${getApiUrl()}/api/company-employees/`, formData)
+        const response = await axios.post(`${getApiUrl()}/api/v1/company-employees/`, formData)
         console.log('Сотрудник создан успешно:', response.data)
         onEmployeeCreated()
         onClose()

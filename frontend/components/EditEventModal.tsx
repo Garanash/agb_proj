@@ -78,8 +78,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       setIsLoadingUsers(true)
       try {
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get(`${getApiUrl()}/api/users/chat-users`),
-          axios.get(`${getApiUrl()}/api/departments/list`)
+          axios.get(`${getApiUrl()}/api/v1/users/chat-users`),
+          axios.get(`${getApiUrl()}/api/v1/departments/list`)
         ])
         
         setUsers(usersResponse.data)
@@ -175,7 +175,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         updateData.participants = formData.participants
       }
 
-      await axios.put(`${getApiUrl()}/api/events/${event.id}`, updateData)
+      await axios.put(`${getApiUrl()}/api/v1/events/${event.id}`, updateData)
       
       onEventUpdated()
       onClose()

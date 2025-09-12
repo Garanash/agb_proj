@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
-import Modal from './Modal'
+import { formatApiError } from '@/utils'
+import Modal from '@/components/ui'
 
 interface ProfileEditModalProps {
   isOpen: boolean
@@ -61,7 +61,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
     setError('')
 
     try {
-      await axios.put(`${getApiUrl()}/api/auth/profile`, formData)
+      await axios.put(`${getApiUrl()}/api/v1/auth/profile`, formData)
       onUpdate() // Обновляем данные пользователя в контексте
       onClose()
     } catch (error: any) {

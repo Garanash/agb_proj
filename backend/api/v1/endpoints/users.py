@@ -6,8 +6,8 @@ from typing import List
 
 from database import get_db
 from models import User
-from schemas import User as UserSchema, UserCreate, UserUpdate, PasswordReset
-from routers.auth import get_current_user
+from ..schemas import UserResponse as UserSchema, UserCreate, UserUpdate, PasswordReset
+from .auth import get_current_user
 
 
 def transliterate(text: str) -> str:
@@ -49,7 +49,23 @@ async def read_users(
     
     result = await db.execute(select(User).where(User.is_active == True))
     users = result.scalars().all()
-    return users
+    
+    # Сериализуем пользователей
+    users_list = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None
+        }
+        users_list.append(user_dict)
+    
+    return users_list
 
 
 @router.get("/chat-users", response_model=List[UserSchema])
@@ -60,7 +76,23 @@ async def read_chat_users(
     """Получение списка всех активных пользователей для чата"""
     result = await db.execute(select(User).where(User.is_active == True))
     users = result.scalars().all()
-    return users
+    
+    # Сериализуем пользователей
+    users_list = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None
+        }
+        users_list.append(user_dict)
+    
+    return users_list
 
 
 @router.get("/deactivated", response_model=List[UserSchema])
@@ -74,7 +106,23 @@ async def read_deactivated_users(
 
     result = await db.execute(select(User).where(User.is_active == False))
     users = result.scalars().all()
-    return users
+    
+    # Сериализуем пользователей
+    users_list = []
+    for user in users:
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None
+        }
+        users_list.append(user_dict)
+    
+    return users_list
 
 
 # Редирект роуты для совместимости с frontend

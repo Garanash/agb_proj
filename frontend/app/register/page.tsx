@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import RegistrationModal from '@/components/RegistrationModal'
+import { RegistrationModal } from '@/components/features/auth'
 
 export default function RegisterPage() {
   const [isModalOpen, setIsModalOpen] = useState(true)

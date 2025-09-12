@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import Link from 'next/link'
 import { useAuth } from '../../components/AuthContext'
 import { 
@@ -42,7 +42,7 @@ export default function VEDPassportsPage() {
     setIsLoading(true)
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/ved-passports/archive/`, {
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -53,10 +53,10 @@ export default function VEDPassportsPage() {
         
         // Подсчитываем статистику
         const stats = {
-          total: passports.length,
-          active: passports.filter((p: any) => p.status === 'active').length,
-          completed: passports.filter((p: any) => p.status === 'completed').length,
-          processing: passports.filter((p: any) => p.status === 'processing').length
+          total: passports && Array.isArray(passports) ? passports.length : 0,
+          active: passports && Array.isArray(passports) ? passports.filter((p: any) => p.status === 'active').length : 0,
+          completed: passports && Array.isArray(passports) ? passports.filter((p: any) => p.status === 'completed').length : 0,
+          processing: passports && Array.isArray(passports) ? passports.filter((p: any) => p.status === 'processing').length : 0
         }
         
         setStats(stats)

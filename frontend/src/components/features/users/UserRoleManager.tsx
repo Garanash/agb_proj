@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api'
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils'
+import { useAuth } from '@/hooks'
 import axios from 'axios'
 
 interface User {
@@ -44,7 +44,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
   const fetchAvailableRoles = async () => {
     try {
       const apiUrl = getApiUrl()
-      const response = await axios.get(`${apiUrl}/api/roles/available-roles`, {
+      const response = await axios.get(`${apiUrl}/api/v1/roles/available-roles`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setAvailableRoles(response.data)
@@ -58,7 +58,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
     try {
       const apiUrl = getApiUrl()
       await axios.post(
-        `${apiUrl}/api/roles/users/${user.id}/roles`,
+        `${apiUrl}/api/v1/roles/users/${user.id}/roles`,
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -78,7 +78,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
     setLoading(true)
     try {
       const apiUrl = getApiUrl()
-      await axios.delete(`${apiUrl}/api/roles/users/${user.id}/roles/${role}`, {
+      await axios.delete(`${apiUrl}/api/v1/roles/users/${user.id}/roles/${role}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
 
@@ -129,7 +129,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
           </span>
 
           {/* Дополнительные роли */}
-          {userRoles.map(role => (
+          {userRoles && Array.isArray(userRoles) ? userRoles.map(role => (
             <span
               key={role}
               className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
@@ -144,7 +144,7 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
                 ×
               </button>
             </span>
-          ))}
+          )) : null}
         </div>
       </div>
 
@@ -160,27 +160,29 @@ export const UserRoleManager: React.FC<UserRoleManagerProps> = ({
                   Нет доступных ролей для назначения
                 </p>
               ) : (
-                availableRolesToAssign.map(role => (
-                  <div
-                    key={role.value}
-                    className="flex items-center justify-between p-3 border rounded hover:bg-gray-50"
-                  >
-                    <div>
-                      <div className="font-medium">{role.label}</div>
-                      <div className="text-sm text-gray-600">{role.description}</div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        assignRole(role.value)
-                        setShowModal(false)
-                      }}
-                      disabled={loading}
-                      className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50"
+                <div className="space-y-2">
+                  {availableRolesToAssign && Array.isArray(availableRolesToAssign) && availableRolesToAssign.map(role => (
+                    <div
+                      key={role.value}
+                      className="flex items-center justify-between p-3 border rounded hover:bg-gray-50"
                     >
-                      Назначить
-                    </button>
-                  </div>
-                ))
+                      <div>
+                        <div className="font-medium">{role.label}</div>
+                        <div className="text-sm text-gray-600">{role.description}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          assignRole(role.value)
+                          setShowModal(false)
+                        }}
+                        disabled={loading}
+                        className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50"
+                      >
+                        Назначить
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 

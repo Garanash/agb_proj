@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/components/AuthContext'
+import { useAuth } from '@/hooks'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getApiUrl } from '@/utils/api'
+import { getApiUrl } from '@/utils'
 
 interface RepairRequest {
   id: number
@@ -55,7 +55,7 @@ export default function CustomerDashboard() {
 
     try {
       // Загружаем только выполненные и отмененные заявки для заказчика
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -236,7 +236,7 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
         equipment_model: formData.customEquipment || 'Не указано'
       }
 
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

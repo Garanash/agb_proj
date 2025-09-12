@@ -106,18 +106,7 @@ async def get_api_stats():
         }
     }
 
-# Эндпоинты для аутентификации (заглушки)
-@api_router.post("/v1/auth/login")
-async def login():
-    """Вход в систему (заглушка)"""
-    return {
-        "success": True,
-        "message": "Функция входа в разработке",
-        "data": {
-            "status": "not_implemented",
-            "version": "1.0.0"
-        }
-    }
+# Эндпоинты для аутентификации подключены через v1 роутер
 
 @api_router.get("/v1/users")
 async def get_users():

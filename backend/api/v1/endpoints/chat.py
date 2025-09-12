@@ -6,7 +6,7 @@ from typing import List
 import aiohttp
 from database import get_db
 from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder, UserRole
-from schemas import (
+from ..schemas import (
     ChatRoom as ChatRoomSchema,
     ChatRoomCreate,
     ChatRoomUpdate,
@@ -25,10 +25,10 @@ from schemas import (
     ChatFolderCreate,
     ChatFolderUpdate
 )
-from routers.auth import get_current_user, get_user_by_username
+from .auth import get_current_user, get_user_by_username
 from datetime import datetime, timedelta
 import jwt
-from routers.auth import SECRET_KEY, ALGORITHM
+from .auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter(
     tags=["chat"]
@@ -157,14 +157,18 @@ async def get_user_chat_rooms(
 
         # Создаем копию чата с папками только для текущего пользователя
         room_copy = ChatRoomCreateResponse(
-            id=room.id,
-            name=room.name,
-            description=room.description,
-            created_by=room.created_by,
-            is_private=room.is_private,
-            created_at=room.created_at,
-            updated_at=room.updated_at,
-            folders=user_folders
+            success=True,
+            message="Комната получена успешно",
+            data=ChatRoom(
+                id=room.id,
+                name=room.name,
+                description=room.description,
+                created_by=room.created_by,
+                is_private=room.is_private,
+                created_at=room.created_at,
+                updated_at=room.updated_at,
+                folders=user_folders
+            )
         )
         rooms_with_user_folders.append(room_copy)
     

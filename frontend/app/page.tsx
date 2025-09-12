@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
 import { useAuth } from '@/hooks'
 import Link from 'next/link'

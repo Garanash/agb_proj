@@ -7,8 +7,8 @@ from typing import Optional, List
 
 from database import get_db
 from models import Event, User, EventParticipant, UserRole
-from schemas import EventResponse, EventCreate, EventUpdate
-from routers.auth import get_current_user
+from ..schemas import EventResponse, EventCreate, EventUpdate
+from .auth import get_current_user
 
 router = APIRouter()
 
@@ -49,7 +49,43 @@ async def get_events(
     
     result = await db.execute(query)
     events = result.scalars().all()
-    return events
+    
+    # Сериализуем события в правильный формат
+    events_list = []
+    for event in events:
+        # Формируем список участников
+        participants_list = []
+        if event.participants:
+            for participant in event.participants:
+                participants_list.append({
+                    "id": participant.id,
+                    "user_id": participant.user_id,
+                    "status": participant.status,
+                    "created_at": participant.created_at.isoformat(),
+                    "user": {
+                        "id": participant.user.id,
+                        "username": participant.user.username,
+                        "role": participant.user.role,
+                        "is_active": participant.user.is_active
+                    }
+                })
+        
+        event_dict = {
+            "id": event.id,
+            "title": event.title,
+            "description": event.description,
+            "start_date": event.start_date.isoformat(),
+            "end_date": event.end_date.isoformat(),
+            "location": event.location,
+            "max_participants": None,  # Поле не существует в модели
+            "current_participants": len(event.participants) if event.participants else 0,
+            "participants": participants_list,
+            "created_at": event.created_at.isoformat(),
+            "updated_at": event.updated_at.isoformat() if event.updated_at else None
+        }
+        events_list.append(event_dict)
+    
+    return events_list
 
 
 @router.post("/", response_model=EventResponse)
@@ -64,25 +100,29 @@ async def create_event(
         raise HTTPException(status_code=403, detail="Недостаточно прав для создания событий")
 
     # Проверяем корректность дат
-    if event_data.end_date <= event_data.start_date:
+    start_dt = datetime.fromisoformat(event_data.start_date.replace('Z', '+00:00'))
+    end_dt = datetime.fromisoformat(event_data.end_date.replace('Z', '+00:00'))
+    
+    if end_dt <= start_dt:
         raise HTTPException(
             status_code=400, 
             detail="Дата окончания должна быть позже даты начала"
         )
     
     # Создаем событие
-    # Конвертируем timezone-aware datetime в timezone-naive для базы данных
-    start_date_naive = event_data.start_date.replace(tzinfo=None) if event_data.start_date.tzinfo else event_data.start_date
-    end_date_naive = event_data.end_date.replace(tzinfo=None) if event_data.end_date.tzinfo else event_data.end_date
+    # Парсим строки дат в datetime объекты
+    start_date_naive = start_dt.replace(tzinfo=None)
+    end_date_naive = end_dt.replace(tzinfo=None)
 
     db_event = Event(
         title=event_data.title,
         description=event_data.description,
         start_date=start_date_naive,
         end_date=end_date_naive,
-        event_type=event_data.event_type,
+        location=event_data.location,
+        event_type="meeting",  # По умолчанию тип "встреча"
         organizer_id=current_user.id,
-        is_public=event_data.is_public
+        is_public=True
     )
     
     db.add(db_event)
@@ -95,24 +135,8 @@ async def create_event(
     )
     db.add(creator_participant)
     
-    # Добавляем остальных участников (если они есть)
-    for user_id in event_data.participants:
-        # Пропускаем создателя, если он уже добавлен
-        if user_id == current_user.id:
-            continue
-            
-        # Проверяем существование пользователя
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalar_one_or_none()
-        if not user:
-            await db.rollback()
-            raise HTTPException(status_code=404, detail=f"Пользователь с ID {user_id} не найден")
-
-        participant = EventParticipant(
-            event_id=db_event.id,
-            user_id=user_id
-        )
-        db.add(participant)
+    # Пока что добавляем только создателя события
+    # В будущем можно добавить функционал для добавления других участников
 
     await db.commit()
     
@@ -126,7 +150,39 @@ async def create_event(
     )
     db_event = result.scalar_one()
     
-    return db_event
+    # Формируем список участников
+    participants_list = []
+    if db_event.participants:
+        for participant in db_event.participants:
+            participants_list.append({
+                "id": participant.id,
+                "user_id": participant.user_id,
+                "status": participant.status,
+                "created_at": participant.created_at.isoformat(),
+                "user": {
+                    "id": participant.user.id,
+                    "username": participant.user.username,
+                    "role": participant.user.role,
+                    "is_active": participant.user.is_active
+                }
+            })
+    
+    # Сериализуем событие в правильный формат
+    event_dict = {
+        "id": db_event.id,
+        "title": db_event.title,
+        "description": db_event.description,
+        "start_date": db_event.start_date.isoformat(),
+        "end_date": db_event.end_date.isoformat(),
+        "location": db_event.location,
+        "max_participants": None,  # Поле не существует в модели
+        "current_participants": len(db_event.participants) if db_event.participants else 0,
+        "participants": participants_list,
+        "created_at": db_event.created_at.isoformat(),
+        "updated_at": db_event.updated_at.isoformat() if db_event.updated_at else None
+    }
+    
+    return event_dict
 
 
 @router.get("/{event_id}", response_model=EventResponse)
@@ -146,7 +202,21 @@ async def get_event(
     if not event:
         raise HTTPException(status_code=404, detail="Событие не найдено")
     
-    return event
+    # Сериализуем событие в правильный формат
+    event_dict = {
+        "id": event.id,
+        "title": event.title,
+        "description": event.description,
+        "start_date": event.start_date.isoformat(),
+        "end_date": event.end_date.isoformat(),
+        "location": event.location,
+        "max_participants": None,  # Поле не существует в модели
+        "current_participants": len(event.participants) if event.participants else 0,
+        "created_at": event.created_at.isoformat(),
+        "updated_at": event.updated_at.isoformat() if event.updated_at else None
+    }
+    
+    return event_dict
 
 
 @router.put("/{event_id}", response_model=EventResponse)
@@ -177,6 +247,12 @@ async def update_event(
     # Проверяем корректность дат если они обновляются
     start_dt = update_data.get('start_date', event.start_date)
     end_dt = update_data.get('end_date', event.end_date)
+    
+    # Если даты приходят как строки, парсим их
+    if isinstance(start_dt, str):
+        start_dt = datetime.fromisoformat(start_dt.replace('Z', '+00:00'))
+    if isinstance(end_dt, str):
+        end_dt = datetime.fromisoformat(end_dt.replace('Z', '+00:00'))
     
     if end_dt <= start_dt:
         raise HTTPException(
@@ -225,6 +301,9 @@ async def update_event(
     
     # Обновляем остальные поля
     for field, value in update_data.items():
+        # Конвертируем строки дат в datetime объекты
+        if field in ['start_date', 'end_date'] and isinstance(value, str):
+            value = datetime.fromisoformat(value.replace('Z', '+00:00')).replace(tzinfo=None)
         setattr(event, field, value)
     
     await db.commit()
@@ -237,7 +316,21 @@ async def update_event(
     )
     updated_event = result.scalar_one_or_none()
     
-    return updated_event
+    # Сериализуем событие в правильный формат
+    event_dict = {
+        "id": updated_event.id,
+        "title": updated_event.title,
+        "description": updated_event.description,
+        "start_date": updated_event.start_date.isoformat(),
+        "end_date": updated_event.end_date.isoformat(),
+        "location": updated_event.location,
+        "max_participants": None,  # Поле не существует в модели
+        "current_participants": len(updated_event.participants) if updated_event.participants else 0,
+        "created_at": updated_event.created_at.isoformat(),
+        "updated_at": updated_event.updated_at.isoformat() if updated_event.updated_at else None
+    }
+    
+    return event_dict
 
 
 @router.delete("/{event_id}")

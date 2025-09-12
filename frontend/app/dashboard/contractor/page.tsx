@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/components/AuthContext'
+import { useAuth } from '@/hooks'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getApiUrl } from '@/utils/api'
+import { getApiUrl } from '@/utils'
 
 interface RepairRequest {
   id: number
@@ -79,7 +79,7 @@ export default function ContractorDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -102,7 +102,7 @@ export default function ContractorDashboard() {
     try {
       // Для демонстрации используем те же данные, но в реальном приложении
       // нужно добавить API endpoint для получения архивных заявок исполнителя
-      const response = await fetch(`${getApiUrl()}/api/repair-requests/?status=completed`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/?status=completed`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -123,7 +123,7 @@ export default function ContractorDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/contractors/telegram-link`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/contractors/telegram-link`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -460,7 +460,7 @@ function ContractorProfile() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/contractors/profile`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -682,7 +682,7 @@ function ContractorProfile() {
         formDataToSend.append(`document_files`, file)
       })
 
-      const response = await fetch(`${getApiUrl()}/api/contractors/profile`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

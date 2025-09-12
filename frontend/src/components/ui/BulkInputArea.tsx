@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { ClipboardDocumentIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 
 interface NomenclatureItem {
   id: number
@@ -54,7 +54,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     
     setIsLoading(true)
     try {
-      const response = await fetch(`${getApiUrl()}/api/ved-passports/nomenclature/`, {
+      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -167,7 +167,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     setItems(newItems)
     
     // Обновляем текст ввода
-    const newText = newItems.map(item => `${item.code_1c} ${item.quantity}`).join('\n')
+    const newText = newItems && Array.isArray(newItems) ? newItems.map(item => `${item.code_1c} ${item.quantity}`).join('\n') : ''
     setInputText(newText)
   }
 
@@ -242,7 +242,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
       {items.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-lg font-medium text-gray-900">Распознанные позиции:</h4>
-          {items.map((item, index) => (
+          {items && Array.isArray(items) ? items.map((item, index) => (
             <div
               key={index}
               className={`p-4 border rounded-lg ${
@@ -310,7 +310,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
                 </div>
               </div>
             </div>
-          ))}
+          )) : null}
         </div>
       )}
 

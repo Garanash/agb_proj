@@ -69,6 +69,13 @@ class User(Base):
     department = relationship("Department", foreign_keys=[department_id], back_populates="employees", lazy="selectin")
     customer_profile = relationship("CustomerProfile", back_populates="user", lazy="selectin", uselist=False)
     contractor_profile = relationship("ContractorProfile", back_populates="user", lazy="selectin", uselist=False)
+    
+    @property
+    def full_name(self) -> str:
+        """Полное имя пользователя"""
+        if self.middle_name:
+            return f"{self.last_name or ''} {self.first_name or ''} {self.middle_name or ''}".strip()
+        return f"{self.last_name or ''} {self.first_name or ''}".strip()
 
 class Department(Base):
     """Подразделения компании"""

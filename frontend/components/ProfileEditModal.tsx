@@ -61,7 +61,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
     setError('')
 
     try {
-      await axios.put(`${getApiUrl()}/api/auth/profile`, formData)
+      await axios.put(`${getApiUrl()}/api/v1/auth/profile`, formData)
       onUpdate() // Обновляем данные пользователя в контексте
       onClose()
     } catch (error: any) {

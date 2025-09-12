@@ -10,13 +10,13 @@ from pathlib import Path
 
 from database import get_db
 from models import User, ContractorProfile, UserRole
-from schemas import (
+from ..schemas import (
     ContractorRegistration,
     ContractorProfile as ContractorProfileSchema,
     ContractorProfileUpdate,
-    User as UserSchema
+    UserResponse as UserSchema
 )
-from dependencies import get_current_user
+from .auth import get_current_user
 
 router = APIRouter(prefix="/contractors", tags=["contractors"])
 

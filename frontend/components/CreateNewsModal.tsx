@@ -51,7 +51,7 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
     setError('')
 
     try {
-      await axios.post(`${getApiUrl()}/api/news/`, formData)
+      await axios.post(`${getApiUrl()}/api/v1/news/`, formData)
       
       // Сбрасываем форму
       setFormData({

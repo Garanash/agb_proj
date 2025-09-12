@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import PageLayout from '../../components/PageLayout'
 import CreateNewsModal from '../../components/CreateNewsModal'
 import EditNewsModal from '../../components/EditNewsModal'
@@ -44,7 +44,7 @@ export default function NewsPage() {
   const fetchAllNews = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${getApiUrl()}/api/news/list`)
+      const response = await axios.get(`${getApiUrl()}/api/v1/news/list`)
       setNews(response.data)
     } catch (error) {
       console.error('Ошибка загрузки всех новостей:', error)
@@ -56,7 +56,7 @@ export default function NewsPage() {
   const fetchMyNews = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${getApiUrl()}/api/news/my/`)
+      const response = await axios.get(`${getApiUrl()}/api/v1/news/my/`)
       setNews(response.data)
     } catch (error) {
       console.error('Ошибка загрузки моих новостей:', error)
@@ -68,7 +68,7 @@ export default function NewsPage() {
   const fetchPublicNews = async () => {
     try {
       setLoading(true)
-      const response = await axios.get(`${getApiUrl()}/api/news/list`)
+      const response = await axios.get(`${getApiUrl()}/api/v1/news/list`)
       setNews(response.data)
     } catch (error) {
       console.error('Ошибка загрузки новостей:', error)
@@ -91,7 +91,7 @@ export default function NewsPage() {
     if (!confirm('Вы уверены, что хотите удалить эту новость?')) return
 
     try {
-      await axios.delete(`${getApiUrl()}/api/news/${newsId}`)
+      await axios.delete(`${getApiUrl()}/api/v1/news/${newsId}`)
       if (canManageNews) {
         fetchAllNews()
       } else {

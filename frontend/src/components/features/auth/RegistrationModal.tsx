@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import CustomerRegistrationForm from './CustomerRegistrationForm'
-import ContractorRegistrationForm from './ContractorRegistrationForm'
-import LoginSuccessModal from './LoginSuccessModal'
-import PrivacyPolicyModal from './PrivacyPolicyModal'
+import { CustomerRegistrationForm, ContractorRegistrationForm } from '@/components/forms'
+import { LoginSuccessModal } from '@/components/features/auth'
+import { PrivacyPolicyModal } from '@/components/features/admin'
 
 interface RegistrationModalProps {
   isOpen: boolean
