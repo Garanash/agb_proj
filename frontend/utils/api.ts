@@ -7,7 +7,12 @@ export const DEFAULT_API_VERSION = 'v1';
 
 // Базовый URL API
 export const getApiUrl = (): string => {
-  // На клиенте
+  // Для разработки всегда используем localhost:8000
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:8000';
+  }
+
+  // На клиенте в продакшене
   if (typeof window !== 'undefined') {
     // Всегда используем текущий origin (через Nginx)
     return window.location.origin;
@@ -72,7 +77,7 @@ export const getApiHealth = async (version: string = DEFAULT_API_VERSION) => {
 };
 
 // Примеры использования:
-// getApiEndpoint('users/list') -> http://localhost/api/v1/users/list
-// getApiEndpoint('users/list', 'v2') -> http://localhost/api/v1/v2/users/list
-// getApiEndpoint('/v1/users/list') -> http://localhost/api/v1/users/list
-// getWsEndpoint('chat/ws/123') -> ws://localhost/api/v1/chat/ws/123
+// getApiEndpoint('users/list') -> http://localhost:8000/api/v1/users/list
+// getApiEndpoint('users/list', 'v2') -> http://localhost:8000/api/v1/v2/users/list
+// getApiEndpoint('/v1/users/list') -> http://localhost:8000/api/v1/users/list
+// getWsEndpoint('chat/ws/123') -> ws://localhost:8000/api/v1/chat/ws/123

@@ -9,7 +9,7 @@ from passlib.context import CryptContext
 
 from database import get_db
 from models import User
-from ..schemas import LoginRequest, LoginResponse, UserResponse as UserSchema, UserProfileUpdate
+from ..schemas import LoginRequest, LoginResponse, UserResponse as UserSchema, UserProfileUpdate, PasswordReset
 
 router = APIRouter()
 
@@ -132,18 +132,31 @@ async def login(user_credentials: LoginRequest, db: AsyncSession = Depends(get_d
     
     # JWT токен уже создан выше, дополнительных сессий не нужно
     
+    # Формируем полную информацию о пользователе
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "middle_name": user.middle_name,
+        "full_name": user.full_name,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "is_active": user.is_active,
+        "is_password_changed": user.is_password_changed,
+        "phone": user.phone,
+        "department_id": user.department_id,
+        "position": user.position,
+        "avatar_url": user.avatar_url,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None
+    }
+    
     return LoginResponse(
         access_token=access_token,
         token_type="bearer",
         expires_in=access_token_expires.total_seconds(),
-        user=UserSchema(
-            id=user.id,
-            username=user.username,
-            role=user.role,
-            is_active=user.is_active,
-            created_at=user.created_at.isoformat(),
-            updated_at=user.updated_at.isoformat() if user.updated_at else None
-        )
+        user=UserSchema(**user_dict)
     )
 
 
@@ -207,3 +220,35 @@ async def get_current_user_info(
 ):
     """Получение информации о текущем пользователе"""
     return current_user
+
+
+@router.post("/change-password")
+async def change_password(
+    password_data: PasswordReset,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Смена пароля пользователя"""
+    # Проверяем старый пароль
+    if not verify_password(password_data.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверный текущий пароль"
+        )
+    
+    # Проверяем новый пароль
+    from ..utils.password_generator import validate_password_strength
+    is_valid, errors = validate_password_strength(password_data.new_password)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Новый пароль не соответствует требованиям: {'; '.join(errors)}"
+        )
+    
+    # Обновляем пароль
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    current_user.is_password_changed = True  # Отмечаем, что пароль был изменен
+    
+    await db.commit()
+    
+    return {"message": "Пароль успешно изменен"}

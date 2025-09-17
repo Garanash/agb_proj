@@ -4,7 +4,7 @@ API v1 - Централизованная валидация
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, validator, Field
-from typing import Optional, List, Any, Dict, Union
+from typing import Optional, List, Any, Dict, Union, Tuple
 from datetime import datetime, date
 import re
 
@@ -72,7 +72,7 @@ class BaseValidator:
         return user_id
     
     @staticmethod
-    def validate_pagination_params(page: int, size: int) -> tuple[int, int]:
+    def validate_pagination_params(page: int, size: int) -> Tuple[int, int]:
         """Валидирует параметры пагинации"""
         if page < 1:
             raise ValidationError("Номер страницы должен быть больше 0")

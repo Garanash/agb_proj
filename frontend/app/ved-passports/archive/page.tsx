@@ -143,7 +143,7 @@ export default function VEDPassportsArchivePage() {
   const handleMouseMove = (e: MouseEvent) => {
     if (!isResizing || !resizingColumn) return
     
-    const deltaX = e.clientX - startX
+    const deltaX = (e as any).clientX - startX
     const newWidth = Math.max(20, Math.min(500, startWidth + deltaX))
     updateColumnWidth(resizingColumn, newWidth)
   }
@@ -156,22 +156,19 @@ export default function VEDPassportsArchivePage() {
   // Добавляем обработчики событий мыши
   useEffect(() => {
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
+      (window as any).document.addEventListener('mousemove', handleMouseMove)
+      (window as any).document.addEventListener('mouseup', handleMouseUp)
+      console.log('Resizing started')
     } else {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      (window as any).document.removeEventListener('mousemove', handleMouseMove)
+      (window as any).document.removeEventListener('mouseup', handleMouseUp)
+      console.log('Resizing stopped')
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      (window as any).document.removeEventListener('mousemove', handleMouseMove)
+      (window as any).document.removeEventListener('mouseup', handleMouseUp)
+      console.log('Resizing stopped')
     }
   }, [isResizing, resizingColumn, startX, startWidth])
 
@@ -230,13 +227,13 @@ export default function VEDPassportsArchivePage() {
         }
       }
 
-      const response = await fetch(url, {
+      const response: any = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setPassports(data)
         setHasLoadedPassports(true)
@@ -328,14 +325,14 @@ export default function VEDPassportsArchivePage() {
     }
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/${id}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         // Удаляем паспорт из списка
         setPassports(prev => prev.filter(p => p.id !== id))
         // Обновляем статистику
@@ -402,7 +399,7 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
+      const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -413,10 +410,10 @@ export default function VEDPassportsArchivePage() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
+        const link: any = (window as any).document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -424,7 +421,7 @@ export default function VEDPassportsArchivePage() {
           : `bulk_passports.${format}`
 
         link.setAttribute('download', filename)
-        document.body.appendChild(link)
+        (window as any).document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -442,16 +439,16 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/all/${format}`, {
+      const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/export/all/${format}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
+        const link: any = (window as any).document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -459,7 +456,7 @@ export default function VEDPassportsArchivePage() {
           : `all_passports.${format}`
 
         link.setAttribute('download', filename)
-        document.body.appendChild(link)
+        (window as any).document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -487,16 +484,16 @@ export default function VEDPassportsArchivePage() {
 
     try {
       const apiUrl = getApiUrl()
-      const response = await fetch(`${apiUrl}/api/v1/ved-passports/${passportId}/export/${format}`, {
+      const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/${passportId}/export/${format}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
+        const link: any = (window as any).document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -504,7 +501,7 @@ export default function VEDPassportsArchivePage() {
           : `passport_${passportId}.${format}`
 
         link.setAttribute('download', filename)
-        document.body.appendChild(link)
+        (window as any).document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -540,14 +537,14 @@ export default function VEDPassportsArchivePage() {
 
     // Создаем и скачиваем файл с правильной кодировкой
     const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8' })
-    const link = document.createElement('a')
+    const link: any = (window as any).document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
     link.setAttribute('download', `архив_паспортов_вэд_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
+    // console.log('Exporting CSV')
+    (window as any).document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
+    (window as any).document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }, [filteredPassports])
 
@@ -558,7 +555,7 @@ export default function VEDPassportsArchivePage() {
         <div className="text-center">
           <div className="text-gray-400 mb-4">
             <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Требуется авторизация</h3>
@@ -709,7 +706,7 @@ export default function VEDPassportsArchivePage() {
           ) : (
             <div className="w-full">
                                             <div className="overflow-x-auto" style={{ maxWidth: '95vw' }}>
-                <table className="w-full divide-y divide-gray-200 text-xs" style={{ width: '100%', maxWidth: '95vw', tableLayout: 'fixed' }}>
+                <table className="w-full divide-y divide-gray-200 text-xs" style={{ width: '100%', maxWidth: '95vw', tableLayout: 'fixed' as any }}>
                   <thead className="bg-gray-50">
                     <tr>
                       {columnVisibility.checkbox && (
@@ -718,7 +715,7 @@ export default function VEDPassportsArchivePage() {
                             <input
                               type="checkbox"
                               checked={selectAll}
-                              onChange={(e) => handleSelectAll(e.target.checked)}
+                              onChange={(e: any) => handleSelectAll(e.target.checked)}
                               className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
                             <button
@@ -731,7 +728,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'checkbox')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'checkbox')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -750,7 +747,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'passport')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'passport')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -769,7 +766,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'order')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'order')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -788,7 +785,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'nomenclature')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'nomenclature')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -807,7 +804,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'date')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'date')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -826,7 +823,7 @@ export default function VEDPassportsArchivePage() {
                           </div>
                           <div
                             className="absolute right-0 top-0 w-1 h-full cursor-col-resize hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                            onMouseDown={(e) => handleMouseDown(e, 'actions')}
+                            onMouseDown={(e: any) => handleMouseDown(e, 'actions')}
                             title="Перетащите для изменения ширины"
                           />
                         </th>
@@ -841,7 +838,7 @@ export default function VEDPassportsArchivePage() {
                           <input
                             type="checkbox"
                             checked={selectedPassports.includes(passport.id)}
-                            onChange={(e) => handleSelectPassport(passport.id, e.target.checked)}
+                            onChange={(e: any) => handleSelectPassport(passport.id, e.target.checked)}
                             className="h-3 w-3 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                         </td>
@@ -931,7 +928,7 @@ export default function VEDPassportsArchivePage() {
             <div className="text-center py-12">
               <div className="text-gray-400 mb-4">
                 <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Паспорты не найдены</h3>
@@ -1012,7 +1009,7 @@ export default function VEDPassportsArchivePage() {
                         min="20"
                         max="500"
                         value={width}
-                        onChange={(e) => updateColumnWidth(key as keyof typeof columnWidths, parseInt(e.target.value) || 20)}
+                        onChange={(e: any) => updateColumnWidth(key as keyof typeof columnWidths, parseInt(e.target.value) || 20)}
                         className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>

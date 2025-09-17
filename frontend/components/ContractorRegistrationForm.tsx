@@ -32,7 +32,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [generatedUsername, setGeneratedUsername] = useState('')
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -76,7 +76,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         specialization: formData.specialization
       }
 
-      const response = await fetch(`${getApiUrl()}/api/v1/contractors/register`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/contractors/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         body: JSON.stringify(registrationData)
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const result = await response.json()
         setFormData({
           email: '', password: '', confirmPassword: '', first_name: '', last_name: '', middle_name: '',
@@ -264,7 +264,7 @@ const ContractorRegistrationForm: React.FC<ContractorRegistrationFormProps> = ({
         {/* Кнопки */}
         <div className="flex flex-col space-y-4">
           <button
-            type="submit"
+            type={"submit" as const}
             disabled={isLoading}
             className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
           >

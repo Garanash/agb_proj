@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
-import PageLayout from '../../components/PageLayout'
-import CreateNewsModal from '../../components/CreateNewsModal'
-import EditNewsModal from '../../components/EditNewsModal'
-import { useAuth } from '../../components/AuthContext'
+import { getApiUrl } from '../../src/utils/api';
+import PageLayout from '../../src/components/layout/PageLayout'
+import CreateNewsModal from '../../src/components/features/news/CreateNewsModal'
+import EditNewsModal from '../../src/components/features/news/EditNewsModal'
+import { useAuth } from '../../src/hooks/useAuth'
 import axios from 'axios'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { formatApiError } from '../../utils/errorHandler'
+import { formatApiError } from '../../src/utils/api'
 
 interface News {
   id: number

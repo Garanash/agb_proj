@@ -81,7 +81,7 @@ export default function CreateVEDPassportPage() {
     setBulkItems(items)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -89,7 +89,7 @@ export default function CreateVEDPassportPage() {
     }))
   }
 
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleQuantityChange = (e: any) => {
     const value = e.target.value
     // Если поле пустое, устанавливаем 0, иначе парсим число
     const quantity = value === '' ? 0 : parseInt(value) || 0
@@ -123,7 +123,7 @@ export default function CreateVEDPassportPage() {
 
     try {
       // Используем bulk API даже для одного паспорта для оптимизации
-      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ export default function CreateVEDPassportPage() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const result = await response.json()
 
         // Преобразуем результат bulk API в формат для отображения
@@ -219,7 +219,7 @@ export default function CreateVEDPassportPage() {
         quantity: item.quantity
       }))
 
-      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,7 +232,7 @@ export default function CreateVEDPassportPage() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const result = await response.json()
 
         // Преобразуем результат bulk API в формат для отображения
@@ -308,14 +308,14 @@ export default function CreateVEDPassportPage() {
 
     // Создаем и скачиваем файл с правильной кодировкой
     const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8' })
-    const link = document.createElement('a')
+    const link: any = (window as any).document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
     link.setAttribute('download', `паспорта_вэд_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
+    // console.log('Setting link visibility to hidden')
+    (window as any).document.body.appendChild(link)
     link.click()
-    document.body.removeChild(link)
+    (window as any).document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }
 
@@ -337,7 +337,7 @@ export default function CreateVEDPassportPage() {
     try {
       const apiUrl = getApiUrl()
       const passportIds = createdPassports.map(p => p.id)
-      const response = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
+      const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/export/bulk/${format}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -348,10 +348,10 @@ export default function CreateVEDPassportPage() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link = document.createElement('a')
+        const link: any = (window as any).document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -359,7 +359,7 @@ export default function CreateVEDPassportPage() {
           : `created_passports.${format}`
 
         link.setAttribute('download', filename)
-        document.body.appendChild(link)
+        (window as any).document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -384,7 +384,7 @@ export default function CreateVEDPassportPage() {
         <div className="text-center">
           <div className="text-gray-400 mb-4">
             <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">Требуется авторизация</h3>

@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '@/utils';
-import { TextLogo } from '@/components/ui'
+import { getApiUrl } from '../../utils/api';
+import { TextLogo } from '../ui'
 
 interface PageLayoutProps {
   title: string
@@ -17,7 +17,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({
   children, 
   headerActions 
 }) => {
-  console.log('PageLayout rendered with title:', title)
+  // console.log('PageLayout rendered with title:', title)
   
   return (
     <div className="p-8">

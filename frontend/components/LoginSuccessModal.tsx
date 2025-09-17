@@ -19,22 +19,22 @@ const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
 }) => {
   // Обработка клавиши Escape
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+  const handleEscape = (e: any) => {
+    if (e.key === 'Escape' && isOpen) {
         onClose()
       }
     }
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
+      (window as any).document.addEventListener('keydown', handleEscape)
       // Блокируем скролл body
-      document.body.style.overflow = 'hidden'
+      (window as any).document.body.style.overflow = 'hidden'
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscape)
+      (window as any).document.removeEventListener('keydown', handleEscape)
       // Восстанавливаем скролл body
-      document.body.style.overflow = 'unset'
+      (window as any).document.body.style.overflow = 'unset'
     }
   }, [isOpen, onClose])
 
@@ -57,7 +57,7 @@ const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -69,7 +69,7 @@ const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
             {/* Иконка успеха */}
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
               <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
 

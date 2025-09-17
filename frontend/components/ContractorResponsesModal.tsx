@@ -58,13 +58,13 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/responses`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/responses`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setResponses(data)
       } else {
@@ -114,7 +114,7 @@ const ContractorResponsesModal: React.FC<ContractorResponsesModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>

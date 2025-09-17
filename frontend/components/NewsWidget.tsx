@@ -43,12 +43,12 @@ const NewsWidget: React.FC = () => {
       }
       params.append('limit', '10')
 
-      const response = await fetch(`${getApiUrl()}/api/v1/news/?${params}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/news/?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         }
       })
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const newsData = await response.json()
         const formattedNews = newsData.map((item: any) => ({
           id: item.id.toString(),

@@ -24,7 +24,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
     if (!contentRef.current) return
 
     const element = contentRef.current
-    const { scrollTop, scrollHeight, clientHeight } = element
+    const { scrollTop, scrollHeight, clientHeight } = element as any
 
     // Если контент помещается полностью
     if (scrollHeight <= clientHeight) {
@@ -56,7 +56,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
 
     const element = contentRef.current
     scrollHandlerRef.current = handleScroll
-    element.addEventListener('scroll', handleScroll, { passive: true })
+    console.log('Scroll listener setup')
     
     // Первоначальная проверка
     updateScrollProgress()
@@ -65,7 +65,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
   // Удаление scroll listener
   const removeScrollListener = useCallback(() => {
     if (contentRef.current && scrollHandlerRef.current) {
-      contentRef.current.removeEventListener('scroll', scrollHandlerRef.current)
+      (contentRef.current as any).removeEventListener('scroll', scrollHandlerRef.current)
       scrollHandlerRef.current = null
     }
     
@@ -114,11 +114,11 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
-      style={{ pointerEvents: 'auto' }}
+      style={{ pointerEvents: 'auto' as any }}
     >
       <div
         className="bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] flex flex-col shadow-2xl"
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: 'auto' as any }}
       >
         {/* Заголовок */}
         <div className="border-b border-gray-200 p-6 flex-shrink-0">
@@ -132,7 +132,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -144,7 +144,7 @@ const PrivacyPolicyModal: React.FC<PrivacyPolicyModalProps> = ({
           className="flex-1 overflow-y-auto"
           style={{
             maxHeight: '400px',
-            pointerEvents: 'auto',
+            pointerEvents: 'auto' as any,
             touchAction: 'auto'
           }}
 

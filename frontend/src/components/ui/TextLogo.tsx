@@ -1,6 +1,6 @@
 import React from 'react'
-import { getApiUrl } from '@/utils';
-import { Logo } from '@/components/ui'
+import { getApiUrl } from '../../utils/api';
+import { Logo } from './Logo'
 
 interface TextLogoProps {
   size?: 'sm' | 'md' | 'lg'

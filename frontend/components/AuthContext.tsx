@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
+import ForcePasswordChangeModal from './ForcePasswordChangeModal'
 
 interface User {
   id: number
@@ -13,6 +14,7 @@ interface User {
   middle_name?: string
   role: 'admin' | 'manager' | 'employee' | 'ved_passport' | 'customer' | 'contractor' | 'service_engineer'
   is_active: boolean
+  is_password_changed: boolean
   created_at: string
   avatar_url?: string | null
   department_id?: number | null
@@ -44,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false)
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
@@ -64,8 +67,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const apiUrl = getApiUrl()
       console.log('API URL for token validation:', apiUrl)
       const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
-      setUser(response.data)
-      console.log('User loaded:', response.data)
+      const userData = response.data
+      setUser(userData)
+      console.log('User loaded:', userData)
+      
+      // Проверяем, нужно ли сменить пароль
+      if (userData && !userData.is_password_changed) {
+        setShowPasswordChangeModal(true)
+      }
     } catch (error) {
       console.error('Token validation error:', error)
       // Токен невалиден, удаляем его
@@ -93,6 +102,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
       setUser(userData)
+      
+      // Проверяем, нужно ли сменить пароль
+      if (userData && !userData.is_password_changed) {
+        setShowPasswordChangeModal(true)
+      }
+      
       return true
     } catch (error: any) {
       console.error('Login error:', error.message)
@@ -125,6 +140,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const handlePasswordChanged = async () => {
+    setShowPasswordChangeModal(false)
+    // Обновляем информацию о пользователе
+    await refreshUser()
+  }
+
   const value: AuthContextType = {
     user,
     token,
@@ -137,5 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   console.log('AuthContext value:', { user: !!user, token: !!token, isLoading, isAuthenticated: !!user })
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <ForcePasswordChangeModal 
+        isOpen={showPasswordChangeModal}
+        onPasswordChanged={handlePasswordChanged}
+      />
+    </AuthContext.Provider>
+  )
 }

@@ -63,7 +63,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             type="text"
             id="username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e: any) => setUsername(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Введите имя пользователя"
             disabled={isLoading}
@@ -78,7 +78,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
             type="password"
             id="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: any) => setPassword(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Введите пароль"
             disabled={isLoading}
@@ -86,7 +86,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
         </div>
 
         <button
-          type="submit"
+          type={"submit" as const}
           disabled={isLoading}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >

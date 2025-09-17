@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '../src/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '../src/utils/api'
 import Modal from './Modal'
-import { useAuth } from './AuthContext'
+import { useAuth } from '../src/hooks/useAuth'
 
 interface User {
   id: number
@@ -41,6 +41,29 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     is_public: false,
     participants: [] as number[]
   })
+
+  // Обновляем event_type при изменении initialEventType
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      event_type: initialEventType
+    }))
+  }, [initialEventType])
+
+  // Сбрасываем форму при открытии модального окна
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        title: '',
+        description: '',
+        start_time: '09:00',
+        end_time: '10:00',
+        event_type: initialEventType,
+        is_public: false,
+        participants: user ? [user.id] : []
+      })
+    }
+  }, [isOpen, initialEventType, user])
   
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<{[key: number]: string}>({})
@@ -102,11 +125,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     }
   }, [isOpen])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     if (name === 'participants') {
-      const selectedOptions = Array.from((e.target as HTMLSelectElement).selectedOptions)
-      const selectedIds = selectedOptions.map(option => parseInt(option.value))
+      const selectedOptions = Array.from((e.target as any).selectedOptions)
+      const selectedIds = selectedOptions.map((option: any) => parseInt(option.value))
       setFormData(prev => ({
         ...prev,
         participants: selectedIds
@@ -168,7 +191,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         end_time: '10:00',
         event_type: initialEventType,
         is_public: false,
-        participants: []
+        participants: user ? [user.id] : []
       })
     } catch (error: any) {
       console.error('Ошибка создания события:', error)
@@ -177,7 +200,15 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       if (error.response) {
         // Ошибка от сервера
         if (error.response.data && error.response.data.detail) {
-          errorMessage = error.response.data.detail
+          // Проверяем, что detail - это строка, а не объект
+          if (typeof error.response.data.detail === 'string') {
+            errorMessage = error.response.data.detail
+          } else if (Array.isArray(error.response.data.detail)) {
+            // Если это массив ошибок валидации, берем первую
+            errorMessage = error.response.data.detail[0]?.msg || 'Ошибка валидации'
+          } else {
+            errorMessage = 'Ошибка сервера'
+          }
         } else if (error.response.status === 400) {
           errorMessage = 'Некорректные данные события'
         } else if (error.response.status === 401) {
@@ -277,7 +308,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                     type="checkbox"
                     name="is_public"
                     checked={formData.is_public}
-                    onChange={(e) => {
+                    onChange={(e: any) => {
                       setFormData(prev => ({
                         ...prev,
                         is_public: e.target.checked
@@ -371,7 +402,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
 
-                                onChange={(e) => {
+                                onChange={(e: any) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
                                       ...prev,
@@ -407,7 +438,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
 
-                                onChange={(e) => {
+                                onChange={(e: any) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
                                       ...prev,
@@ -441,7 +472,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -449,7 +480,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

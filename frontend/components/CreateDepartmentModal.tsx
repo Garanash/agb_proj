@@ -26,7 +26,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
 
   console.log('CreateDepartmentModal rendered:', { isOpen })
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -71,7 +71,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -117,7 +117,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -125,7 +125,7 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

@@ -64,13 +64,13 @@ export default function NomenclatureSelector({
     
     setIsLoading(true)
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
       
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setNomenclature(data)
         setFilteredNomenclature(data)
@@ -150,7 +150,7 @@ export default function NomenclatureSelector({
           <div className="flex items-center space-x-2">
             {selectedItem && (
               <button
-                onClick={(e) => {
+                onClick={(e: any) => {
                   e.stopPropagation()
                   handleClear()
                 }}
@@ -181,8 +181,8 @@ export default function NomenclatureSelector({
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Поиск по коду, названию, артикулу..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
+                onChange={(e: any) => setSearchTerm(e.target.value)}
+                onClick={(e: any) => e.stopPropagation()}
               />
             </div>
           </div>

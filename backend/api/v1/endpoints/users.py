@@ -57,9 +57,17 @@ async def read_users(
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "middle_name": user.middle_name,
             "full_name": user.full_name,
             "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
             "is_active": user.is_active,
+            "is_password_changed": user.is_password_changed,
+            "phone": user.phone,
+            "department_id": user.department_id,
+            "position": user.position,
+            "avatar_url": user.avatar_url,
             "created_at": user.created_at.isoformat(),
             "updated_at": user.updated_at.isoformat() if user.updated_at else None
         }
@@ -84,9 +92,17 @@ async def read_chat_users(
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "middle_name": user.middle_name,
             "full_name": user.full_name,
             "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
             "is_active": user.is_active,
+            "is_password_changed": user.is_password_changed,
+            "phone": user.phone,
+            "department_id": user.department_id,
+            "position": user.position,
+            "avatar_url": user.avatar_url,
             "created_at": user.created_at.isoformat(),
             "updated_at": user.updated_at.isoformat() if user.updated_at else None
         }
@@ -114,9 +130,17 @@ async def read_deactivated_users(
             "id": user.id,
             "username": user.username,
             "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "middle_name": user.middle_name,
             "full_name": user.full_name,
             "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
             "is_active": user.is_active,
+            "is_password_changed": user.is_password_changed,
+            "phone": user.phone,
+            "department_id": user.department_id,
+            "position": user.position,
+            "avatar_url": user.avatar_url,
             "created_at": user.created_at.isoformat(),
             "updated_at": user.updated_at.isoformat() if user.updated_at else None
         }
@@ -191,8 +215,14 @@ async def create_user(
         else:
             raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
     
+    # Генерируем пароль если не указан
+    password = user_data.password
+    if not password:
+        from ..utils.password_generator import generate_secure_password
+        password = generate_secure_password(12)
+    
     # Создаем нового пользователя
-    hashed_password = get_password_hash(user_data.password)
+    hashed_password = get_password_hash(password)
     db_user = User(
         username=username,
         email=user_data.email,
@@ -203,14 +233,36 @@ async def create_user(
         role=user_data.role,
         phone=user_data.phone,
         department_id=user_data.department_id,
-        position=user_data.position
+        position=user_data.position,
+        is_password_changed=False  # Пароль не был изменен пользователем
     )
     
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
     
-    return db_user
+    # Возвращаем пользователя с сгенерированным паролем для отображения админу
+    user_dict = {
+        "id": db_user.id,
+        "username": db_user.username,
+        "email": db_user.email,
+        "first_name": db_user.first_name,
+        "last_name": db_user.last_name,
+        "middle_name": db_user.middle_name,
+        "full_name": db_user.full_name,
+        "role": db_user.role.value if hasattr(db_user.role, 'value') else str(db_user.role),
+        "is_active": db_user.is_active,
+        "is_password_changed": db_user.is_password_changed,
+        "phone": db_user.phone,
+        "department_id": db_user.department_id,
+        "position": db_user.position,
+        "avatar_url": db_user.avatar_url,
+        "created_at": db_user.created_at.isoformat(),
+        "updated_at": db_user.updated_at.isoformat() if db_user.updated_at else None,
+        "generated_password": password  # Временно добавляем сгенерированный пароль
+    }
+    
+    return user_dict
 
 
 @router.get("/{user_id}", response_model=UserSchema)
@@ -219,7 +271,46 @@ async def read_user(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Получение пользователя по ID"""
+    """Получение пользователя по ID (доступно для всех аутентифицированных пользователей)"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    
+    print(f"🔍 GET user {user_id}: first_name='{user.first_name}', last_name='{user.last_name}', middle_name='{user.middle_name}', position='{user.position}'")
+    
+    # Сериализуем пользователя (принудительно включаем все поля)
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email or None,
+        "first_name": user.first_name or None,
+        "last_name": user.last_name or None,
+        "middle_name": user.middle_name or None,
+        "full_name": user.full_name or None,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "is_active": user.is_active,
+        "phone": user.phone or None,
+        "department_id": user.department_id or None,
+        "position": user.position or None,
+        "avatar_url": user.avatar_url or None,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None
+    }
+    
+    print(f"🔍 Serialized user_dict: {user_dict}")
+    
+    return user_dict
+
+
+@router.get("/admin/{user_id}", response_model=UserSchema)
+async def read_user_admin(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение пользователя по ID (только для администраторов)"""
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
@@ -229,7 +320,26 @@ async def read_user(
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    return user
+    # Сериализуем пользователя
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "middle_name": user.middle_name,
+        "full_name": user.full_name,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "is_active": user.is_active,
+        "phone": user.phone,
+        "department_id": user.department_id,
+        "position": user.position,
+        "avatar_url": user.avatar_url,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None
+    }
+    
+    return user_dict
 
 
 @router.put("/{user_id}", response_model=UserSchema)
@@ -250,14 +360,80 @@ async def update_user(
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
     # Обновляем поля
-    update_data = user_data.dict(exclude_unset=True)
+    print(f"🔧 Raw user_data: {user_data}")
+    print(f"🔧 user_data type: {type(user_data)}")
+    
+    update_data = user_data.model_dump(exclude_unset=True)
+    print(f"🔧 Updating user {user_id} with data: {update_data}")
+    
+    if not update_data:
+        print("⚠️ No data to update!")
+        # Возвращаем текущие данные пользователя без изменений
+        user_dict = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "middle_name": user.middle_name,
+            "full_name": user.full_name,
+            "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+            "is_active": user.is_active,
+            "is_password_changed": user.is_password_changed,
+            "phone": user.phone,
+            "department_id": user.department_id,
+            "position": user.position,
+            "avatar_url": user.avatar_url,
+            "created_at": user.created_at.isoformat(),
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None
+        }
+        return user_dict
+    
     for field, value in update_data.items():
+        print(f"🔧 Setting {field} = {value} (type: {type(value)})")
         setattr(user, field, value)
     
-    await db.commit()
-    await db.refresh(user)
+    print(f"🔧 User before commit: first_name='{user.first_name}', last_name='{user.last_name}', middle_name='{user.middle_name}', position='{user.position}'")
     
-    return user
+    try:
+        await db.commit()
+        print(f"🔧 ✅ Commit successful")
+    except Exception as e:
+        print(f"🔧 ❌ Commit failed: {e}")
+        await db.rollback()
+        raise
+    
+    print(f"🔧 After commit, before refresh")
+    
+    try:
+        await db.refresh(user)
+        print(f"🔧 ✅ Refresh successful")
+    except Exception as e:
+        print(f"🔧 ❌ Refresh failed: {e}")
+        raise
+        
+    print(f"🔧 User after commit: first_name='{user.first_name}', last_name='{user.last_name}', middle_name='{user.middle_name}', position='{user.position}'")
+    
+    # Сериализуем пользователя
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "middle_name": user.middle_name,
+        "full_name": user.full_name,
+        "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
+        "is_active": user.is_active,
+        "phone": user.phone,
+        "department_id": user.department_id,
+        "position": user.position,
+        "avatar_url": user.avatar_url,
+        "created_at": user.created_at.isoformat(),
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None
+    }
+    
+    return user_dict
 
 
 @router.delete("/{user_id}")

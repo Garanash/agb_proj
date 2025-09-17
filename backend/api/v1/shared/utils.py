@@ -7,7 +7,7 @@ import hashlib
 import secrets
 import string
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 from functools import wraps
 import logging
 
@@ -61,7 +61,7 @@ def normalize_phone(phone: str) -> str:
     return phone
 
 
-def validate_password_strength(password: str) -> tuple[bool, List[str]]:
+def validate_password_strength(password: str) -> Tuple[bool, List[str]]:
     """Проверяет сложность пароля"""
     errors = []
     
@@ -189,7 +189,7 @@ def log_api_call(func):
     return wrapper
 
 
-def validate_pagination_params(page: int, size: int, max_size: int = 100) -> tuple[int, int]:
+def validate_pagination_params(page: int, size: int, max_size: int = 100) -> Tuple[int, int]:
     """Валидирует параметры пагинации"""
     if page < 1:
         page = 1

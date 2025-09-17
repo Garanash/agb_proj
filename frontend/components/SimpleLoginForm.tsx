@@ -42,10 +42,10 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
         })
       })
       
-      console.log('📡 API Response status:', response.status)
+      console.log('📡 API Response status:', (response as any).status)
       
-      if (response.ok) {
-        const data = await response.json()
+      if ((response as any).status >= 200 && (response as any).status < 300) {
+        const data = await (response as any).json()
         console.log('✅ Login successful:', data)
         
         // Сохраняем токен в localStorage
@@ -62,8 +62,8 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
         
         console.log('🎉 Login completed successfully!')
       } else {
-        const errorText = await response.text()
-        console.error('❌ Login failed:', response.status, response.statusText, errorText)
+        const errorText = await (response as any).text()
+        console.error('❌ Login failed:', (response as any).status, (response as any).statusText, errorText)
         setError('Неверное имя пользователя или пароль')
       }
     } catch (error) {
@@ -92,7 +92,7 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
             type="text"
             id="username"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e: any) => setUsername(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Введите имя пользователя"
             disabled={isLoading}
@@ -107,7 +107,7 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
             type="password"
             id="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e: any) => setPassword(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Введите пароль"
             disabled={isLoading}
@@ -115,7 +115,7 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
         </div>
 
         <button
-          type="submit"
+          type={"submit" as const}
           disabled={isLoading}
           onClick={() => console.log('🎯 Button clicked!')}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -126,7 +126,7 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
         {/* Ссылка "Забыли пароль?" */}
         <div className="text-center mt-4">
           <button
-            type="button"
+            type={"button" as const}
             onClick={() => window.location.href = '/forgot-password'}
             className="text-sm text-blue-600 hover:text-blue-800 underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1"
           >

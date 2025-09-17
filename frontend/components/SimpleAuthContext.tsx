@@ -56,10 +56,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       })
       
-      console.log('📡 API Response status:', response.status)
+      console.log('📡 API Response status:', (response as any).status)
       
-      if (response.ok) {
-        const data = await response.json()
+      if ((response as any).status >= 200 && (response as any).status < 300) {
+        const data = await (response as any).json()
         console.log('✅ Login successful:', data)
         
         setUser(data.user)
@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🎉 Login completed successfully!')
         return true
       } else {
-        const errorText = await response.text()
-        console.error('❌ Login failed:', response.status, response.statusText, errorText)
+        const errorText = await (response as any).text()
+        console.error('❌ Login failed:', (response as any).status, (response as any).statusText, errorText)
         return false
       }
     } catch (error) {

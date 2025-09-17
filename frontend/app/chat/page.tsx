@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks';
-import { getApiUrl, getWsUrl } from '@/utils';
-import { PageLayout } from '@/components/layout';
+import { useAuth } from '../../src/hooks/useAuth';
+import { getApiUrl, getWsUrl } from '../../src/utils/api';
+import PageLayout from '../../src/components/layout/PageLayout';
 
-import { CreateChatRoomModal } from '@/components/features/chat';
-import { ChatParticipantsModal } from '@/components/features/chat';
-import { ChatFoldersModal } from '@/components/features/chat';
+import CreateChatRoomModal from '../../src/components/features/chat/CreateChatRoomModal';
+import ChatParticipantsModal from '../../src/components/features/chat/ChatParticipantsModal';
+import ChatFoldersModal from '../../src/components/features/chat/ChatFoldersModal';
 
 interface ChatRoom {
   id: number;
@@ -95,7 +95,7 @@ const ChatPage = () => {
   const [rooms, setRooms] = useState<ChatRoomListItem[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [message, setMessage] = useState('');
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [ws, setWs] = useState<typeof WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] = useState(false);
@@ -204,7 +204,7 @@ const ChatPage = () => {
           console.log(`✅ WebSocket подключен к чату ${selectedRoom.id}`);
         };
 
-        ws.onmessage = (event) => {
+        ws.onmessage = (event: any) => {
           try {
             const data = JSON.parse(event.data);
             console.log('📨 WebSocket сообщение получено:', data);
@@ -244,7 +244,7 @@ const ChatPage = () => {
               
               // Прокручиваем к последнему сообщению
               setTimeout(() => {
-                const messagesContainer = document.querySelector('.messages-container');
+                const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
                 if (messagesContainer) {
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
@@ -283,7 +283,7 @@ const ChatPage = () => {
               
               // Прокручиваем к последнему сообщению
               setTimeout(() => {
-                const messagesContainer = document.querySelector('.messages-container');
+                const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
                 if (messagesContainer) {
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
@@ -297,11 +297,11 @@ const ChatPage = () => {
           }
         };
 
-        ws.onerror = (error) => {
+        ws.onerror = (error: any) => {
           console.error('❌ WebSocket ошибка:', error);
         };
 
-        ws.onclose = (event) => {
+        ws.onclose = (event: any) => {
           console.log(`🔌 WebSocket отключен от чата ${selectedRoom.id}:`, event.code, event.reason);
           
           // Автоматически переподключаемся при ошибке
@@ -315,7 +315,7 @@ const ChatPage = () => {
           }
         };
 
-        setWs(ws);
+        setWs(ws as any);
 
         return () => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -331,7 +331,7 @@ const ChatPage = () => {
 
   // Прокрутка к последнему сообщению
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    (messagesEndRef.current as any)?.scrollIntoView({ behavior: 'smooth' });
   }, [selectedRoom?.messages]);
 
   // Функция для обновления счетчика непрочитанных сообщений
@@ -339,13 +339,13 @@ const ChatPage = () => {
     if (!token) return;
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/unread-count`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/unread-count`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json();
         setUnreadSummary(prev => ({
           ...prev,
@@ -381,12 +381,12 @@ const ChatPage = () => {
 
   const handleRoomSelect = async (room: ChatRoomListItem) => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${room.id}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${room.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json();
         setSelectedRoom(data);
         
@@ -428,16 +428,16 @@ const ChatPage = () => {
 
     // Прокручиваем к последнему сообщению
     setTimeout(() => {
-      const messagesContainer = document.querySelector('.messages-container');
+      const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
       if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
     }, 100);
 
     // Отправляем сообщение через WebSocket для мгновенной доставки всем участникам
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (ws && (ws as any).readyState === WebSocket.OPEN) {
       try {
-        ws.send(JSON.stringify({
+        (ws as any).send(JSON.stringify({
           type: 'message',
           content: messageContent
         }));
@@ -458,7 +458,7 @@ const ChatPage = () => {
     if (!selectedRoom) return;
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/messages/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/messages/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -467,7 +467,7 @@ const ChatPage = () => {
         body: JSON.stringify({ content: messageContent })
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const newMessage = await response.json();
         console.log('📤 Сообщение отправлено через HTTP API');
         
@@ -522,18 +522,18 @@ const ChatPage = () => {
     try {
       console.log(`🚪 Покидаем чат ${selectedRoom.id}...`);
       
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/leave`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/leave`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         console.log('✅ Успешно покинули чат');
         
         // Закрываем WebSocket подключение
         if (ws) {
           console.log('🔌 Закрываем WebSocket подключение...');
-          ws.close(1000, 'User left the room');
+          (ws as any).close(1000, 'User left the room');
           setWs(null);
         }
         
@@ -624,13 +624,13 @@ const ChatPage = () => {
     
     // Перезагружаем информацию о чате перед открытием модала
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const roomData = await response.json();
         console.log('Обновленные данные чата:', roomData);
         console.log('Участники:', roomData.participants);
@@ -662,7 +662,7 @@ const ChatPage = () => {
           </div>
           {/* Папки */}
           <div className="divide-y divide-gray-200">
-            {folders.map(folder => (
+            {folders && Array.isArray(folders) ? folders.map(folder => (
               <div key={folder.id}>
                 <div
                   className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedFolder?.id === folder.id ? 'bg-gray-100' : ''}`}
@@ -674,7 +674,7 @@ const ChatPage = () => {
                       <h3 className="font-medium">{folder.name}</h3>
                     </div>
                     <span className="text-sm text-gray-500">
-                      {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders.some(f => f.folder_id === folder.id)).length : 0}
+                      {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id)).length : 0}
                     </span>
                   </div>
                 </div>
@@ -692,10 +692,10 @@ const ChatPage = () => {
                             <div>
                               <h3 className="font-medium">{room.name}</h3>
                               <p className="text-sm text-gray-500">
-                                Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
+                                Беседа создана {room.created_at ? new Date(room.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
                               </p>
                             </div>
-                            {unreadSummary[room.id] > 0 && (
+                            {unreadSummary[room.id] && unreadSummary[room.id] > 0 && (
                               <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                                 {unreadSummary[room.id]}
                               </div>
@@ -703,11 +703,11 @@ const ChatPage = () => {
                           </div>
                         </div>
                       ))
-                    : null}
+                    : []}
                   </div>
                 )}
               </div>
-            ))}
+            )) : []}
           </div>
 
           {/* Чаты без папок */}
@@ -726,10 +726,10 @@ const ChatPage = () => {
                       <div>
                         <h3 className="font-medium">{room.name}</h3>
                         <p className="text-sm text-gray-500">
-                          Беседа создана {new Date(room.created_at).toLocaleDateString('ru-RU')}
+                          Беседа создана {room.created_at ? new Date(room.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
                         </p>
                       </div>
-                      {unreadSummary[room.id] > 0 && (
+                      {unreadSummary[room.id] && unreadSummary[room.id] > 0 && (
                         <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                           {unreadSummary[room.id]}
                         </div>
@@ -737,7 +737,7 @@ const ChatPage = () => {
                     </div>
                   </div>
                 ))
-              : null}
+              : []}
             </div>
           </div>
         </div>
@@ -745,7 +745,7 @@ const ChatPage = () => {
         {/* Область чата */}
         <div className="flex-1 flex flex-col bg-gray-50">
           {selectedRoom ? (
-            <>
+            <React.Fragment key={selectedRoom.id}>
               {/* Заголовок беседы */}
               <div className="p-4 bg-white border-b border-gray-200">
                 <div className="flex items-center justify-between">
@@ -776,7 +776,7 @@ const ChatPage = () => {
               {/* Сообщения */}
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-4">
-                  {selectedRoom.messages.map(message => (
+                  {selectedRoom.messages && Array.isArray(selectedRoom.messages) ? selectedRoom.messages.map(message => (
                     <div
                       key={message.id}
                       className={`flex ${message.sender?.id === user?.id ? 'justify-end' : 'justify-start'}`}
@@ -833,7 +833,7 @@ const ChatPage = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )) : []}
                   <div ref={messagesEndRef} />
                 </div>
               </div>
@@ -844,8 +844,8 @@ const ChatPage = () => {
                   <input
                     type="text"
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onChange={(e: any) => setMessage(e.target.value)}
+                    onKeyPress={(e: any) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Введите сообщение..."
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -857,7 +857,7 @@ const ChatPage = () => {
                   </button>
                 </div>
               </div>
-            </>
+            </React.Fragment>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-gray-500">Выберите беседу для начала общения</p>
@@ -873,12 +873,12 @@ const ChatPage = () => {
         onRoomCreated={async () => {
           // Перезагружаем список бесед
           try {
-            const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
+            const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             });
-            if (response.ok) {
+            if (response.status >= 200 && response.status < 300) {
               const data = await response.json();
               setRooms(data);
             }
@@ -898,12 +898,12 @@ const ChatPage = () => {
           onParticipantsUpdated={async () => {
             // Перезагружаем информацию о комнате
             try {
-              const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
+              const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}`, {
                 headers: {
                   'Authorization': `Bearer ${token}`
                 }
               });
-              if (response.ok) {
+              if (response.status >= 200 && response.status < 300) {
                 const data = await response.json();
                 setSelectedRoom(data);
               }
@@ -911,7 +911,7 @@ const ChatPage = () => {
               console.error('Error refreshing room:', error);
             }
           }}
-          isAdmin={selectedRoom.participants.some(p => p.user?.id === user?.id && p.is_admin)}
+          isAdmin={selectedRoom.participants && Array.isArray(selectedRoom.participants) ? selectedRoom.participants.some(p => p.user?.id === user?.id && p.is_admin) : false}
         />
       )}
 
@@ -921,15 +921,15 @@ const ChatPage = () => {
           isOpen={isFoldersModalOpen}
           onClose={() => setIsFoldersModalOpen(false)}
           roomId={selectedRoom.id}
-          onFolderSelected={async (folderId) => {
+          onFolderSelected={async (folderId: any) => {
             // Перезагружаем список бесед
             try {
-              const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
+              const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
                 headers: {
                   'Authorization': `Bearer ${token}`
                 }
               });
-              if (response.ok) {
+              if (response.status >= 200 && response.status < 300) {
                 const data = await response.json();
                 setRooms(data);
               }

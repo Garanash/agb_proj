@@ -25,7 +25,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('CreateUserModal rendered:', { isOpen })
+  // console.log('CreateUserModal rendered:', { isOpen })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target

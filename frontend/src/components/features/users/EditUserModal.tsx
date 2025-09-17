@@ -33,40 +33,48 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   onUserUpdated, 
   user 
 }) => {
-  const [formData, setFormData] = useState({
-    email: '',
-    first_name: '',
-    last_name: '',
-    middle_name: '',
-    role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
-    is_active: true,
-    phone: '',
-    department_id: null as number | null,
-    position: ''
-  })
+  const [formData, setFormData] = useState(() => ({
+    email: user?.email || '',
+    first_name: user?.first_name || '',
+    last_name: user?.last_name || '',
+    middle_name: user?.middle_name || '',
+    role: (user?.role as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport') || 'employee',
+    is_active: user?.is_active ?? true,
+    phone: user?.phone || '',
+    department_id: user?.department_id || null,
+    position: user?.position || ''
+  }))
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('EditUserModal rendered:', { isOpen, user: !!user })
+  // console.log('EditUserModal rendered:', { isOpen, user: !!user })
 
   // Заполняем форму данными пользователя при открытии
   useEffect(() => {
     if (user && isOpen) {
-      setFormData({
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
+      const newFormData = {
+        email: user.email || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         middle_name: user.middle_name || '',
-        role: user.role as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
-        is_active: user.is_active,
+        role: (user.role as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport') || 'employee',
+        is_active: user.is_active ?? true,
         phone: user.phone || '',
         department_id: user.department_id || null,
         position: user.position || ''
+      }
+      
+      // Обновляем только если данные действительно изменились
+      setFormData(prev => {
+        const hasChanges = Object.keys(newFormData).some(key => 
+          prev[key as keyof typeof prev] !== newFormData[key as keyof typeof newFormData]
+        )
+        return hasChanges ? newFormData : prev
       })
       setError('')
     }
-  }, [user, isOpen])
+  }, [user?.id, isOpen]) // Используем user.id вместо всего объекта user
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
@@ -106,12 +114,27 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.department_id !== user.department_id) updateData.department_id = formData.department_id
       if (formData.position !== (user.position || '')) updateData.position = formData.position || null
 
-      await axios.put(`${getApiUrl()}/api/v1/users/${user.id}`, updateData)
+      // Получаем токен из localStorage
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        throw new Error('Токен авторизации не найден. Пожалуйста, войдите в систему заново.')
+      }
+
+      const response = await axios.put(`${getApiUrl()}/api/v1/users/${user.id}`, updateData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
       
       onUserUpdated()
       onClose()
     } catch (error: any) {
-      setError(formatApiError(error, 'Произошла ошибка при обновлении пользователя'))
+      if (error.response?.status === 401) {
+        setError('Ошибка авторизации. Пожалуйста, войдите в систему заново.')
+      } else {
+        setError(formatApiError(error, 'Произошла ошибка при обновлении пользователя'))
+      }
     } finally {
       setIsLoading(false)
     }

@@ -27,7 +27,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
   const [generatedUsername, setGeneratedUsername] = useState('')
   const [generatedPassword, setGeneratedPassword] = useState('')
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -69,7 +69,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
 
       console.log('📤 Отправка данных регистрации:', registrationData)
 
-      const response = await fetch(`${getApiUrl()}/api/v1/customers/register`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/customers/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
         body: JSON.stringify(registrationData)
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const result = await response.json()
         console.log('✅ Регистрация успешна:', result)
         setFormData({
@@ -195,7 +195,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
         {/* Кнопки */}
         <div className="flex flex-col space-y-4">
           <button
-            type="submit"
+            type={"submit" as const}
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
           >

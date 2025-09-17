@@ -66,12 +66,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       })
       setError('')
     }
-  }, [user, isOpen])
+  }, [user?.id, isOpen]) // Используем user.id вместо всего объекта user
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
     if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked
+      const checked = (e.target as any).checked
       setFormData(prev => ({
         ...prev,
         [name]: checked
@@ -106,12 +106,35 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       if (formData.department_id !== user.department_id) updateData.department_id = formData.department_id
       if (formData.position !== (user.position || '')) updateData.position = formData.position || null
 
-      await axios.put(`${getApiUrl()}/api/v1/users/${user.id}`, updateData)
+      // Получаем токен из localStorage
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        throw new Error('Токен авторизации не найден. Пожалуйста, войдите в систему заново.')
+      }
+
+      console.log('Sending update request:', {
+        url: `${getApiUrl()}/api/v1/users/${user.id}`,
+        data: updateData,
+        token: token ? 'present' : 'missing'
+      })
+
+      const response = await axios.put(`${getApiUrl()}/api/v1/users/${user.id}`, updateData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      console.log('Update response:', response.data)
       
       onUserUpdated()
       onClose()
     } catch (error: any) {
-      setError(formatApiError(error, 'Произошла ошибка при обновлении пользователя'))
+      console.error('Update error:', error)
+      if (error.response?.status === 401) {
+        setError('Ошибка авторизации. Пожалуйста, войдите в систему заново.')
+      } else {
+        setError(formatApiError(error, 'Произошла ошибка при обновлении пользователя'))
+      }
     } finally {
       setIsLoading(false)
     }
@@ -132,7 +155,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -307,7 +330,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -315,7 +338,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

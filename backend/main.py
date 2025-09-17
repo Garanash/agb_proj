@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
 
     # Инициализируем данные если их нет
-    if os.getenv("AUTO_INIT_DATA", "true").lower() == "true":
+    if os.getenv("AUTO_INIT_DATA", "false").lower() == "true":
         try:
             from scripts.init_data import init_database_data
             from database import AsyncSessionLocal
@@ -42,14 +42,39 @@ app = FastAPI(
     redirect_slashes=False
 )
 
-# CORS настройки отключены - обрабатываются в nginx
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # Разрешаем все origins для production
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+# CORS настройки для локальной разработки
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000", 
+        "http://localhost:3001", 
+        "http://127.0.0.1:3001",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002"
+    ],  # Разрешаем фронтенд и API
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+# Добавляем middleware для логирования CORS ошибок
+@app.middleware("http")
+async def cors_logging_middleware(request, call_next):
+    response = await call_next(request)
+    
+    # Логируем CORS заголовки
+    origin = request.headers.get("origin")
+    if origin:
+        print(f"🌐 CORS request from origin: {origin}")
+        print(f"🔧 CORS headers: {response.headers.get('access-control-allow-origin', 'Not set')}")
+    
+    return response
 
 # Подключение версионированного API
 from api.router import api_router

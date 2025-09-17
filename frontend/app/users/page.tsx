@@ -17,6 +17,7 @@ interface User {
   first_name: string
   last_name: string
   middle_name?: string
+  full_name: string
   role: string
   is_active: boolean
   phone?: string
@@ -24,6 +25,7 @@ interface User {
   position?: string
   avatar_url?: string
   created_at: string
+  updated_at?: string
 }
 
 export default function Users() {
@@ -110,6 +112,12 @@ export default function Users() {
         return 'Сотрудник'
       case 'ved_passport':
         return 'ВЭД Паспорт'
+      case 'contractor':
+        return 'Исполнитель'
+      case 'customer':
+        return 'Заказчик'
+      case 'service_engineer':
+        return 'Сервисный инженер'
       default:
         return role
     }
@@ -205,6 +213,8 @@ export default function Users() {
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Пользователь</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Телефон</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Должность</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Роль</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Статус</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">
@@ -217,23 +227,35 @@ export default function Users() {
                       <tr key={userItem.id} className="border-b border-gray-100">
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 ${getAvatarColor(userItem.username)} rounded-full flex items-center justify-center text-white font-semibold`}>
-                              {getInitials(userItem)}
+                            <div className={`w-10 h-10 ${getAvatarColor(userItem.username)} rounded-full flex items-center justify-center text-white font-semibold overflow-hidden`}>
+                              {userItem.avatar_url ? (
+                                <img 
+                                  src={userItem.avatar_url} 
+                                  alt={`${userItem.last_name} ${userItem.first_name}`} 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                getInitials(userItem)
+                              )}
                             </div>
                             <div>
                               <div className="font-medium text-gray-900">
-                                {userItem.last_name} {userItem.first_name} {userItem.middle_name || ''}
+                                {userItem.full_name || `${userItem.last_name} ${userItem.first_name} ${userItem.middle_name || ''}`.trim()}
                               </div>
-                              <div className="text-sm text-gray-600">{userItem.username}</div>
+                              <div className="text-sm text-gray-600">@{userItem.username}</div>
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4 text-gray-900">{userItem.email}</td>
+                        <td className="py-3 px-4 text-gray-900">{userItem.phone || '-'}</td>
+                        <td className="py-3 px-4 text-gray-900">{userItem.position || '-'}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                             userItem.role === 'admin' ? 'bg-red-100 text-red-800' :
                             userItem.role === 'manager' ? 'bg-blue-100 text-blue-800' :
                             userItem.role === 'ved_passport' ? 'bg-purple-100 text-purple-800' :
+                            userItem.role === 'contractor' ? 'bg-green-100 text-green-800' :
+                            userItem.role === 'customer' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {getRoleName(userItem.role)}
@@ -270,7 +292,7 @@ export default function Users() {
                                 title="Активировать"
                               >
                                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
                               </button>
                             )}

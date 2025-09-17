@@ -55,13 +55,13 @@ export default function CustomerDashboard() {
 
     try {
       // Загружаем только выполненные и отмененные заявки для заказчика
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         // Фильтруем только выполненные и отмененные заявки
         const completedRequests = data.filter((request: RepairRequest) =>
@@ -236,7 +236,7 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
         equipment_model: formData.customEquipment || 'Не указано'
       }
 
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -245,7 +245,7 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
         body: JSON.stringify(requestData)
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         onSuccess()
       } else {
         const errorData = await response.json()
@@ -258,7 +258,7 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
@@ -631,14 +631,14 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
           <div className="border-t pt-8">
             <div className="flex gap-4">
               <button
-                type="button"
+                type={"button" as const}
                 onClick={() => window.location.href = '/dashboard/customer?tab=requests'}
                 className="flex-1 bg-gray-600 text-white py-3 px-6 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
               >
                 Отмена
               </button>
               <button
-                type="submit"
+                type={"submit" as const}
                 disabled={isLoading}
                 className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 transition-colors font-medium"
               >

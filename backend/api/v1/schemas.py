@@ -103,7 +103,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """Схема для создания пользователя"""
-    password: str = Field(description="Пароль")
+    password: Optional[str] = Field(None, description="Пароль (если не указан, будет сгенерирован автоматически)")
     
     @validator('email')
     def validate_email(cls, v):
@@ -114,10 +114,11 @@ class UserCreate(UserBase):
     
     @validator('password')
     def validate_password(cls, v):
-        from .shared.utils import validate_password_strength
-        is_valid, errors = validate_password_strength(v)
-        if not is_valid:
-            raise ValueError(f'Пароль не соответствует требованиям: {"; ".join(errors)}')
+        if v is not None:
+            from .shared.utils import validate_password_strength
+            is_valid, errors = validate_password_strength(v)
+            if not is_valid:
+                raise ValueError(f'Пароль не соответствует требованиям: {"; ".join(errors)}')
         return v
 
 
@@ -129,7 +130,11 @@ class UserUpdate(BaseModel):
     email: Optional[str] = Field(None, description="Email адрес")
     first_name: Optional[str] = Field(None, description="Имя")
     last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
     phone: Optional[str] = Field(None, description="Номер телефона")
+    position: Optional[str] = Field(None, description="Должность")
+    department_id: Optional[int] = Field(None, description="ID отдела")
+    avatar_url: Optional[str] = Field(None, description="URL аватара")
     role: Optional[str] = Field(None, description="Роль пользователя")
     is_active: Optional[bool] = Field(None, description="Активен ли пользователь")
     
@@ -146,8 +151,18 @@ class UserResponse(BaseResponseModel):
     """Схема ответа с информацией о пользователе"""
     id: int = Field(description="ID пользователя")
     username: str = Field(description="Имя пользователя")
+    email: Optional[str] = Field(None, description="Email адрес")
+    first_name: Optional[str] = Field(None, description="Имя")
+    last_name: Optional[str] = Field(None, description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
+    full_name: Optional[str] = Field(None, description="Полное имя")
     role: str = Field(description="Роль пользователя")
     is_active: bool = Field(description="Активен ли пользователь")
+    is_password_changed: bool = Field(description="Был ли изменен пароль")
+    phone: Optional[str] = Field(None, description="Номер телефона")
+    department_id: Optional[int] = Field(None, description="ID отдела")
+    position: Optional[str] = Field(None, description="Должность")
+    avatar_url: Optional[str] = Field(None, description="URL аватара")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -274,6 +289,7 @@ class CompanyEmployeeCreate(BaseModel):
     phone: Optional[str] = Field(None, description="Телефон")
     position: Optional[str] = Field(None, description="Должность")
     department_id: int = Field(description="ID отдела")
+    is_active: bool = Field(default=True, description="Активен ли сотрудник")
 
 
 class CompanyEmployeeUpdate(BaseModel):
@@ -287,6 +303,7 @@ class CompanyEmployeeUpdate(BaseModel):
     phone: Optional[str] = Field(None, description="Телефон")
     position: Optional[str] = Field(None, description="Должность")
     department_id: Optional[int] = Field(None, description="ID отдела")
+    is_active: Optional[bool] = Field(None, description="Активен ли сотрудник")
 
 
 class CompanyEmployeeCreateResponse(BaseModel):
@@ -515,8 +532,10 @@ class News(BaseResponseModel):
     id: int = Field(description="ID новости")
     title: str = Field(description="Заголовок")
     content: str = Field(description="Содержание")
+    category: str = Field(description="Категория новости")
     author_id: int = Field(description="ID автора")
     author_name: Optional[str] = Field(None, description="Имя автора")
+    is_published: bool = Field(description="Опубликована ли новость")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -525,12 +544,16 @@ class NewsCreate(BaseModel):
     """Схема создания новости"""
     title: str = Field(description="Заголовок")
     content: str = Field(description="Содержание")
+    category: str = Field(description="Категория новости")
+    is_published: bool = Field(default=True, description="Опубликована ли новость")
 
 
 class NewsUpdate(BaseModel):
     """Схема обновления новости"""
     title: Optional[str] = Field(None, description="Заголовок")
     content: Optional[str] = Field(None, description="Содержание")
+    category: Optional[str] = Field(None, description="Категория новости")
+    is_published: Optional[bool] = Field(None, description="Опубликована ли новость")
 
 
 class EventResponse(BaseResponseModel):
@@ -606,8 +629,10 @@ class TeamMemberWithUser(BaseResponseModel):
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
 
-class ChatRoom(BaseResponseModel):
+class ChatRoom(BaseModel):
     """Схема чат комнаты"""
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int = Field(description="ID чат комнаты")
     name: str = Field(description="Название комнаты")
     description: Optional[str] = Field(None, description="Описание комнаты")

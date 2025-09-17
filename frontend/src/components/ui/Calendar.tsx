@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '../../utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils'
-import { AddEventModal, EditEventModal } from '@/components/modals'
-import { useAuth } from '@/hooks'
+import { formatApiError } from '../../../utils/errorHandler'
+import { AddEventModal, EditEventModal } from '../modals'
+import { useAuth } from '../../hooks/useAuth'
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import 'moment/locale/ru'
 
@@ -417,29 +417,69 @@ const Calendar: React.FC = () => {
               </div>
 
               {/* Кнопки действий */}
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={handleCloseDayModal}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Закрыть
-                </button>
-                {selectedDate && isPast(selectedDate) ? (
-                  <button 
-                    disabled
-                    className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed opacity-50"
-                    title="Нельзя создавать события в прошедшие даты"
-                  >
-                    Создать событие
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => handleAddEvent()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Создать событие
-                  </button>
+              <div className="pt-4 border-t border-gray-200">
+                {selectedDate && !isPast(selectedDate) && (
+                  <div className="mb-4">
+                    <h5 className="text-sm font-medium text-gray-700 mb-3">Быстрое создание события:</h5>
+                    <div className="flex flex-wrap gap-2">
+                      <button 
+                        onClick={() => handleAddEvent('meeting')}
+                        className="px-3 py-2 bg-purple-100 text-purple-800 rounded-lg hover:bg-purple-200 transition-colors text-sm"
+                      >
+                        📅 Встреча
+                      </button>
+                      <button 
+                        onClick={() => handleAddEvent('call')}
+                        className="px-3 py-2 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 transition-colors text-sm"
+                      >
+                        📞 Созвон
+                      </button>
+                      <button 
+                        onClick={() => handleAddEvent('briefing')}
+                        className="px-3 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                      >
+                        📋 Планерка
+                      </button>
+                      <button 
+                        onClick={() => handleAddEvent('conference')}
+                        className="px-3 py-2 bg-indigo-100 text-indigo-800 rounded-lg hover:bg-indigo-200 transition-colors text-sm"
+                      >
+                        🏢 Совещание
+                      </button>
+                      <button 
+                        onClick={() => handleAddEvent('other')}
+                        className="px-3 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                      >
+                        📝 Другое
+                      </button>
+                    </div>
+                  </div>
                 )}
+                
+                <div className="flex items-center justify-end space-x-3">
+                  <button
+                    onClick={handleCloseDayModal}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Закрыть
+                  </button>
+                  {selectedDate && isPast(selectedDate) ? (
+                    <button 
+                      disabled
+                      className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed opacity-50"
+                      title="Нельзя создавать события в прошедшие даты"
+                    >
+                      Создать событие
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleAddEvent()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Создать событие
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

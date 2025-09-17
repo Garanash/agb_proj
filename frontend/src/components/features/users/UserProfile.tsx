@@ -98,6 +98,14 @@ export default function UserProfile() {
         return 'Менеджер'
       case 'employee':
         return 'Сотрудник'
+      case 'ved_passport':
+        return 'ВЭД Паспорт'
+      case 'contractor':
+        return 'Исполнитель'
+      case 'customer':
+        return 'Заказчик'
+      case 'service_engineer':
+        return 'Сервисный инженер'
       default:
         return role
     }
@@ -137,11 +145,16 @@ export default function UserProfile() {
         {/* Информация о пользователе */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">
-            {user?.last_name} {user?.first_name} {user?.middle_name || ''}
+            {user?.full_name || `${user?.last_name} ${user?.first_name} ${user?.middle_name || ''}`.trim()}
           </p>
           <p className="text-xs text-gray-600 truncate">
             @{user?.username}
           </p>
+          {user?.position && (
+            <p className="text-xs text-gray-500 truncate">
+              {user.position}
+            </p>
+          )}
         </div>
         
         {/* Иконка раскрытия */}
@@ -164,6 +177,22 @@ export default function UserProfile() {
                 {user?.email}
               </span>
             </div>
+            {user?.phone && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">Телефон:</span>
+                <span className="text-gray-800 font-medium">
+                  {user.phone}
+                </span>
+              </div>
+            )}
+            {user?.position && (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">Должность:</span>
+                <span className="text-gray-800 font-medium truncate ml-2">
+                  {user.position}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">Роль:</span>
               <span className="text-gray-800 font-medium">

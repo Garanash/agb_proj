@@ -6,7 +6,7 @@ from reportlab.lib import colors
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from cairosvg import svg2png
+# from cairosvg import svg2png  # Временно отключено для локальной разработки
 from reportlab.lib.utils import ImageReader
 
 

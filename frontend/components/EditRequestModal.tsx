@@ -49,7 +49,7 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${request.id}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${request.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         onSuccess()
         onClose()
       } else {
@@ -75,7 +75,7 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -100,7 +100,7 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -241,14 +241,14 @@ const EditRequestModal: React.FC<EditRequestModalProps> = ({
             {/* Кнопки */}
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <button
-                type="button"
+                type={"button" as const}
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
               >
                 Отмена
               </button>
               <button
-                type="submit"
+                type={"submit" as const}
                 disabled={loading}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

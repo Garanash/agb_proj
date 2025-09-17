@@ -7,14 +7,23 @@ export const DEFAULT_API_VERSION = 'v1';
 
 // Базовый URL API
 export const getApiUrl = (): string => {
-  // На клиенте
+  // Если есть переменная окружения NEXT_PUBLIC_API_URL, используем её
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Для локальной разработки используем localhost:8000
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:8000';
+  }
+
+  // На клиенте в продакшене используем текущий origin
   if (typeof window !== 'undefined') {
-    // Всегда используем текущий origin (через Nginx)
     return window.location.origin;
   }
 
-  // На сервере используем переменную окружения или localhost для разработки
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  // На сервере используем localhost для разработки
+  return 'http://localhost:8000';
 };
 
 // URL для WebSocket
@@ -71,8 +80,10 @@ export const getApiHealth = async (version: string = DEFAULT_API_VERSION) => {
   }
 };
 
+// Функция formatApiError перенесена в errorHandler.ts для избежания дублирования
+
 // Примеры использования:
-// getApiEndpoint('users/list') -> http://localhost/api/v1/users/list
-// getApiEndpoint('users/list', 'v2') -> http://localhost/api/v1/v2/users/list
-// getApiEndpoint('/v1/users/list') -> http://localhost/api/v1/users/list
-// getWsEndpoint('chat/ws/123') -> ws://localhost/api/v1/chat/ws/123
+// getApiEndpoint('users/list') -> http://localhost:8000/api/v1/users/list
+// getApiEndpoint('users/list', 'v2') -> http://localhost:8000/api/v1/v2/users/list
+// getApiEndpoint('/v1/users/list') -> http://localhost:8000/api/v1/users/list
+// getWsEndpoint('chat/ws/123') -> ws://localhost:8000/api/v1/chat/ws/123

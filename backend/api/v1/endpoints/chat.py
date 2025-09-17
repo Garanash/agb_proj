@@ -8,6 +8,7 @@ from database import get_db
 from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder, UserRole
 from ..schemas import (
     ChatRoom as ChatRoomSchema,
+    ChatRoom,
     ChatRoomCreate,
     ChatRoomUpdate,
     ChatRoomCreateResponse,
@@ -71,7 +72,8 @@ async def create_chat_room(
     """Создание новой беседы"""
     try:
         # Создаем чат
-        db_room = ChatRoom(
+        from models import ChatRoom as ChatRoomModel
+        db_room = ChatRoomModel(
             name=room.name,
             description=getattr(room, 'description', None),
             created_by=current_user.id,
@@ -113,15 +115,15 @@ async def create_chat_room(
         
         # Возвращаем объект для корректной сериализации
         return ChatRoomCreateResponse(
-            id=db_room.id,
-            name=db_room.name,
-            description=db_room.description,
-            created_by=db_room.created_by,
-            is_private=db_room.is_private,
-            is_active=db_room.is_active,
-            created_at=db_room.created_at,
-            updated_at=db_room.updated_at,
-            folders=[]
+            success=True,
+            message="Чат успешно создан",
+            data=ChatRoom(
+                id=db_room.id,
+                name=db_room.name,
+                description=db_room.description,
+                created_at=db_room.created_at.isoformat() if db_room.created_at else "",
+                updated_at=db_room.updated_at.isoformat() if db_room.updated_at else None
+            )
         )
     except Exception as e:
         await db.rollback()
@@ -134,13 +136,14 @@ async def get_user_chat_rooms(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка бесед пользователя"""
+    from models import ChatRoom as ChatRoomModel
     result = await db.execute(
-        select(ChatRoom)
-        .join(ChatParticipant, ChatRoom.id == ChatParticipant.room_id)
-        .options(selectinload(ChatRoom.folders))
+        select(ChatRoomModel)
+        .join(ChatParticipant, ChatRoomModel.id == ChatParticipant.room_id)
+        .options(selectinload(ChatRoomModel.folders))
         .where(and_(
             ChatParticipant.user_id == current_user.id,
-            ChatRoom.is_active == True
+            ChatRoomModel.is_active == True
         ))
     )
     rooms = result.scalars().all()
@@ -163,11 +166,8 @@ async def get_user_chat_rooms(
                 id=room.id,
                 name=room.name,
                 description=room.description,
-                created_by=room.created_by,
-                is_private=room.is_private,
-                created_at=room.created_at,
-                updated_at=room.updated_at,
-                folders=user_folders
+                created_at=room.created_at.isoformat() if room.created_at else "",
+                updated_at=room.updated_at.isoformat() if room.updated_at else None
             )
         )
         rooms_with_user_folders.append(room_copy)

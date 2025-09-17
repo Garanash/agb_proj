@@ -65,13 +65,13 @@ export default function AdvancedSearchFilters({
         setIsLoading(true)
         try {
           const apiUrl = getApiUrl();
-          const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/filters/`, {
+          const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/archive/filters/`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           })
           
-          if (response.ok) {
+          if (response.status >= 200 && response.status < 300) {
             const data = await response.json()
             setFilterOptions(data)
             setHasLoadedFilters(true)
@@ -168,7 +168,7 @@ export default function AdvancedSearchFilters({
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               placeholder="Поиск по номеру паспорта, заказу..."
               value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
+              onChange={(e: any) => handleFilterChange('search', e.target.value)}
             />
             <p className="text-xs text-gray-500 mt-1">Поиск по точному совпадению</p>
           </div>
@@ -223,7 +223,7 @@ export default function AdvancedSearchFilters({
                   </label>
                   <select
                     value={filters.product_type}
-                    onChange={(e) => handleFilterChange('product_type', e.target.value)}
+                    onChange={(e: any) => handleFilterChange('product_type', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все типы</option>
@@ -242,7 +242,7 @@ export default function AdvancedSearchFilters({
                   </label>
                   <select
                     value={filters.matrix}
-                    onChange={(e) => handleFilterChange('matrix', e.target.value)}
+                    onChange={(e: any) => handleFilterChange('matrix', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все матрицы</option>
@@ -259,7 +259,7 @@ export default function AdvancedSearchFilters({
                   </label>
                   <select
                     value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    onChange={(e: any) => handleFilterChange('status', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="">Все статусы</option>
@@ -279,7 +279,7 @@ export default function AdvancedSearchFilters({
                   <input
                     type="text"
                     value={filters.order_number}
-                    onChange={(e) => handleFilterChange('order_number', e.target.value)}
+                    onChange={(e: any) => handleFilterChange('order_number', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Введите номер заказа"
                   />
@@ -296,7 +296,7 @@ export default function AdvancedSearchFilters({
                   <input
                     type="text"
                     value={filters.code_1c}
-                    onChange={(e) => handleFilterChange('code_1c', e.target.value)}
+                    onChange={(e: any) => handleFilterChange('code_1c', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="УТ-00047870"
                   />
@@ -315,7 +315,7 @@ export default function AdvancedSearchFilters({
                     <input
                       type="date"
                       value={filters.date_from}
-                      onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                      onChange={(e: any) => handleFilterChange('date_from', e.target.value)}
                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -333,7 +333,7 @@ export default function AdvancedSearchFilters({
                     <input
                       type="date"
                       value={filters.date_to}
-                      onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                      onChange={(e: any) => handleFilterChange('date_to', e.target.value)}
                       className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>

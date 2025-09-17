@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils'
-import { LoginSuccessModal } from '@/components/features/auth'
+import { getApiUrl } from '../../utils/api'
+import { LoginSuccessModal } from '../features/auth/LoginSuccessModal'
 
 interface CustomerRegistrationFormProps {
   onSuccess?: (username: string, password?: string) => void

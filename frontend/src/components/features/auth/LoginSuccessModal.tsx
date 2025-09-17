@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import type { LoginSuccessModalProps } from '@/types'
+import type { LoginSuccessModalProps } from '../../../types'
 
 const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
   isOpen,
@@ -123,3 +123,4 @@ const LoginSuccessModal: React.FC<LoginSuccessModalProps> = ({
 }
 
 export default LoginSuccessModal
+export { LoginSuccessModal }

@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '../src/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '../src/utils/api'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
 import { useAuth } from './AuthContext'
@@ -193,7 +193,7 @@ const Calendar: React.FC = () => {
   }
 
   // Генерируем дни для отображения
-  const days = []
+  const days: moment.Moment[] = []
   let day = moment(startDate)
   
   while (day.isBefore(endDate, 'day') || day.isSame(endDate, 'day')) {
@@ -316,7 +316,7 @@ const Calendar: React.FC = () => {
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -410,12 +410,45 @@ const Calendar: React.FC = () => {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <p>На этот день событий не запланировано</p>
                   </div>
                 )}
               </div>
+
+              {/* Кнопки быстрого добавления событий */}
+              {!isPast(selectedDate) && (
+                <div className="mb-6">
+                  <h4 className="font-medium text-gray-900 mb-4">Быстрое добавление события</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button
+                      onClick={() => handleAddEvent('meeting')}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                    >
+                      📅 Встреча
+                    </button>
+                    <button
+                      onClick={() => handleAddEvent('call')}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    >
+                      📞 Созвон
+                    </button>
+                    <button
+                      onClick={() => handleAddEvent('briefing')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                    >
+                      📋 Планерка
+                    </button>
+                    <button
+                      onClick={() => handleAddEvent('conference')}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                    >
+                      🏢 Совещание
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Кнопки действий */}
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
@@ -435,10 +468,10 @@ const Calendar: React.FC = () => {
                   </button>
                 ) : (
                   <button 
-                    onClick={() => handleAddEvent()}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => handleAddEvent('other')}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
-                    Создать событие
+                    Создать событие (Другое)
                   </button>
                 )}
               </div>

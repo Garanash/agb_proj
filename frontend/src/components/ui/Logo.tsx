@@ -1,13 +1,13 @@
 import React from 'react'
 
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '../../utils/api';
 interface LogoProps {
   width?: number
   height?: number
   className?: string
 }
 
-export default function Logo({ width = 60, height = 40, className = '' }: LogoProps) {
+function Logo({ width = 60, height = 40, className = '' }: LogoProps) {
   return (
     <svg
       width={width}
@@ -24,3 +24,6 @@ export default function Logo({ width = 60, height = 40, className = '' }: LogoPr
     </svg>
   )
 }
+
+export default Logo
+export { Logo }

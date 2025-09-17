@@ -44,7 +44,7 @@ const TestParticipantsSection = () => {
                   <input
                     type="checkbox"
                     checked={participants.includes(user.id)}
-                    onChange={(e) => handleParticipantChange(user.id, e.target.checked)}
+                    onChange={(e: any) => handleParticipantChange(user.id, e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">
@@ -67,7 +67,7 @@ const TestParticipantsSection = () => {
                   <input
                     type="checkbox"
                     checked={participants.includes(user.id)}
-                    onChange={(e) => handleParticipantChange(user.id, e.target.checked)}
+                    onChange={(e: any) => handleParticipantChange(user.id, e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700">

@@ -49,13 +49,13 @@ const ArchiveStats = memo(({ className = "" }: ArchiveStatsProps) => {
     
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/v1/ved-passports/archive/stats`, {
+      const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/archive/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
       
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setStats(data)
         setHasLoadedStats(true)

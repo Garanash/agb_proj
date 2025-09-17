@@ -54,13 +54,13 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     
     setIsLoading(true)
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/nomenclature/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
       
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setNomenclature(data)
       } else {
@@ -142,7 +142,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
     setItems(newItems)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleInputChange = (e: any) => {
     const text = e.target.value
     setInputText(text)
     
@@ -294,7 +294,7 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
                       <input
                         type="text"
                         value={item.quantity.toString()}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        onChange={(e: any) => handleQuantityChange(index, e.target.value)}
                         className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="0"
                       />

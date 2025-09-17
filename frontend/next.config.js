@@ -4,7 +4,7 @@ const nextConfig = {
   // output: 'standalone',
   
   images: {
-    domains: ['almazgeobur.kz'],
+    domains: ['almazgeobur.ru'],
     unoptimized: true,
   },
   
@@ -20,7 +20,7 @@ const nextConfig = {
   
   // Настройки для production
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost/api',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   },
   
   // Исправляем разрешение модулей для Docker

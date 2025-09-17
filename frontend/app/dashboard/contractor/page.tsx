@@ -79,13 +79,13 @@ export default function ContractorDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setRequests(data)
       }
@@ -102,13 +102,13 @@ export default function ContractorDashboard() {
     try {
       // Для демонстрации используем те же данные, но в реальном приложении
       // нужно добавить API endpoint для получения архивных заявок исполнителя
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/?status=completed`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/?status=completed`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setArchivedRequests(data.filter((request: RepairRequest) =>
           request.status === 'completed' || request.status === 'cancelled'
@@ -123,13 +123,13 @@ export default function ContractorDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/contractors/telegram-link`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/contractors/telegram-link`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setTelegramLink(data)
       }
@@ -460,13 +460,13 @@ function ContractorProfile() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setProfile(data)
         setFormData({
@@ -512,7 +512,7 @@ function ContractorProfile() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
@@ -576,7 +576,7 @@ function ContractorProfile() {
   }
 
   // Функции для работы с файлами
-  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfilePhotoChange = (e: any) => {
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB
@@ -587,9 +587,9 @@ function ContractorProfile() {
     }
   }
 
-  const handlePortfolioFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const validFiles = files.filter(file => {
+  const handlePortfolioFilesChange = (e: any) => {
+    const files = Array.from(e.target.files || []) as File[]
+    const validFiles: File[] = files.filter((file: any) => {
       if (file.size > 5 * 1024 * 1024) { // 5MB
         alert(`Файл ${file.name} превышает лимит в 5МБ`)
         return false
@@ -597,7 +597,7 @@ function ContractorProfile() {
       return true
     })
 
-    const totalSize = [...formData.portfolio_files, ...validFiles].reduce((sum, file) => sum + file.size, 0)
+    const totalSize = [...formData.portfolio_files, ...validFiles].reduce((sum: number, file: any) => sum + file.size, 0)
     if (totalSize > 200 * 1024 * 1024) { // 200MB
       alert('Общий размер файлов портфолио не должен превышать 200МБ')
       return
@@ -609,9 +609,9 @@ function ContractorProfile() {
     }))
   }
 
-  const handleDocumentFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    const validFiles = files.filter(file => {
+  const handleDocumentFilesChange = (e: any) => {
+    const files = Array.from(e.target.files || []) as File[]
+    const validFiles: File[] = files.filter((file: any) => {
       if (file.size > 5 * 1024 * 1024) { // 5MB
         alert(`Файл ${file.name} превышает лимит в 5МБ`)
         return false
@@ -619,7 +619,7 @@ function ContractorProfile() {
       return true
     })
 
-    const totalSize = [...formData.document_files, ...validFiles].reduce((sum, file) => sum + file.size, 0)
+    const totalSize = [...formData.document_files, ...validFiles].reduce((sum: number, file: any) => sum + file.size, 0)
     if (totalSize > 200 * 1024 * 1024) { // 200MB
       alert('Общий размер документов не должен превышать 200МБ')
       return
@@ -682,7 +682,7 @@ function ContractorProfile() {
         formDataToSend.append(`document_files`, file)
       })
 
-      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/contractors/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -690,20 +690,12 @@ function ContractorProfile() {
         body: formDataToSend
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         setEditing(false)
         setError('')
         loadProfile()
         // Показываем уведомление об успехе
-        const successMessage = document.createElement('div')
-        successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50'
-        successMessage.textContent = 'Профиль успешно обновлен!'
-        document.body.appendChild(successMessage)
-        setTimeout(() => {
-          if (document.body.contains(successMessage)) {
-            document.body.removeChild(successMessage)
-          }
-        }, 3000)
+        console.log('Профиль успешно обновлен!')
       } else {
         const errorData = await response.json()
         setError(errorData.detail || 'Ошибка при обновлении профиля')
@@ -842,7 +834,7 @@ function ContractorProfile() {
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg relative">
                       {formData.professional_info.length > 1 && (
                         <button
-                          type="button"
+                          type={"button" as const}
                           onClick={() => removeProfessionalInfo(index)}
                           className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-lg font-bold"
                         >
@@ -858,7 +850,7 @@ function ContractorProfile() {
                           <input
                             type="text"
                             value={info.specialization}
-                            onChange={(e) => updateProfessionalInfo(index, 'specialization', e.target.value)}
+                            onChange={(e: any) => updateProfessionalInfo(index, 'specialization', e.target.value)}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Например: Электрик, механик"
@@ -871,7 +863,7 @@ function ContractorProfile() {
                           <input
                             type="number"
                             value={info.experience_years}
-                            onChange={(e) => updateProfessionalInfo(index, 'experience_years', e.target.value)}
+                            onChange={(e: any) => updateProfessionalInfo(index, 'experience_years', e.target.value)}
                             min="0"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="5"
@@ -885,7 +877,7 @@ function ContractorProfile() {
                         </label>
                         <textarea
                           value={info.skills}
-                          onChange={(e) => updateProfessionalInfo(index, 'skills', e.target.value)}
+                            onChange={(e: any) => updateProfessionalInfo(index, 'skills', e.target.value)}
                           rows={3}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
                           placeholder="Опишите ваши навыки, опыт работы с оборудованием, сертификаты и квалификацию"
@@ -898,7 +890,7 @@ function ContractorProfile() {
                         </label>
                         <textarea
                           value={info.description}
-                          onChange={(e) => updateProfessionalInfo(index, 'description', e.target.value)}
+                            onChange={(e: any) => updateProfessionalInfo(index, 'description', e.target.value)}
                           rows={2}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
                           placeholder="Краткое описание вашей деятельности в этой специализации"
@@ -908,7 +900,7 @@ function ContractorProfile() {
                   ))}
 
                   <button
-                    type="button"
+                    type={"button" as const}
                     onClick={addProfessionalInfo}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
@@ -928,7 +920,7 @@ function ContractorProfile() {
                     <div key={index} className="mb-6 p-4 bg-gray-50 rounded-lg relative">
                       {formData.education.length > 1 && (
                         <button
-                          type="button"
+                          type={"button" as const}
                           onClick={() => removeEducation(index)}
                           className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-lg font-bold"
                         >
@@ -944,7 +936,7 @@ function ContractorProfile() {
                           <input
                             type="text"
                             value={edu.institution}
-                            onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                            onChange={(e: any) => updateEducation(index, 'institution', e.target.value)}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Например: МГУ им. М.В. Ломоносова"
@@ -956,7 +948,7 @@ function ContractorProfile() {
                           </label>
                           <select
                             value={edu.degree}
-                            onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                            onChange={(e: any) => updateEducation(index, 'degree', e.target.value)}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           >
@@ -976,7 +968,7 @@ function ContractorProfile() {
                           <input
                             type="text"
                             value={edu.field_of_study}
-                            onChange={(e) => updateEducation(index, 'field_of_study', e.target.value)}
+                            onChange={(e: any) => updateEducation(index, 'field_of_study', e.target.value)}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             placeholder="Например: Электротехника"
                           />
@@ -988,7 +980,7 @@ function ContractorProfile() {
                           <input
                             type="number"
                             value={edu.graduation_year}
-                            onChange={(e) => updateEducation(index, 'graduation_year', e.target.value)}
+                            onChange={(e: any) => updateEducation(index, 'graduation_year', e.target.value)}
                             min="1950"
                             max={new Date().getFullYear() + 10}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -1003,7 +995,7 @@ function ContractorProfile() {
                         </label>
                         <textarea
                           value={edu.description}
-                          onChange={(e) => updateEducation(index, 'description', e.target.value)}
+                          onChange={(e: any) => updateEducation(index, 'description', e.target.value)}
                           rows={2}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-vertical"
                           placeholder="Дополнительная информация об образовании, достижения, диплом с отличием и т.д."
@@ -1013,7 +1005,7 @@ function ContractorProfile() {
                   ))}
 
                   <button
-                    type="button"
+                    type={"button" as const}
                     onClick={addEducation}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
@@ -1040,7 +1032,7 @@ function ContractorProfile() {
                       ) : (
                         <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
                           <svg className="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            <path fillRule={"evenodd" as const} d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule={"evenodd" as const} />
                           </svg>
                         </div>
                       )}
@@ -1060,7 +1052,7 @@ function ContractorProfile() {
                       </p>
                       {formData.profile_photo && (
                         <button
-                          type="button"
+                          type={"button" as const}
                           onClick={() => setFormData(prev => ({ ...prev, profile_photo: null }))}
                           className="mt-2 text-sm text-red-600 hover:text-red-800"
                         >
@@ -1103,20 +1095,20 @@ function ContractorProfile() {
                             <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
                               <div className="flex items-center">
                                 <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                  <path fillRule={"evenodd" as const} d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule={"evenodd" as const} />
                                 </svg>
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                                  <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} МБ</p>
+                                  <p className="text-sm font-medium text-gray-900">{(file as any).name}</p>
+                                  <p className="text-xs text-gray-500">{((file as any).size / 1024 / 1024).toFixed(2)} МБ</p>
                                 </div>
                               </div>
                               <button
-                                type="button"
+                                type={"button" as const}
                                 onClick={() => removePortfolioFile(index)}
                                 className="text-red-500 hover:text-red-700"
                               >
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  <path fillRule={"evenodd" as const} d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule={"evenodd" as const} />
                                 </svg>
                               </button>
                             </div>
@@ -1159,20 +1151,20 @@ function ContractorProfile() {
                             <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
                               <div className="flex items-center">
                                 <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                  <path fillRule={"evenodd" as const} d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule={"evenodd" as const} />
                                 </svg>
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                                  <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} МБ</p>
+                                  <p className="text-sm font-medium text-gray-900">{(file as any).name}</p>
+                                  <p className="text-xs text-gray-500">{((file as any).size / 1024 / 1024).toFixed(2)} МБ</p>
                                 </div>
                               </div>
                               <button
-                                type="button"
+                                type={"button" as const}
                                 onClick={() => removeDocumentFile(index)}
                                 className="text-red-500 hover:text-red-700"
                               >
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                  <path fillRule={"evenodd" as const} d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule={"evenodd" as const} />
                                 </svg>
                               </button>
                             </div>
@@ -1275,7 +1267,7 @@ function ContractorProfile() {
                 <div className="border-t pt-8">
                   <div className="flex gap-4">
                     <button
-                      type="button"
+                      type={"button" as const}
                       onClick={() => {
                         setEditing(false)
                         setError('')
@@ -1285,7 +1277,7 @@ function ContractorProfile() {
                       Отмена
                     </button>
                     <button
-                      type="submit"
+                      type={"submit" as const}
                       className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors font-medium"
                     >
                       Сохранить изменения
@@ -1428,7 +1420,7 @@ function ContractorProfile() {
                     {profile.portfolio_files.map((file: any, index: number) => (
                       <div key={index} className="flex items-center p-3 bg-white rounded border">
                         <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                          <path fillRule={"evenodd" as const} d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule={"evenodd" as const} />
                         </svg>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">{file.name}</p>
@@ -1441,7 +1433,7 @@ function ContractorProfile() {
                           className="text-blue-600 hover:text-blue-800"
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            <path fillRule={"evenodd" as const} d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule={"evenodd" as const} />
                           </svg>
                         </a>
                       </div>
@@ -1461,7 +1453,7 @@ function ContractorProfile() {
                     {profile.document_files.map((file: any, index: number) => (
                       <div key={index} className="flex items-center p-3 bg-white rounded border">
                         <svg className="w-5 h-5 text-gray-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                          <path fillRule={"evenodd" as const} d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule={"evenodd" as const} />
                         </svg>
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900">{file.name}</p>
@@ -1474,7 +1466,7 @@ function ContractorProfile() {
                           className="text-blue-600 hover:text-blue-800"
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                            <path fillRule={"evenodd" as const} d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule={"evenodd" as const} />
                           </svg>
                         </a>
                       </div>
@@ -1552,7 +1544,7 @@ function ContractorProfile() {
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">
                     <svg className="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      <path fillRule={"evenodd" as const} d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule={"evenodd" as const} />
                     </svg>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Информация не заполнена</h3>

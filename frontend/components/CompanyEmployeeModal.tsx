@@ -83,20 +83,20 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
       }
 
       // Добавляем обработку клавиши Escape
-      const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
+  const handleEscape = (e: any) => {
+    if (e.key === 'Escape') {
           onClose()
         }
       }
 
-      document.addEventListener('keydown', handleEscape)
+      (window as any).document.addEventListener('keydown', handleEscape)
       // Блокируем скролл body
-      document.body.style.overflow = 'hidden'
+      (window as any).document.body.style.overflow = 'hidden'
 
       return () => {
-        document.removeEventListener('keydown', handleEscape)
+        (window as any).document.removeEventListener('keydown', handleEscape)
         // Восстанавливаем скролл body
-        document.body.style.overflow = 'unset'
+        (window as any).document.body.style.overflow = 'unset'
       }
     }
   }, [isOpen, employee, onClose])
@@ -110,11 +110,11 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as any).checked : value
     }))
   }
 
@@ -163,7 +163,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -303,7 +303,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -311,7 +311,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

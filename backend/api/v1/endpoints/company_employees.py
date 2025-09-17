@@ -33,8 +33,12 @@ async def create_company_employee(
     await db.commit()
     await db.refresh(db_employee)
     
-    # Возвращаем созданного сотрудника без связанных данных
-    return db_employee
+    # Возвращаем созданного сотрудника в правильном формате
+    return CompanyEmployeeCreateResponse(
+        success=True,
+        message="Сотрудник успешно создан",
+        data=db_employee
+    )
 
 
 @router.get("/", response_model=CompanyEmployeeList)
@@ -128,8 +132,12 @@ async def update_company_employee(
     await db.commit()
     await db.refresh(employee)
     
-    # Возвращаем обновленного сотрудника без связанных данных
-    return employee
+    # Возвращаем обновленного сотрудника в правильном формате
+    return CompanyEmployeeCreateResponse(
+        success=True,
+        message="Сотрудник успешно обновлен",
+        data=employee
+    )
 
 
 @router.delete("/{employee_id}")

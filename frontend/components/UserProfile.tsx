@@ -187,7 +187,7 @@ export default function UserProfile() {
           {/* Кнопки действий */}
           <div className="mt-4 space-y-2">
             <button 
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation()
                 setShowProfileModal(true)
               }}
@@ -196,7 +196,7 @@ export default function UserProfile() {
               Редактировать профиль
             </button>
             <button 
-              onClick={(e) => {
+              onClick={(e: any) => {
                 e.stopPropagation()
                 handleLogout()
               }}

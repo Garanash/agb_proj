@@ -55,12 +55,12 @@ export default function CreateChatRoomModal({
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/departments/list`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/departments/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (!response.ok) throw new Error('Ошибка при загрузке отделов');
+      if (!(response.status >= 200 && response.status < 300)) throw new Error('Ошибка при загрузке отделов');
       const data = await response.json();
       setDepartments(data);
     } catch (err) {
@@ -71,12 +71,12 @@ export default function CreateChatRoomModal({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/users/chat-users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (!response.ok) throw new Error('Ошибка при загрузке пользователей');
+      if (!(response.status >= 200 && response.status < 300)) throw new Error('Ошибка при загрузке пользователей');
       const data = await response.json();
       // Исключаем текущего пользователя из списка
       const filteredUsers = data.filter((u: User) => u.id !== user?.id);
@@ -89,12 +89,12 @@ export default function CreateChatRoomModal({
 
   const fetchBots = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/bots/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/bots/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
-      if (!response.ok) throw new Error('Ошибка при загрузке ботов');
+      if (!(response.status >= 200 && response.status < 300)) throw new Error('Ошибка при загрузке ботов');
       const data = await response.json();
       setBots(data.filter((bot: ChatBot) => bot.is_active));
     } catch (err) {
@@ -110,7 +110,7 @@ export default function CreateChatRoomModal({
 
     try {
       // Создаем чат с участниками
-      const createRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
+      const createRoomResponse: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export default function CreateChatRoomModal({
         }),
       });
 
-      if (!createRoomResponse.ok) {
+      if (!(createRoomResponse.status >= 200 && createRoomResponse.status < 300)) {
         const errorData = await createRoomResponse.json().catch(() => ({}));
         throw new Error(errorData.detail || `Ошибка ${createRoomResponse.status}: ${createRoomResponse.statusText}`);
       }
@@ -194,7 +194,7 @@ export default function CreateChatRoomModal({
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: any) => setName(e.target.value)}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               required
             />
@@ -328,7 +328,7 @@ export default function CreateChatRoomModal({
 
           <div className="flex justify-end space-x-4">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
               disabled={isLoading}
@@ -336,7 +336,7 @@ export default function CreateChatRoomModal({
               Отмена
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
               disabled={isLoading || !name}
             >

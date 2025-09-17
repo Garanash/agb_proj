@@ -18,6 +18,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
+    // Проверяем, что мы на клиенте
+    if (typeof window === 'undefined') {
+      setIsLoading(false)
+      return
+    }
+
     const storedToken = localStorage.getItem('access_token')
     if (storedToken) {
       setToken(storedToken)
@@ -58,8 +64,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { access_token, user: userData } = response.data
 
-      // Сохраняем токен
-      localStorage.setItem('access_token', access_token)
+      // Сохраняем токен только на клиенте
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('access_token', access_token)
+      }
       setToken(access_token)
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
@@ -79,7 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', error)
     } finally {
       // Удаляем токен и пользователя в любом случае
-      localStorage.removeItem('access_token')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
+      }
       setToken(null)
       delete axios.defaults.headers.common['Authorization']
       setUser(null)

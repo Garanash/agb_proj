@@ -119,13 +119,13 @@ export default function ServiceEngineerDashboard() {
 
   const loadRequests = async () => {
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const data = await response.json()
         setRequests(data)
       }
@@ -137,26 +137,26 @@ export default function ServiceEngineerDashboard() {
   const loadContractors = async () => {
     try {
       // Получаем профили всех исполнителей через новый endpoint
-      const response = await fetch(`${getApiUrl()}/api/v1/contractors/profiles`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/contractors/profiles`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const profilesData = await response.json()
 
         // Для каждого профиля получаем данные пользователя
         const contractorsData = []
         for (const profile of profilesData) {
           try {
-            const userResponse = await fetch(`${getApiUrl()}/api/v1/users/${profile.user_id}`, {
+            const userResponse: any = await fetch(`${getApiUrl()}/api/v1/users/${profile.user_id}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             })
 
-            if (userResponse.ok) {
+            if (userResponse.status >= 200 && userResponse.status < 300) {
               const userData = await userResponse.json()
               contractorsData.push({
                 ...profile,
@@ -196,7 +196,7 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +205,7 @@ export default function ServiceEngineerDashboard() {
         body: JSON.stringify({ status: newStatus })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         await loadRequests()
       } else {
         alert('Ошибка при обновлении статуса заявки')
@@ -219,7 +219,7 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ export default function ServiceEngineerDashboard() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         await loadRequests()
         alert('Исполнитель успешно назначен!')
       } else {
@@ -257,14 +257,14 @@ export default function ServiceEngineerDashboard() {
     if (!token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/send-to-bot`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${requestId}/send-to-bot`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         await loadRequests()
         alert('Заявка успешно отправлена в бот!')
       } else {
@@ -285,7 +285,7 @@ export default function ServiceEngineerDashboard() {
     if (!selectedRequestId || !token) return
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/repair-requests/${selectedRequestId}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/repair-requests/${selectedRequestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -297,7 +297,7 @@ export default function ServiceEngineerDashboard() {
         })
       })
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         await loadRequests()
         setShowResponsesModal(false)
         setSelectedRequestId(null)

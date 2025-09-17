@@ -107,13 +107,13 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         // Дополнительно загружаем полную информацию об участниках чата
         if (roomId) {
           try {
-            const roomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
+            const roomResponse: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             });
             
-            if (roomResponse.ok) {
+            if (roomResponse.status >= 200 && roomResponse.status < 300) {
               const roomData = await roomResponse.json();
               console.log('Полная информация о чате:', roomData);
               console.log('Участники чата:', roomData.participants);
@@ -136,24 +136,24 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       }
     };
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+  const handleEscape = (e: any) => {
+    if (e.key === 'Escape' && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      (window as any).document.addEventListener('keydown', handleEscape);
       // Блокируем скролл body
-      document.body.style.overflow = 'hidden';
+      (window as any).document.body.style.overflow = 'hidden';
     }
 
     fetchData();
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      (window as any).document.removeEventListener('keydown', handleEscape);
       // Восстанавливаем скролл body
-      document.body.style.overflow = 'unset';
+      (window as any).document.body.style.overflow = 'unset';
     };
   }, [token, isOpen, roomId, participants, user?.id, onParticipantsUpdated]);
 
@@ -177,7 +177,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       );
 
       const responses = await Promise.all(addPromises);
-      const failedResponses = responses.filter(r => !r.ok);
+      const failedResponses = responses.filter((r: any) => !(r.status >= 200 && r.status < 300));
       
       if (failedResponses.length > 0) {
         throw new Error(`Не удалось добавить ${failedResponses.length} участников`);
@@ -199,14 +199,14 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participantId}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participantId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         onParticipantsUpdated();
       } else {
         throw new Error('Не удалось удалить участника');
@@ -225,7 +225,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     setError('');
     
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}/participants/${participant.id}/toggle-admin`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -236,7 +236,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         })
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         onParticipantsUpdated();
       } else {
         throw new Error('Не удалось изменить права администратора');
@@ -298,7 +298,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -376,7 +376,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                           title="Удалить"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
                       </div>
@@ -393,9 +393,9 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                 <select
                   multiple
                   value={selectedUsers.map(String)}
-                  onChange={(e) => {
+                  onChange={(e: any) => {
                     const selectedOptions = Array.from(e.target.selectedOptions);
-                    const selectedIds = selectedOptions.map(option => parseInt(option.value));
+                    const selectedIds = selectedOptions.map((option: any) => parseInt(option.value));
                     setSelectedUsers(selectedIds);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
@@ -435,7 +435,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
 
             <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
               <button
-                type="button"
+                type={"button" as const}
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 disabled={isLoading}
@@ -444,7 +444,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
               </button>
               {isAdmin && selectedUsers.length > 0 && (
                 <button
-                  type="button"
+                  type={"button" as const}
                   onClick={handleAddParticipants}
                   disabled={isLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

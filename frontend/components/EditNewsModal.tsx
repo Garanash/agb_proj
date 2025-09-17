@@ -55,11 +55,11 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
     }
   }, [news, isOpen])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value, type } = e.target
     
     if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked
+      const checked = (e.target as any).checked
       setFormData(prev => ({
         ...prev,
         [name]: checked
@@ -126,7 +126,7 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -204,7 +204,7 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -212,7 +212,7 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

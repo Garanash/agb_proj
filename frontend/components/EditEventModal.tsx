@@ -129,11 +129,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     }
   }, [event, isOpen])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: any) => {
     const { name, value } = e.target
     if (name === 'participants') {
-      const selectedOptions = Array.from((e.target as HTMLSelectElement).selectedOptions)
-      const selectedIds = selectedOptions.map(option => parseInt(option.value))
+      const selectedOptions = Array.from((e.target as any).selectedOptions)
+      const selectedIds = selectedOptions.map((option: any) => parseInt(option.value))
       setFormData(prev => ({
         ...prev,
         participants: selectedIds
@@ -330,7 +330,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                     type="checkbox"
                     name="is_public"
                     checked={formData.is_public}
-                    onChange={(e) => {
+                    onChange={(e: any) => {
                       setFormData(prev => ({
                         ...prev,
                         is_public: e.target.checked
@@ -372,7 +372,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                               type="checkbox"
                               checked={formData.participants.includes(user.id)}
                               disabled={user.id === event?.organizer_id}
-                              onChange={(e) => {
+                              onChange={(e: any) => {
                                 if (e.target.checked) {
                                   setFormData(prev => ({
                                     ...prev,
@@ -413,7 +413,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                                 type="checkbox"
                                 checked={formData.participants.includes(user.id)}
                                 disabled={user.id === event?.organizer_id}
-                                onChange={(e) => {
+                                onChange={(e: any) => {
                                   if (e.target.checked) {
                                     setFormData(prev => ({
                                       ...prev,
@@ -451,7 +451,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
             <button
-              type="button"
+              type={"button" as const}
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
               disabled={isLoading}
@@ -459,7 +459,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               Отменить
             </button>
             <button
-              type="submit"
+              type={"submit" as const}
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >

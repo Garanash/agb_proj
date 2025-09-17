@@ -52,8 +52,10 @@ async def get_news(
             "id": item.id,
             "title": item.title,
             "content": item.content,
+            "category": item.category,
             "author_id": item.author_id,
             "author_name": item.author_name,
+            "is_published": item.is_published,
             "created_at": item.created_at.isoformat(),
             "updated_at": item.updated_at.isoformat() if item.updated_at else None
         }

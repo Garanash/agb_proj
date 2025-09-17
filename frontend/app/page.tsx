@@ -1,17 +1,34 @@
 'use client'
 
-import { useState } from 'react'
-import { getApiUrl } from '@/utils';
-import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
-import { useAuth } from '@/hooks'
+import { useState, useEffect } from 'react'
+import { getApiUrl } from '../src/utils/api';
+import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '../src/components'
+import { useAuth } from '../src/hooks/useAuth'
 import Link from 'next/link'
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [initialUserType, setInitialUserType] = useState<'customer' | 'contractor'>('customer')
+  const [mounted, setMounted] = useState(false)
 
-  console.log('Home page rendered:', { user: !!user })
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  console.log('Home page rendered:', { user: !!user, isLoading, mounted })
+
+  // Показываем загрузку пока компонент не смонтирован или идет загрузка аутентификации
+  if (!mounted || isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <PageLayout

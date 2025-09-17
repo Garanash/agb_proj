@@ -40,13 +40,13 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
       setError('');
       
       try {
-        const response = await fetch(`${getApiUrl()}/api/v1/chat/folders/`, {
+        const response: any = await fetch(`${getApiUrl()}/api/v1/chat/folders/`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        if (response.ok) {
+        if (response.status >= 200 && response.status < 300) {
           const data = await response.json();
           setFolders(data);
         } else {
@@ -59,24 +59,24 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
       }
     };
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+  const handleEscape = (e: any) => {
+    if (e.key === 'Escape' && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
+      (window as any).document.addEventListener('keydown', handleEscape);
       // Блокируем скролл body
-      document.body.style.overflow = 'hidden';
+      (window as any).document.body.style.overflow = 'hidden';
     }
 
     fetchFolders();
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      (window as any).document.removeEventListener('keydown', handleEscape);
       // Восстанавливаем скролл body
-      document.body.style.overflow = 'unset';
+      (window as any).document.body.style.overflow = 'unset';
     };
   }, [token, isOpen, onClose]);
 
@@ -87,7 +87,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/folders/`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/folders/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -99,7 +99,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
         })
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         const newFolder = await response.json();
         setFolders(prev => [...prev, newFolder]);
         setNewFolderName('');
@@ -118,7 +118,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
     setError('');
 
     try {
-      const response = await fetch(`${getApiUrl()}/api/v1/chat/folders/${folderId}/rooms/${roomId}`, {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/folders/${folderId}/rooms/${roomId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,7 +126,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
         }
       });
 
-      if (response.ok) {
+      if (response.status >= 200 && response.status < 300) {
         onFolderSelected(folderId);
         onClose();
       } else {
@@ -157,7 +157,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -179,7 +179,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
                 <input
                   type="text"
                   value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onChange={(e: any) => setNewFolderName(e.target.value)}
                   placeholder="Название папки"
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -225,7 +225,7 @@ const ChatFoldersModal: React.FC<ChatFoldersModalProps> = ({
 
             <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
               <button
-                type="button"
+                type={"button" as const}
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 disabled={isLoading}

@@ -58,6 +58,7 @@ class User(Base):
     middle_name = Column(String, nullable=True)
     role = Column(String, default=UserRole.EMPLOYEE)
     is_active = Column(Boolean, default=True)
+    is_password_changed = Column(Boolean, default=False)  # Флаг смены пароля
     avatar_url = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
