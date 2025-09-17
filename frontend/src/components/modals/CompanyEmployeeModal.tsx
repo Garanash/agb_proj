@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '../../utils/api';
 import axios from 'axios'
-import { formatApiError } from '@/utils'
+import { formatApiError } from '../../utils/errorHandler'
 
 interface CompanyEmployee {
   id: number
@@ -145,8 +145,6 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
   }
 
   if (!isOpen) return null
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">

@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '../../src/utils/api';
 import Image from 'next/image'
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { PageLayout } from '@/components/layout'
-import { useAuth } from '@/hooks'
+import PageLayout from '../../src/components/layout/PageLayout'
+import { useAuth } from '../../src/hooks/useAuth'
 import axios from 'axios'
-import { CreateDepartmentModal, EditDepartmentModal, CompanyEmployeeModal } from '@/components/modals'
+import CreateDepartmentModal from '../../src/components/modals/CreateDepartmentModal'
+import EditDepartmentModal from '../../src/components/modals/EditDepartmentModal'
+import CompanyEmployeeModal from '../../src/components/modals/CompanyEmployeeModal'
 
 export default function About() {
   const { user } = useAuth()

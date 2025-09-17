@@ -8,7 +8,7 @@ import EditNewsModal from '../../src/components/features/news/EditNewsModal'
 import { useAuth } from '../../src/hooks/useAuth'
 import axios from 'axios'
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { formatApiError } from '../../src/utils/api'
+import { formatApiError } from '../../src/utils/errorHandler'
 
 interface News {
   id: number
