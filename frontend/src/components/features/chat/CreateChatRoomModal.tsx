@@ -111,6 +111,16 @@ export default function CreateChatRoomModal({
     setError(null);
 
     try {
+      const requestData = {
+        name,
+        description: '', // Можно добавить поле для описания в будущем
+        is_private: false,
+        participants: Array.from(selectedParticipants),
+        bots: Array.from(selectedBots)
+      };
+      
+      console.log('🏗️ Создание чата с данными:', requestData);
+      
       // Создаем чат с участниками
       const createRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
         method: 'POST',
@@ -118,14 +128,10 @@ export default function CreateChatRoomModal({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          name,
-          description: '', // Можно добавить поле для описания в будущем
-          is_private: false,
-          participants: Array.from(selectedParticipants),
-          bots: Array.from(selectedBots)
-        }),
+        body: JSON.stringify(requestData),
       });
+
+      console.log('📡 Ответ сервера на создание чата:', createRoomResponse.status);
 
       if (!createRoomResponse.ok) {
         const errorData = await createRoomResponse.json().catch(() => ({}));
@@ -133,6 +139,7 @@ export default function CreateChatRoomModal({
       }
       
       const roomData = await createRoomResponse.json();
+      console.log('✅ Чат создан успешно:', roomData);
 
       onRoomCreated();
       onClose();
@@ -142,7 +149,7 @@ export default function CreateChatRoomModal({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Не удалось создать чат';
       setError(errorMessage);
-      console.error('Error creating chat room:', err);
+      console.error('❌ Ошибка создания чата:', err);
     } finally {
       setIsLoading(false);
     }

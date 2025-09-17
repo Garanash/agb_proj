@@ -70,6 +70,10 @@ async def create_chat_room(
 ):
     """Создание новой беседы"""
     try:
+        print(f"🏗️ Создание чата '{room.name}' пользователем {current_user.id} ({current_user.username})")
+        print(f"👥 Участники: {getattr(room, 'participants', [])}")
+        print(f"🤖 Боты: {getattr(room, 'bots', [])}")
+        
         # Создаем чат
         from models import ChatRoom as ChatRoomModel
         db_room = ChatRoomModel(
@@ -80,6 +84,7 @@ async def create_chat_room(
         )
         db.add(db_room)
         await db.flush()
+        print(f"✅ Чат создан с ID: {db_room.id}")
 
         # Добавляем создателя как участника и администратора
         creator_participant = ChatParticipant(
@@ -88,6 +93,7 @@ async def create_chat_room(
             is_admin=True
         )
         db.add(creator_participant)
+        print(f"👤 Создатель {current_user.id} добавлен как администратор")
 
         # Добавляем выбранных участников
         for user_id in getattr(room, 'participants', []):
@@ -98,6 +104,7 @@ async def create_chat_room(
                     is_admin=False
                 )
                 db.add(participant)
+                print(f"👤 Участник {user_id} добавлен в чат")
 
         # Добавляем выбранных ботов
         for bot_id in getattr(room, 'bots', []):
@@ -108,9 +115,11 @@ async def create_chat_room(
                 is_admin=False
             )
             db.add(bot_participant)
+            print(f"🤖 Бот {bot_id} добавлен в чат")
 
         await db.commit()
         await db.refresh(db_room)
+        print(f"💾 Чат {db_room.id} сохранен в базу данных")
         
         # Возвращаем объект для корректной сериализации
         return ChatRoomCreateResponse(
@@ -135,6 +144,8 @@ async def get_user_chat_rooms(
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка бесед пользователя"""
+    print(f"📋 Запрос чатов для пользователя {current_user.id} ({current_user.username})")
+    
     from models import ChatRoom as ChatRoomModel
     result = await db.execute(
         select(ChatRoomModel)
@@ -146,6 +157,10 @@ async def get_user_chat_rooms(
         ))
     )
     rooms = result.scalars().all()
+    
+    print(f"📊 Найдено чатов для пользователя {current_user.id}: {len(rooms)}")
+    for room in rooms:
+        print(f"  - Чат {room.id}: '{room.name}' (создан {room.created_at})")
     
     # Возвращаем простой список чатов
     return rooms

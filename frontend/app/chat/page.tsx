@@ -152,10 +152,11 @@ const ChatPage = () => {
 
         if (roomsResponse.ok) {
           const roomsData = await roomsResponse.json();
-          console.log('Полученные чаты:', roomsData);
+          console.log('📋 Полученные чаты:', roomsData);
+          console.log('📊 Количество чатов:', roomsData.length);
           setRooms(roomsData);
         } else {
-          console.error('Error fetching rooms:', roomsResponse.status);
+          console.error('❌ Ошибка загрузки чатов:', roomsResponse.status, roomsResponse.statusText);
         }
 
         if (usersResponse.ok) {
@@ -813,14 +814,7 @@ const ChatPage = () => {
                     >
                       <div className={`flex ${message.sender?.id === user?.id ? 'flex-row-reverse' : 'flex-row'} items-start space-x-2`}>
                         <div className={`flex-shrink-0 ${message.sender?.id === user?.id ? 'ml-2' : 'mr-2'}`}>
-                          {message.sender?.id === 8 ? (
-                            // Аватар для системного пользователя
-                            <div className="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center">
-                              <span className="text-sm font-medium text-white">
-                                ⚙️
-                              </span>
-                            </div>
-                          ) : message.sender ? (
+                          {message.sender ? (
                             renderUserAvatar(message.sender)
                           ) : message.bot ? (
                             renderBotAvatar(message.bot)
@@ -837,19 +831,15 @@ const ChatPage = () => {
                             ? 'bg-blue-500 text-white' 
                             : message.bot 
                               ? 'bg-blue-100 text-blue-900' 
-                              : message.sender?.id === 8  // Системный пользователь
+                              : (!message.sender && !message.bot)
                                 ? 'bg-gray-100 text-gray-700'
-                                : (!message.sender && !message.bot)
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-white'
+                                : 'bg-white'
                         } rounded-lg p-3 shadow`}>
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
-                              {message.sender?.id === 8  // Системный пользователь
-                                ? 'Система'
-                                : message.sender 
-                                  ? `${message.sender.first_name} ${message.sender.last_name}`
-                                  : message.bot?.name || (!message.sender && !message.bot ? 'Система' : 'Неизвестный отправитель')
+                              {message.sender 
+                                ? `${message.sender.first_name} ${message.sender.last_name}`
+                                : message.bot?.name || (!message.sender && !message.bot ? 'Система' : 'Неизвестный отправитель')
                               }
                             </span>
                             <span className="text-xs opacity-75">
@@ -906,18 +896,23 @@ const ChatPage = () => {
         onClose={() => setIsCreateModalOpen(false)}
         onRoomCreated={async () => {
           // Перезагружаем список бесед
+          console.log('🔄 Обновляем список чатов после создания нового чата');
           try {
             const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }
             });
+            console.log('📡 Ответ сервера на обновление чатов:', response.status);
             if (response.status >= 200 && response.status < 300) {
               const data = await response.json();
+              console.log('📋 Обновленный список чатов:', data);
               setRooms(data);
+            } else {
+              console.error('❌ Ошибка при обновлении чатов:', response.status, response.statusText);
             }
           } catch (error) {
-            console.error('Error refreshing rooms:', error);
+            console.error('❌ Ошибка при обновлении чатов:', error);
           }
         }}
       />
