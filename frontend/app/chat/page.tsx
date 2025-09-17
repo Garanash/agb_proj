@@ -503,8 +503,26 @@ const ChatPage = () => {
     }
   };
 
-  const sendMessageViaHTTP = async (messageContent: string, tempMessage: ChatMessage) => {
+  const sendMessageViaHTTP = async (messageContent: string, tempMessage?: ChatMessage) => {
     if (!selectedRoom) return;
+    
+    // Если tempMessage не передан, создаем его
+    if (!tempMessage) {
+      tempMessage = {
+        id: Date.now(),
+        content: messageContent,
+        sender: user ? {
+          id: user.id,
+          username: user.username,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          avatar_url: user.avatar_url || null,
+          department_id: user.department_id || null
+        } : undefined,
+        created_at: new Date().toISOString(),
+        is_edited: false
+      };
+    }
     
     try {
       const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${selectedRoom.id}/messages/`, {
@@ -526,40 +544,46 @@ const ChatPage = () => {
         console.log('📤 HTTP API: заменяем временное сообщение на реальное:', newMessage.id);
         
         // Заменяем временное сообщение на реальное
-        setSelectedRoom(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            messages: prev.messages.map(msg => 
-              msg.id === tempMessage.id ? newMessage : msg
-            )
-          };
-        });
+        if (tempMessage) {
+          setSelectedRoom(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              messages: prev.messages.map(msg => 
+                msg.id === tempMessage!.id ? newMessage : msg
+              )
+            };
+          });
+        }
       } else {
         console.error('❌ Ошибка отправки сообщения:', response.status);
         console.log('❌ HTTP API: удаляем временное сообщение при ошибке');
         
         // Удаляем временное сообщение при ошибке
-        setSelectedRoom(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            messages: prev.messages.filter(msg => msg.id !== tempMessage.id)
-          };
-        });
+        if (tempMessage) {
+          setSelectedRoom(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              messages: prev.messages.filter(msg => msg.id !== tempMessage!.id)
+            };
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Ошибка отправки сообщения:', error);
       console.log('❌ HTTP API: удаляем временное сообщение при ошибке сети');
       
       // Удаляем временное сообщение при ошибке
-      setSelectedRoom(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          messages: prev.messages.filter(msg => msg.id !== tempMessage.id)
-        };
-      });
+      if (tempMessage) {
+        setSelectedRoom(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: prev.messages.filter(msg => msg.id !== tempMessage!.id)
+          };
+        });
+      }
     }
   };
 
