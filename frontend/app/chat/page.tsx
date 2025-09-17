@@ -243,8 +243,8 @@ const ChatPage = () => {
                 };
               });
               
-              // Обновляем счетчик непрочитанных сообщений
-              updateUnreadCount(selectedRoom.id);
+              // Обновляем счетчик непрочитанных сообщений для всех чатов
+              updateAllUnreadCounts();
               
               // Прокручиваем к последнему сообщению
               setTimeout(() => {
@@ -294,7 +294,8 @@ const ChatPage = () => {
               }, 100);
             } else if (data.type === 'notification') {
               console.log('📢 Уведомление получено:', data);
-              // Можно добавить toast уведомление здесь
+              // Обновляем счетчики при уведомлениях
+              updateAllUnreadCounts();
             }
           } catch (error) {
             console.error('❌ Ошибка парсинга WebSocket сообщения:', error);
@@ -361,6 +362,39 @@ const ChatPage = () => {
     }
   };
 
+  // Функция для обновления всех счетчиков непрочитанных сообщений
+  const updateAllUnreadCounts = async () => {
+    if (!token || !rooms || !Array.isArray(rooms)) return;
+    
+    try {
+      const response: any = await fetch(`${getApiUrl()}/api/v1/chat/unread-summary`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        const data = await response.json();
+        setUnreadSummary(data);
+      }
+    } catch (error) {
+      console.error('Error updating all unread counts:', error);
+    }
+  };
+
+  // Функция для подсчета непрочитанных сообщений в папке
+  const getFolderUnreadCount = (folderId: number) => {
+    if (!rooms || !Array.isArray(rooms) || !unreadSummary) return 0;
+    
+    const folderRooms = rooms.filter(room => 
+      room.folders && room.folders.some(f => f.folder_id === folderId)
+    );
+    
+    return folderRooms.reduce((total, room) => {
+      return total + (unreadSummary[room.id] || 0);
+    }, 0);
+  };
+
   // Функция для отметки сообщений как прочитанных
   const markMessagesAsRead = async (roomId: number) => {
     if (!token) return;
@@ -423,8 +457,8 @@ const ChatPage = () => {
         username: user.username,
         first_name: user.first_name,
         last_name: user.last_name,
-        avatar_url: user.avatar_url,
-        department_id: user.department_id
+        avatar_url: user.avatar_url || null,
+        department_id: user.department_id || null
       } : undefined,
       created_at: new Date().toISOString(),
       is_edited: false
@@ -447,7 +481,7 @@ const ChatPage = () => {
       if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
-    }, 100);
+    }, 50);
 
     // Отправляем сообщение через WebSocket для мгновенной доставки всем участникам
     if (ws && (ws as any).readyState === WebSocket.OPEN) {
@@ -460,16 +494,16 @@ const ChatPage = () => {
       } catch (error) {
         console.error('❌ Ошибка отправки через WebSocket:', error);
         // Fallback на HTTP API
-        sendMessageViaHTTP(messageContent);
+        sendMessageViaHTTP(messageContent, tempMessage);
       }
     } else {
       console.log('📤 WebSocket недоступен, используем HTTP API');
       // Fallback на HTTP API если WebSocket недоступен
-      sendMessageViaHTTP(messageContent);
+      sendMessageViaHTTP(messageContent, tempMessage);
     }
   };
 
-  const sendMessageViaHTTP = async (messageContent: string) => {
+  const sendMessageViaHTTP = async (messageContent: string, tempMessage: ChatMessage) => {
     if (!selectedRoom) return;
     
     try {
@@ -485,6 +519,9 @@ const ChatPage = () => {
       if (response.status >= 200 && response.status < 300) {
         const newMessage = await response.json();
         console.log('📤 Сообщение отправлено через HTTP API');
+        
+        // Обновляем счетчики после успешной отправки
+        updateAllUnreadCounts();
         
         console.log('📤 HTTP API: заменяем временное сообщение на реальное:', newMessage.id);
         
@@ -692,9 +729,16 @@ const ChatPage = () => {
                       <span className="text-lg mr-2">📁</span>
                       <h3 className="font-medium">{folder.name}</h3>
                     </div>
-                    <span className="text-sm text-gray-500">
-                      {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id)).length : 0}
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">
+                        {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id)).length : 0} чатов
+                      </span>
+                      {getFolderUnreadCount(folder.id) > 0 && (
+                        <div className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {getFolderUnreadCount(folder.id)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {selectedFolder?.id === folder.id && (
@@ -908,6 +952,8 @@ const ChatPage = () => {
               const data = await response.json();
               console.log('📋 Обновленный список чатов:', data);
               setRooms(data);
+              // Обновляем счетчики после создания нового чата
+              updateAllUnreadCounts();
             } else {
               console.error('❌ Ошибка при обновлении чатов:', response.status, response.statusText);
             }
@@ -935,6 +981,8 @@ const ChatPage = () => {
               if (response.status >= 200 && response.status < 300) {
                 const data = await response.json();
                 setSelectedRoom(data);
+                // Обновляем счетчики после изменения участников
+                updateAllUnreadCounts();
               }
             } catch (error) {
               console.error('Error refreshing room:', error);
