@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils';
-import { useAuth } from '@/hooks';
+import { getApiUrl } from '../../../utils/api';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface User {
   id: number;
@@ -58,6 +58,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [currentParticipants, setCurrentParticipants] = useState<ChatRoomParticipant[]>([]);
 
   // Загрузка пользователей и отделов, обработка Escape
   useEffect(() => {
@@ -83,12 +84,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
 
         if (usersResponse.ok) {
           const usersData = await usersResponse.json();
-          // Исключаем текущего пользователя и уже добавленных участников
-          const filteredUsers = usersData.filter((u: User) => 
-            u.id !== user?.id && 
-            !participants.some((p: ChatRoomParticipant) => p.user?.id === u.id)
-          );
-          setUsers(filteredUsers);
+          setUsers(usersData); // Сохраняем всех пользователей, фильтрация будет в рендере
         } else {
           throw new Error('Не удалось загрузить пользователей');
         }
@@ -120,8 +116,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
               
               // Обновляем участников с полной информацией
               if (roomData.participants && roomData.participants.length > 0) {
-                // Вызываем callback для обновления участников в родительском компоненте
-                onParticipantsUpdated();
+                setCurrentParticipants(roomData.participants);
               }
             }
           } catch (error) {
@@ -184,6 +179,16 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       }
 
       setSelectedUsers([]);
+      // Обновляем локальное состояние участников
+      const updatedRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (updatedRoomResponse.ok) {
+        const updatedRoomData = await updatedRoomResponse.json();
+        setCurrentParticipants(updatedRoomData.participants || []);
+      }
       onParticipantsUpdated();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка при добавлении участников');
@@ -207,6 +212,16 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       });
 
       if (response.ok) {
+        // Обновляем локальное состояние участников
+        const updatedRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (updatedRoomResponse.ok) {
+          const updatedRoomData = await updatedRoomResponse.json();
+          setCurrentParticipants(updatedRoomData.participants || []);
+        }
         onParticipantsUpdated();
       } else {
         throw new Error('Не удалось удалить участника');
@@ -237,6 +252,16 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       });
 
       if (response.ok) {
+        // Обновляем локальное состояние участников
+        const updatedRoomResponse = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${roomId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (updatedRoomResponse.ok) {
+          const updatedRoomData = await updatedRoomResponse.json();
+          setCurrentParticipants(updatedRoomData.participants || []);
+        }
         onParticipantsUpdated();
       } else {
         throw new Error('Не удалось изменить права администратора');
@@ -321,7 +346,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
             <div className="mb-6">
               <h4 className="font-medium text-gray-900 mb-4">Текущие участники</h4>
               <div className="space-y-3">
-                {participants && Array.isArray(participants) ? participants.map(participant => (
+                {currentParticipants && Array.isArray(currentParticipants) && currentParticipants.length > 0 ? currentParticipants.map(participant => (
                   <div
                     key={participant.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -409,7 +434,11 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
                 >
                   {departments && Object.entries(departments).map(([deptId, deptName]) => {
-                    const deptUsers = users.filter(user => user.department_id === parseInt(deptId));
+                    const deptUsers = users.filter(user => 
+                      user.department_id === parseInt(deptId) && 
+                      user.id !== user?.id && 
+                      !currentParticipants.some((p: ChatRoomParticipant) => p.user?.id === user.id)
+                    );
                     if (deptUsers.length === 0) return null;
                     
                     return (
@@ -422,10 +451,18 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                       </optgroup>
                     );
                   })}
-                  {users && Array.isArray(users) && users.filter(user => !user.department_id).length > 0 && (
+                  {users && Array.isArray(users) && users.filter(user => 
+                    !user.department_id && 
+                    user.id !== user?.id && 
+                    !currentParticipants.some((p: ChatRoomParticipant) => p.user?.id === user.id)
+                  ).length > 0 && (
                     <optgroup label="Без отдела">
                       {users && Array.isArray(users) ? users
-                        .filter(user => !user.department_id)
+                        .filter(user => 
+                          !user.department_id && 
+                          user.id !== user?.id && 
+                          !currentParticipants.some((p: ChatRoomParticipant) => p.user?.id === user.id)
+                        )
                         .map(user => (
                           <option key={user.id} value={user.id}>
                             {user.first_name} {user.last_name}

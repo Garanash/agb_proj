@@ -858,7 +858,9 @@ class ChatParticipantCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     """Схема создания участника чата"""
-    user_id: int = Field(description="ID пользователя")
+    user_id: Optional[int] = Field(None, description="ID пользователя")
+    bot_id: Optional[int] = Field(None, description="ID бота")
+    is_admin: bool = Field(False, description="Является ли администратором")
 
 
 class ChatParticipantResponse(BaseResponseModel):
@@ -869,6 +871,11 @@ class ChatParticipantResponse(BaseResponseModel):
     user_name: Optional[str] = Field(None, description="Имя пользователя")
     joined_at: str = Field(description="Дата присоединения")
     left_at: Optional[str] = Field(None, description="Дата выхода")
+
+
+class ChatParticipantAdminUpdate(BaseModel):
+    """Схема обновления прав администратора участника"""
+    is_admin: bool = Field(description="Является ли администратором")
 
 
 class ChatFolderRoomAdd(BaseModel):

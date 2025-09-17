@@ -18,6 +18,7 @@ from ..schemas import (
     ChatParticipant as ChatParticipantSchema,
     ChatParticipantCreate,
     ChatParticipantResponse as ChatParticipantResponse,
+    ChatParticipantAdminUpdate,
     ChatBot as ChatBotSchema,
     ChatBotCreate,
     ChatBotUpdate,
@@ -416,7 +417,7 @@ async def remove_chat_participant(
 async def toggle_participant_admin(
     room_id: int,
     participant_id: int,
-    admin_update: dict,
+    admin_update: ChatParticipantAdminUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -446,7 +447,7 @@ async def toggle_participant_admin(
         raise HTTPException(status_code=400, detail="Участник не принадлежит к этой беседе")
     
     # Обновляем права администратора
-    participant.is_admin = admin_update.get("is_admin", False)
+    participant.is_admin = admin_update.is_admin
     await db.commit()
     await db.refresh(participant)
     
@@ -917,7 +918,7 @@ async def get_websocket_stats(
     return stats
 
 
-async def send_notification_to_room_participants(room_id: int, message_data: dict, exclude_user_id: int = None):
+async def send_notification_to_room_participants(room_id: int, message_data: dict, db: AsyncSession, exclude_user_id: int = None):
     """Отправляет уведомление всем участникам чата"""
     try:
         # Получаем всех участников чата
