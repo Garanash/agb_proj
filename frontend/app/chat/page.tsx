@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/hooks/useAuth';
 import { getApiUrl, getWsUrl } from '../../src/utils/api';
@@ -218,21 +218,10 @@ const ChatPage = () => {
               setSelectedRoom(prev => {
                 if (!prev) return null;
                 
-                // Проверяем, нет ли уже такого сообщения по ID
+                // Простая проверка на дублирование по ID (быстрее)
                 const messageExists = prev.messages.some(msg => msg.id === data.data.id);
                 if (messageExists) {
                   console.log('📝 Сообщение уже существует, пропускаем:', data.data.id);
-                  return prev;
-                }
-                
-                // Дополнительная проверка на дублирование по содержимому и времени
-                const duplicateByContent = prev.messages.some(msg => 
-                  msg.content === data.data.content && 
-                  Math.abs(new Date(msg.created_at).getTime() - new Date(data.data.created_at).getTime()) < 5000
-                );
-                
-                if (duplicateByContent) {
-                  console.log('📝 Дублирующееся сообщение по содержимому, пропускаем');
                   return prev;
                 }
                 
@@ -243,16 +232,16 @@ const ChatPage = () => {
                 };
               });
               
-              // Обновляем счетчик непрочитанных сообщений для всех чатов
-              updateAllUnreadCounts();
+              // Обновляем счетчик непрочитанных сообщений для всех чатов (асинхронно)
+              setTimeout(() => updateAllUnreadCounts(), 0);
               
-              // Прокручиваем к последнему сообщению
-              setTimeout(() => {
+              // Прокручиваем к последнему сообщению (максимально быстро)
+              requestAnimationFrame(() => {
                 const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
                 if (messagesContainer) {
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
-              }, 100);
+              });
               
             } else if (data.type === 'system_message') {
               console.log('📢 Системное сообщение получено:', data.data);
@@ -260,21 +249,10 @@ const ChatPage = () => {
               setSelectedRoom(prev => {
                 if (!prev) return null;
                 
-                // Проверяем, нет ли уже такого системного сообщения по ID
+                // Простая проверка на дублирование по ID
                 const messageExists = prev.messages.some(msg => msg.id === data.data.id);
                 if (messageExists) {
                   console.log('📢 Системное сообщение уже существует, пропускаем:', data.data.id);
-                  return prev;
-                }
-                
-                // Дополнительная проверка на дублирование по содержимому и времени
-                const duplicateByContent = prev.messages.some(msg => 
-                  msg.content === data.data.content && 
-                  Math.abs(new Date(msg.created_at).getTime() - new Date(data.data.created_at).getTime()) < 5000
-                );
-                
-                if (duplicateByContent) {
-                  console.log('📢 Дублирующееся системное сообщение, пропускаем');
                   return prev;
                 }
                 
@@ -285,17 +263,17 @@ const ChatPage = () => {
                 };
               });
               
-              // Прокручиваем к последнему сообщению
-              setTimeout(() => {
+              // Прокручиваем к последнему сообщению (максимально быстро)
+              requestAnimationFrame(() => {
                 const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
                 if (messagesContainer) {
                   messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
-              }, 100);
+              });
             } else if (data.type === 'notification') {
               console.log('📢 Уведомление получено:', data);
-              // Обновляем счетчики при уведомлениях
-              updateAllUnreadCounts();
+              // Обновляем счетчики при уведомлениях (асинхронно)
+              setTimeout(() => updateAllUnreadCounts(), 0);
             }
           } catch (error) {
             console.error('❌ Ошибка парсинга WebSocket сообщения:', error);
@@ -363,7 +341,7 @@ const ChatPage = () => {
   };
 
   // Функция для обновления всех счетчиков непрочитанных сообщений
-  const updateAllUnreadCounts = async () => {
+  const updateAllUnreadCounts = useCallback(async () => {
     if (!token || !rooms || !Array.isArray(rooms)) return;
     
     try {
@@ -380,7 +358,7 @@ const ChatPage = () => {
     } catch (error) {
       console.error('Error updating all unread counts:', error);
     }
-  };
+  }, [token, rooms]);
 
   // Функция для подсчета непрочитанных сообщений в папке
   const getFolderUnreadCount = (folderId: number) => {
@@ -475,13 +453,13 @@ const ChatPage = () => {
       };
     });
 
-    // Прокручиваем к последнему сообщению
-    setTimeout(() => {
+    // Прокручиваем к последнему сообщению (максимально быстро)
+    requestAnimationFrame(() => {
       const messagesContainer = (window as any).document.querySelector('.messages-container') as any;
       if (messagesContainer) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
       }
-    }, 50);
+    });
 
     // Отправляем сообщение через WebSocket для мгновенной доставки всем участникам
     if (ws && (ws as any).readyState === WebSocket.OPEN) {
@@ -538,13 +516,13 @@ const ChatPage = () => {
         const newMessage = await response.json();
         console.log('📤 Сообщение отправлено через HTTP API');
         
-        // Обновляем счетчики после успешной отправки
-        updateAllUnreadCounts();
+        // Обновляем счетчики после успешной отправки (асинхронно)
+        setTimeout(() => updateAllUnreadCounts(), 0);
         
         console.log('📤 HTTP API: заменяем временное сообщение на реальное:', newMessage.id);
         
         // Заменяем временное сообщение на реальное
-        if (tempMessage) {
+        if (tempMessage && tempMessage.id) {
           setSelectedRoom(prev => {
             if (!prev) return null;
             return {
@@ -560,7 +538,7 @@ const ChatPage = () => {
         console.log('❌ HTTP API: удаляем временное сообщение при ошибке');
         
         // Удаляем временное сообщение при ошибке
-        if (tempMessage) {
+        if (tempMessage && tempMessage.id) {
           setSelectedRoom(prev => {
             if (!prev) return null;
             return {
@@ -575,7 +553,7 @@ const ChatPage = () => {
       console.log('❌ HTTP API: удаляем временное сообщение при ошибке сети');
       
       // Удаляем временное сообщение при ошибке
-      if (tempMessage) {
+      if (tempMessage && tempMessage.id) {
         setSelectedRoom(prev => {
           if (!prev) return null;
           return {
