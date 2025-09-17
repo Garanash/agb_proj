@@ -215,6 +215,7 @@ class UserProfileUpdate(BaseModel):
     email: Optional[str] = Field(None, description="Email адрес")
     phone: Optional[str] = Field(None, description="Номер телефона")
     position: Optional[str] = Field(None, description="Должность")
+    avatar_url: Optional[str] = Field(None, description="URL аватара")
 
 
 class PasswordReset(BaseModel):
@@ -496,6 +497,13 @@ class VEDNomenclature(BaseResponseModel):
     id: int = Field(description="ID номенклатуры")
     code_1c: str = Field(description="Код 1С")
     name: str = Field(description="Название")
+    article: str = Field(description="Артикул")
+    matrix: str = Field(description="Матрица")
+    drilling_depth: Optional[str] = Field(None, description="Глубина бурения")
+    height: Optional[str] = Field(None, description="Высота")
+    thread: Optional[str] = Field(None, description="Резьба")
+    product_type: str = Field(description="Тип продукта")
+    is_active: bool = Field(description="Активен")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -689,6 +697,16 @@ class ChatRoom(BaseModel):
     description: Optional[str] = Field(None, description="Описание комнаты")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
+    folders: Optional[List[Any]] = Field(default=[], description="Папки чата")
+    
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def convert_datetime_to_string(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 
 class ChatRoomCreate(BaseModel):
@@ -721,9 +739,19 @@ class ChatRoomDetailResponse(BaseResponseModel):
     id: int = Field(description="ID чат комнаты")
     name: str = Field(description="Название комнаты")
     description: Optional[str] = Field(None, description="Описание комнаты")
-    participants: List[UserResponse] = Field(description="Участники комнаты")
+    participants: List[Any] = Field(description="Участники комнаты")
+    messages: List[Any] = Field(description="Сообщения комнаты")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
+    
+    @field_validator('created_at', 'updated_at', mode='before')
+    @classmethod
+    def convert_datetime_to_string(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
 
 
 class ChatBot(BaseResponseModel):

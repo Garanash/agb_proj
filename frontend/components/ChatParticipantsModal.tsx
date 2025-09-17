@@ -253,9 +253,13 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
     if (user.avatar_url) {
       return (
         <img
-          src={user.avatar_url}
+          src={`${getApiUrl()}/uploads/${user.avatar_url}`}
           alt={`${user.first_name} ${user.last_name}`}
           className={`${size} rounded-full object-cover`}
+          onError={(e) => {
+            console.log('Avatar load error:', user.avatar_url);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       );
     } else {

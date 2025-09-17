@@ -1326,8 +1326,7 @@ async def export_all_passports_xlsx_internal(passports: List[VedPassport], curre
         # Заголовки с расширенной информацией о коронках
         headers = [
             '№', 'Номер паспорта', 'Номер заказа', 'Код 1С', 'Наименование', 'Артикул', 'Матрица',
-            'Глубина бурения', 'Высота', 'Резьба', 'Тип продукта', 'Диаметр', 'Длина', 'Описание',
-            'Количество', 'Статус', 'Дата создания', 'Создал'
+            'Глубина бурения', 'Высота', 'Резьба', 'Тип продукта', 'Количество', 'Статус', 'Дата создания', 'Создал'
         ]
 
         for col, header in enumerate(headers):
@@ -1358,19 +1357,16 @@ async def export_all_passports_xlsx_internal(passports: List[VedPassport], curre
                 summary_sheet.write(row, 8, nomenclature.height if nomenclature else '', cell_format)
                 summary_sheet.write(row, 9, nomenclature.thread if nomenclature else '', cell_format)
                 summary_sheet.write(row, 10, nomenclature.product_type if nomenclature else '', cell_format)
-                summary_sheet.write(row, 11, nomenclature.diameter if nomenclature else '', cell_format)
-                summary_sheet.write(row, 12, nomenclature.length if nomenclature else '', cell_format)
-                summary_sheet.write(row, 13, nomenclature.description if nomenclature else '', cell_format)
-                summary_sheet.write(row, 14, passport.quantity or 0, cell_format)
-                summary_sheet.write(row, 15, status, cell_format)
-                summary_sheet.write(row, 16, passport.created_at.strftime("%d.%m.%Y %H:%M") if passport.created_at else '', cell_format)
-                summary_sheet.write(row, 17, creator_name, cell_format)
+                summary_sheet.write(row, 11, passport.quantity or 0, cell_format)
+                summary_sheet.write(row, 12, status, cell_format)
+                summary_sheet.write(row, 13, passport.created_at.strftime("%d.%m.%Y %H:%M") if passport.created_at else '', cell_format)
+                summary_sheet.write(row, 14, creator_name, cell_format)
                 
                 print(f"DEBUG: Паспорт {row} обработан успешно")
             except Exception as e:
                 print(f"ERROR: Ошибка при обработке паспорта {row}: {e}")
                 # Записываем пустую строку в случае ошибки
-                for col in range(18):
+                for col in range(15):
                     summary_sheet.write(row, col, '', cell_format)
 
         # Устанавливаем ширину колонок

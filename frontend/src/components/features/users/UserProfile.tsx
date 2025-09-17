@@ -133,9 +133,13 @@ export default function UserProfile() {
         `}>
           {user?.avatar_url ? (
             <img 
-              src={user.avatar_url} 
+              src={`${getApiUrl()}/uploads/${user.avatar_url}`} 
               alt={`${user?.last_name} ${user?.first_name}`} 
               className="w-full h-full object-cover"
+              onError={(e) => {
+                console.log('Avatar load error:', user.avatar_url);
+                e.currentTarget.style.display = 'none';
+              }}
             />
           ) : (
             getInitials(user)

@@ -263,9 +263,13 @@ export default function CreateChatRoomModal({
                         <label htmlFor={`user-${user.id}`} className="flex items-center">
                           {user.avatar_url ? (
                             <img
-                              src={user.avatar_url}
+                              src={`${getApiUrl()}/uploads/${user.avatar_url}`}
                               alt={`${user.first_name} ${user.last_name}`}
                               className="w-8 h-8 rounded-full object-cover mr-2"
+                              onError={(e) => {
+                                console.log('Avatar load error:', user.avatar_url);
+                                e.currentTarget.style.display = 'none';
+                              }}
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
@@ -303,9 +307,13 @@ export default function CreateChatRoomModal({
                       <label htmlFor={`user-${user.id}`} className="flex items-center">
                         {user.avatar_url ? (
                           <img
-                            src={user.avatar_url}
+                            src={`${getApiUrl()}/uploads/${user.avatar_url}`}
                             alt={`${user.first_name} ${user.last_name}`}
                             className="w-8 h-8 rounded-full object-cover mr-2"
+                            onError={(e) => {
+                              console.log('Avatar load error:', user.avatar_url);
+                              e.currentTarget.style.display = 'none';
+                            }}
                           />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">

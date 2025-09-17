@@ -8,7 +8,6 @@ from database import get_db
 from models import ChatRoom, ChatParticipant, ChatMessage, User, ChatBot, ChatFolder, ChatRoomFolder, UserRole
 from ..schemas import (
     ChatRoom as ChatRoomSchema,
-    ChatRoom,
     ChatRoomCreate,
     ChatRoomUpdate,
     ChatRoomCreateResponse,
@@ -130,7 +129,7 @@ async def create_chat_room(
         raise HTTPException(status_code=500, detail=f"Ошибка при создании чата: {str(e)}")
 
 
-@router.get("/rooms/", response_model=List[ChatRoomCreateResponse])
+@router.get("/rooms/", response_model=List[ChatRoomSchema])
 async def get_user_chat_rooms(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
@@ -148,31 +147,8 @@ async def get_user_chat_rooms(
     )
     rooms = result.scalars().all()
     
-    # Для каждого чата загружаем только папки текущего пользователя
-    rooms_with_user_folders = []
-    for room in rooms:
-        # Получаем папки для этого чата (пока что все папки)
-        folder_result = await db.execute(
-            select(ChatRoomFolder)
-            .where(ChatRoomFolder.room_id == room.id)
-        )
-        user_folders = folder_result.scalars().all()
-
-        # Создаем копию чата с папками только для текущего пользователя
-        room_copy = ChatRoomCreateResponse(
-            success=True,
-            message="Комната получена успешно",
-            data=ChatRoom(
-                id=room.id,
-                name=room.name,
-                description=room.description,
-                created_at=room.created_at.isoformat() if room.created_at else "",
-                updated_at=room.updated_at.isoformat() if room.updated_at else None
-            )
-        )
-        rooms_with_user_folders.append(room_copy)
-    
-    return rooms_with_user_folders
+    # Возвращаем простой список чатов
+    return rooms
 
 
 @router.get("/rooms/{room_id}", response_model=ChatRoomDetailResponse)
@@ -226,13 +202,50 @@ async def get_chat_room(
         id=room.id,
         name=room.name,
         description=room.description,
-        created_by=room.created_by,
-        is_private=room.is_private,
-        is_active=room.is_active,
-        created_at=room.created_at,
-        updated_at=room.updated_at,
-        participants=participants,
-        messages=messages
+        created_at=room.created_at.isoformat() if room.created_at else "",
+        updated_at=room.updated_at.isoformat() if room.updated_at else None,
+        participants=[{
+            "id": p.id,
+            "user_id": p.user_id,
+            "bot_id": p.bot_id,
+            "is_admin": p.is_admin,
+            "user": {
+                "id": p.user.id,
+                "username": p.user.username,
+                "first_name": p.user.first_name,
+                "last_name": p.user.last_name,
+                "avatar_url": p.user.avatar_url,
+                "department_id": p.user.department_id
+            } if p.user else None,
+            "bot": {
+                "id": p.bot.id,
+                "name": p.bot.name,
+                "description": p.bot.description,
+                "is_active": p.bot.is_active
+            } if p.bot else None
+        } for p in participants],
+        messages=[{
+            "id": m.id,
+            "content": m.content,
+            "sender_id": m.sender_id,
+            "bot_id": m.bot_id,
+            "is_edited": m.is_edited,
+            "created_at": m.created_at.isoformat() if m.created_at else "",
+            "sender": {
+                "id": m.sender.id,
+                "username": m.sender.username,
+                "first_name": m.sender.first_name,
+                "last_name": m.sender.last_name,
+                "avatar_url": m.sender.avatar_url,
+                "department_id": m.sender.department_id
+            } if m.sender else None,
+            "bot": {
+                "id": m.bot.id,
+                "name": m.bot.name,
+                "description": m.bot.description,
+                "is_active": m.bot.is_active
+            } if m.bot else None
+        } for m in messages]
     )
 
 
@@ -504,7 +517,8 @@ async def create_chat_message(
                     "avatar_url": current_user.avatar_url,
                     "department_id": current_user.department_id
                 },
-                "created_at": db_message.created_at.isoformat()
+                "created_at": db_message.created_at.isoformat(),
+                "is_edited": db_message.is_edited
             }
         }
         
@@ -818,7 +832,8 @@ async def websocket_endpoint(
                                 "avatar_url": current_user.avatar_url,
                                 "department_id": current_user.department_id
                             },
-                            "created_at": db_message.created_at.isoformat()
+                            "created_at": db_message.created_at.isoformat(),
+                            "is_edited": db_message.is_edited
                         }
                     }
                     

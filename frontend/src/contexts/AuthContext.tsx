@@ -1,8 +1,8 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
-import type { User, AuthContextType } from '@/types';
+import { getApiUrl } from '../utils/api';
+import type { User, AuthContextType } from '../types/index';
 import axios from 'axios'
 
 // Типы импортированы из @/types
@@ -18,20 +18,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
+    console.log('AuthContext useEffect started')
     // Проверяем, что мы на клиенте
     if (typeof window === 'undefined') {
+      console.log('Not on client side, setting isLoading to false')
       setIsLoading(false)
       return
     }
 
     const storedToken = localStorage.getItem('access_token')
+    console.log('Stored token found:', !!storedToken)
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      // Проверяем валидность токена при загрузке
+      // Проверяем валидность токена при загрузке с таймаутом
+      console.log('Checking token validity...')
       checkTokenValidity()
+      
+      // Устанавливаем таймаут на случай, если проверка токена зависнет
+      setTimeout(() => {
+        console.log('Token validation timeout, setting isLoading to false')
+        setIsLoading(false)
+      }, 5000)
     } else {
       // Если токена нет, сразу завершаем загрузку
+      console.log('No token found, setting isLoading to false')
       setIsLoading(false)
     }
   }, [])
@@ -40,16 +51,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const apiUrl = getApiUrl()
       console.log('API URL for token validation:', apiUrl)
+      console.log('Making request to:', `${apiUrl}/api/v1/auth/me`)
       const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
+      console.log('Response received:', response.status, response.data)
       setUser(response.data)
       console.log('User loaded:', response.data)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Token validation error:', error)
+      console.error('Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      })
       // Токен невалиден, удаляем его
       localStorage.removeItem('access_token')
       setToken(null)
       delete axios.defaults.headers.common['Authorization']
     } finally {
+      console.log('Setting isLoading to false')
       setIsLoading(false)
     }
   }

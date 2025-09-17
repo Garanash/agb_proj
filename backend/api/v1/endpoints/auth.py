@@ -1,5 +1,8 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+import uuid
+from pathlib import Path
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Form, File, UploadFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -12,6 +15,37 @@ from models import User
 from ..schemas import LoginRequest, LoginResponse, UserResponse as UserSchema, UserProfileUpdate, PasswordReset
 
 router = APIRouter()
+
+# Настройки для загрузки файлов
+UPLOAD_DIR = Path("uploads")
+PROFILES_DIR = UPLOAD_DIR / "profiles"
+
+# Создаем директории если они не существуют
+for dir_path in [PROFILES_DIR]:
+    dir_path.mkdir(parents=True, exist_ok=True)
+
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB на файл
+
+async def save_upload_file(upload_file: UploadFile, destination_dir: Path, filename: str) -> str:
+    """Сохраняет загруженный файл и возвращает путь к нему"""
+    file_path = destination_dir / filename
+
+    # Проверяем размер файла
+    file_content = await upload_file.read()
+    if len(file_content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Файл слишком большой. Максимальный размер: {MAX_FILE_SIZE // (1024*1024)}MB"
+        )
+
+    # Возвращаем указатель в начало файла
+    await upload_file.seek(0)
+
+    # Сохраняем файл
+    with open(file_path, "wb") as buffer:
+        buffer.write(file_content)
+
+    return str(file_path.relative_to(UPLOAD_DIR))
 
 # Конфигурация
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
@@ -194,7 +228,16 @@ async def verify_token(current_user: User = Depends(get_current_user)):
 
 @router.put("/profile", response_model=UserSchema)
 async def update_profile(
-    profile_data: UserProfileUpdate,
+    # Основные поля
+    first_name: Optional[str] = Form(None),
+    last_name: Optional[str] = Form(None),
+    middle_name: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    phone: Optional[str] = Form(None),
+    position: Optional[str] = Form(None),
+    # Файл аватара
+    avatar: Optional[UploadFile] = File(None),
+    # Пользователь
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -203,10 +246,32 @@ async def update_profile(
     result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one()
     
-    # Обновляем поля
-    update_data = profile_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(user, field, value)
+    # Обновляем основные поля
+    if first_name is not None:
+        user.first_name = first_name
+    if last_name is not None:
+        user.last_name = last_name
+    if middle_name is not None:
+        user.middle_name = middle_name
+    if email is not None:
+        user.email = email
+    if phone is not None:
+        user.phone = phone
+    if position is not None:
+        user.position = position
+    
+    # Обрабатываем аватар
+    if avatar:
+        # Удаляем старый аватар если есть
+        if user.avatar_url:
+            old_avatar_path = UPLOAD_DIR / user.avatar_url
+            if old_avatar_path.exists():
+                old_avatar_path.unlink()
+        
+        # Сохраняем новый аватар
+        filename = f"{current_user.id}_avatar_{uuid.uuid4()}_{avatar.filename}"
+        avatar_path = await save_upload_file(avatar, PROFILES_DIR, filename)
+        user.avatar_url = avatar_path
     
     await db.commit()
     await db.refresh(user)
@@ -237,7 +302,7 @@ async def change_password(
         )
     
     # Проверяем новый пароль
-        from utils.password_generator import validate_password_strength
+    from utils.password_generator import validate_password_strength
     is_valid, errors = validate_password_strength(password_data.new_password)
     if not is_valid:
         raise HTTPException(

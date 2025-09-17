@@ -40,6 +40,9 @@ export default function Users() {
   const [userPasswords, setUserPasswords] = useState<{[key: number]: string}>({})
   const [showPasswords, setShowPasswords] = useState<{[key: number]: boolean}>({})
   const [regeneratingPasswords, setRegeneratingPasswords] = useState<{[key: number]: boolean}>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
   
   // Проверка доступа - только администраторы
   if (user?.role !== 'admin') {
@@ -124,6 +127,16 @@ export default function Users() {
     setShowPasswords(prev => ({ ...prev, [userId]: !prev[userId] }))
   }
 
+  const handleShowPassword = (userId: number) => {
+    // Если пароль уже есть в текущей сессии, переключаем видимость
+    if (userPasswords[userId]) {
+      togglePasswordVisibility(userId)
+    } else {
+      // Если пароля нет, показываем сообщение
+      alert('Пароль не был сгенерирован в текущей сессии. Сначала сгенерируйте пароль с помощью кнопки 🔑')
+    }
+  }
+
   const copyPassword = async (password: string) => {
     try {
       await navigator.clipboard.writeText(password)
@@ -192,6 +205,66 @@ export default function Users() {
     return colors[index]
   }
 
+  // Функция фильтрации пользователей по поисковому запросу
+  const filterUsers = (usersList: User[]) => {
+    if (!searchQuery.trim()) {
+      return usersList
+    }
+    
+    const query = searchQuery.toLowerCase()
+    return usersList.filter(user => 
+      user.username.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      (user.first_name && user.first_name.toLowerCase().includes(query)) ||
+      (user.last_name && user.last_name.toLowerCase().includes(query)) ||
+      (user.middle_name && user.middle_name.toLowerCase().includes(query)) ||
+      (user.phone && user.phone.includes(query)) ||
+      (user.position && user.position.toLowerCase().includes(query)) ||
+      user.role.toLowerCase().includes(query)
+    )
+  }
+
+  // Получаем отфильтрованных пользователей для текущей вкладки
+  const getFilteredUsers = () => {
+    const currentUsers = activeTab === 'active' 
+      ? users.filter(u => u.is_active) 
+      : deactivatedUsers.filter(u => !u.is_active)
+    return filterUsers(currentUsers)
+  }
+
+  // Получаем пользователей для текущей страницы
+  const getPaginatedUsers = () => {
+    const filteredUsers = getFilteredUsers()
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredUsers.slice(startIndex, endIndex)
+  }
+
+  // Общее количество страниц
+  const totalPages = Math.ceil(getFilteredUsers().length / itemsPerPage)
+
+  // Сброс страницы при изменении поиска или вкладки
+  const resetPagination = () => {
+    setCurrentPage(1)
+  }
+
+  // Обработчики для пагинации
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
   return (
     <>
       <PageLayout 
@@ -214,7 +287,10 @@ export default function Users() {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               <button
-                onClick={() => setActiveTab('active')}
+                onClick={() => {
+                  setActiveTab('active')
+                  resetPagination()
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'active'
                     ? 'border-blue-500 text-blue-600'
@@ -223,11 +299,14 @@ export default function Users() {
               >
                 Активные пользователи
                 <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
-                  {users.filter(u => u.is_active).length}
+                  {searchQuery ? getFilteredUsers().length : users.filter(u => u.is_active).length}
                 </span>
               </button>
               <button
-                onClick={() => setActiveTab('deactivated')}
+                onClick={() => {
+                  setActiveTab('deactivated')
+                  resetPagination()
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'deactivated'
                     ? 'border-blue-500 text-blue-600'
@@ -236,10 +315,49 @@ export default function Users() {
               >
                 Деактивированные пользователи
                 <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
-                  {deactivatedUsers.filter(u => !u.is_active).length}
+                  {searchQuery ? getFilteredUsers().length : deactivatedUsers.filter(u => !u.is_active).length}
                 </span>
               </button>
             </nav>
+          </div>
+          
+          {/* Поле поиска */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Поиск по пользователям..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value)
+                      resetPagination()
+                    }}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Очистить
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <div className="mt-2 text-sm text-gray-600">
+                Найдено: {getFilteredUsers().length} пользователей
+                {totalPages > 1 && ` (страница ${currentPage} из ${totalPages})`}
+              </div>
+            )}
           </div>
           
           <div className="p-6">
@@ -248,17 +366,41 @@ export default function Users() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Загрузка пользователей...</p>
               </div>
+            ) : getFilteredUsers().length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-gray-400 mb-4">
+                  <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  {searchQuery ? 'Пользователи не найдены' : 'Нет пользователей'}
+                </h3>
+                <p className="text-gray-500">
+                  {searchQuery 
+                    ? `По запросу "${searchQuery}" ничего не найдено. Попробуйте изменить поисковый запрос.`
+                    : 'В данной категории пока нет пользователей.'
+                  }
+                </p>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Очистить поиск
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full table-auto">
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Пользователь</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Email</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Телефон</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 w-48">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 w-32">Телефон</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Должность</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Роль</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Статус</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Пароль</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">
                         {activeTab === 'active' ? 'Действия' : 'Действия'}
@@ -266,16 +408,20 @@ export default function Users() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(activeTab === 'active' ? users.filter(u => u.is_active) : deactivatedUsers.filter(u => !u.is_active)).map((userItem) => (
+                    {getPaginatedUsers().map((userItem) => (
                       <tr key={userItem.id} className="border-b border-gray-100">
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 ${getAvatarColor(userItem.username)} rounded-full flex items-center justify-center text-white font-semibold overflow-hidden`}>
+                            <div className={`w-10 h-10 ${getAvatarColor(userItem.username)} rounded-full flex items-center justify-center text-white font-semibold overflow-hidden flex-shrink-0`}>
                               {userItem.avatar_url ? (
                                 <img 
-                                  src={userItem.avatar_url} 
+                                  src={`${getApiUrl()}/uploads/${userItem.avatar_url}`} 
                                   alt={`${userItem.last_name} ${userItem.first_name}`} 
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover rounded-full"
+                                  onError={(e) => {
+                                    console.log('Avatar load error:', userItem.avatar_url);
+                                    e.currentTarget.style.display = 'none';
+                                  }}
                                 />
                               ) : (
                                 getInitials(userItem)
@@ -289,8 +435,8 @@ export default function Users() {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-gray-900">{userItem.email}</td>
-                        <td className="py-3 px-4 text-gray-900">{userItem.phone || '-'}</td>
+                        <td className="py-3 px-4 text-gray-900 w-48 truncate" title={userItem.email}>{userItem.email}</td>
+                        <td className="py-3 px-4 text-gray-900 w-32">{userItem.phone || '-'}</td>
                         <td className="py-3 px-4 text-gray-900">{userItem.position || '-'}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -302,13 +448,6 @@ export default function Users() {
                             'bg-gray-100 text-gray-800'
                           }`}>
                             {getRoleName(userItem.role)}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            userItem.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {userItem.is_active ? 'Активен' : 'Неактивен'}
                           </span>
                         </td>
                         <td className="py-3 px-4">
@@ -346,15 +485,13 @@ export default function Users() {
                                 >
                                   {regeneratingPasswords[userItem.id] ? '⏳' : '🔑'}
                                 </button>
-                                {userPasswords[userItem.id] && (
-                                  <button
-                                    onClick={() => togglePasswordVisibility(userItem.id)}
-                                    className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
-                                    title="Показать пароль"
-                                  >
-                                    👁️
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => handleShowPassword(userItem.id)}
+                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                  title="Показать пароль"
+                                >
+                                  👁️
+                                </button>
                               </div>
                             )}
                           </div>
@@ -393,6 +530,69 @@ export default function Users() {
                     ))}
                   </tbody>
                 </table>
+                
+                {/* Пагинация */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200">
+                    <div className="flex items-center text-sm text-gray-700">
+                      <span>
+                        Показано {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, getFilteredUsers().length)} из {getFilteredUsers().length} пользователей
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Назад
+                      </button>
+                      
+                      <div className="flex space-x-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                          // Показываем только несколько страниц вокруг текущей
+                          if (
+                            page === 1 ||
+                            page === totalPages ||
+                            (page >= currentPage - 2 && page <= currentPage + 2)
+                          ) {
+                            return (
+                              <button
+                                key={page}
+                                onClick={() => handlePageChange(page)}
+                                className={`px-3 py-2 text-sm font-medium rounded-md ${
+                                  page === currentPage
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {page}
+                              </button>
+                            )
+                          } else if (
+                            page === currentPage - 3 ||
+                            page === currentPage + 3
+                          ) {
+                            return (
+                              <span key={page} className="px-3 py-2 text-sm text-gray-500">
+                                ...
+                              </span>
+                            )
+                          }
+                          return null
+                        })}
+                      </div>
+                      
+                      <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Вперед
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 {(activeTab === 'active' ? users.filter(u => u.is_active) : deactivatedUsers.filter(u => !u.is_active)).length === 0 && (
                   <div className="text-center py-8 text-gray-500">

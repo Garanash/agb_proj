@@ -27,6 +27,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [previewAvatar, setPreviewAvatar] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   console.log('ProfileEditModal rendered:', { isOpen, user: !!user })
 
@@ -45,11 +46,11 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
   const handleFileChange = (e: any) => {
     const file = e.target.files?.[0]
     if (file) {
+      setSelectedFile(file)
       const reader = new FileReader()
       reader.onload = (e) => {
         const result = e.target?.result as string
         setPreviewAvatar(result)
-        // Не добавляем avatar_url в formData, так как это поле не существует в User
       }
       reader.readAsDataURL(file)
     }
@@ -61,7 +62,25 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
     setError('')
 
     try {
-      await axios.put(`${getApiUrl()}/api/v1/auth/profile`, formData)
+      const formDataToSend = new FormData()
+      
+      // Добавляем текстовые поля
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value) {
+          formDataToSend.append(key, value)
+        }
+      })
+      
+      // Добавляем файл аватара если выбран
+      if (selectedFile) {
+        formDataToSend.append('avatar', selectedFile)
+      }
+      
+      await axios.put(`${getApiUrl()}/api/v1/auth/profile`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
       onUpdate() // Обновляем данные пользователя в контексте
       onClose()
     } catch (error: any) {
@@ -108,6 +127,16 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
                     src={previewAvatar} 
                     alt="Аватар" 
                     className="w-full h-full object-cover"
+                  />
+                ) : user?.avatar_url ? (
+                  <img 
+                    src={`${getApiUrl()}/uploads/${user.avatar_url}`} 
+                    alt="Аватар" 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log('Avatar load error:', user.avatar_url);
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-xl font-semibold">

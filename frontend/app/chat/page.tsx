@@ -152,6 +152,7 @@ const ChatPage = () => {
 
         if (roomsResponse.ok) {
           const roomsData = await roomsResponse.json();
+          console.log('Полученные чаты:', roomsData);
           setRooms(roomsData);
         } else {
           console.error('Error fetching rooms:', roomsResponse.status);
@@ -166,6 +167,7 @@ const ChatPage = () => {
 
         if (foldersResponse.ok) {
           const foldersData = await foldersResponse.json();
+          console.log('Полученные папки:', foldersData);
           setFolders(foldersData);
         } else {
           console.error('Error fetching folders:', foldersResponse.status);
@@ -173,6 +175,7 @@ const ChatPage = () => {
 
         if (unreadResponse.ok) {
           const unreadData = await unreadResponse.json();
+          console.log('Полученные непрочитанные сообщения:', unreadData);
           const unreadMap: {[key: number]: number} = {};
           unreadData.unread_summary.forEach((item: any) => {
             unreadMap[item.room_id] = item.unread_count;
@@ -381,6 +384,7 @@ const ChatPage = () => {
 
   const handleRoomSelect = async (room: ChatRoomListItem) => {
     try {
+      console.log('Выбираем чат:', room);
       const response: any = await fetch(`${getApiUrl()}/api/v1/chat/rooms/${room.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -388,12 +392,15 @@ const ChatPage = () => {
       });
       if (response.status >= 200 && response.status < 300) {
         const data = await response.json();
+        console.log('Детали чата:', data);
         setSelectedRoom(data);
         
         // Отмечаем сообщения как прочитанные при выборе чата
         markMessagesAsRead(room.id);
       } else {
         console.error('Error fetching room details:', response.status);
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
       }
     } catch (error) {
       console.error('Error fetching room details:', error);
@@ -410,7 +417,14 @@ const ChatPage = () => {
     const tempMessage: ChatMessage = {
       id: Date.now(), // Временный ID
       content: messageContent,
-      sender: undefined, // Будет обновлено после ответа API
+      sender: user ? {
+        id: user.id,
+        username: user.username,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        avatar_url: user.avatar_url,
+        department_id: user.department_id
+      } : undefined,
       created_at: new Date().toISOString(),
       is_edited: false
     };
@@ -479,7 +493,7 @@ const ChatPage = () => {
           return {
             ...prev,
             messages: prev.messages.map(msg => 
-              msg.id === Date.now() ? newMessage : msg
+              msg.id === tempMessage.id ? newMessage : msg
             )
           };
         });
@@ -492,7 +506,7 @@ const ChatPage = () => {
           if (!prev) return null;
           return {
             ...prev,
-            messages: prev.messages.filter(msg => msg.id !== Date.now())
+            messages: prev.messages.filter(msg => msg.id !== tempMessage.id)
           };
         });
       }
@@ -505,7 +519,7 @@ const ChatPage = () => {
         if (!prev) return null;
         return {
           ...prev,
-          messages: prev.messages.filter(msg => msg.id !== Date.now())
+          messages: prev.messages.filter(msg => msg.id !== tempMessage.id)
         };
       });
     }
@@ -591,9 +605,13 @@ const ChatPage = () => {
     if (user.avatar_url) {
       return (
         <img
-          src={user.avatar_url}
+          src={`${getApiUrl()}/uploads/${user.avatar_url}`}
           alt={`${user.first_name} ${user.last_name}`}
           className={`${size} rounded-full object-cover`}
+          onError={(e) => {
+            console.log('Avatar load error:', user.avatar_url);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       );
     } else {
@@ -662,7 +680,7 @@ const ChatPage = () => {
           </div>
           {/* Папки */}
           <div className="divide-y divide-gray-200">
-            {folders && Array.isArray(folders) ? folders.map(folder => (
+            {folders && Array.isArray(folders) && folders.length > 0 ? folders.map(folder => (
               <div key={folder.id}>
                 <div
                   className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedFolder?.id === folder.id ? 'bg-gray-100' : ''}`}
@@ -680,7 +698,7 @@ const ChatPage = () => {
                 </div>
                 {selectedFolder?.id === folder.id && (
                   <div className="pl-8 divide-y divide-gray-200">
-                    {rooms && Array.isArray(rooms) ? rooms
+                    {rooms && Array.isArray(rooms) && rooms.length > 0 ? rooms
                       .filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id))
                       .map(room => (
                         <div
@@ -703,18 +721,26 @@ const ChatPage = () => {
                           </div>
                         </div>
                       ))
-                    : []}
+                    : (
+                      <div className="p-4 text-center text-gray-500">
+                        <p>Нет чатов в этой папке</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )) : []}
+            )) : (
+              <div className="p-4 text-center text-gray-500">
+                <p>Нет папок</p>
+              </div>
+            )}
           </div>
 
           {/* Чаты без папок */}
           <div className="mt-4">
             <h3 className="px-4 py-2 text-sm font-medium text-gray-500">Чаты без папки</h3>
             <div className="divide-y divide-gray-200">
-              {rooms && Array.isArray(rooms) ? rooms
+              {rooms && Array.isArray(rooms) && rooms.length > 0 ? rooms
                 .filter(room => !room.folders || !room.folders.length)
                 .map(room => (
                   <div
@@ -737,7 +763,11 @@ const ChatPage = () => {
                     </div>
                   </div>
                 ))
-              : []}
+              : (
+                <div className="p-4 text-center text-gray-500">
+                  <p>Нет доступных чатов</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -776,7 +806,7 @@ const ChatPage = () => {
               {/* Сообщения */}
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-4">
-                  {selectedRoom.messages && Array.isArray(selectedRoom.messages) ? selectedRoom.messages.map(message => (
+                  {selectedRoom.messages && Array.isArray(selectedRoom.messages) && selectedRoom.messages.length > 0 ? selectedRoom.messages.map(message => (
                     <div
                       key={message.id}
                       className={`flex ${message.sender?.id === user?.id ? 'justify-end' : 'justify-start'}`}
@@ -833,7 +863,11 @@ const ChatPage = () => {
                         </div>
                       </div>
                     </div>
-                  )) : []}
+                  )) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <p>Нет сообщений в этом чате</p>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               </div>
@@ -911,7 +945,7 @@ const ChatPage = () => {
               console.error('Error refreshing room:', error);
             }
           }}
-          isAdmin={selectedRoom.participants && Array.isArray(selectedRoom.participants) ? selectedRoom.participants.some(p => p.user?.id === user?.id && p.is_admin) : false}
+          isAdmin={selectedRoom.participants && Array.isArray(selectedRoom.participants) && selectedRoom.participants.length > 0 ? selectedRoom.participants.some(p => p.user?.id === user?.id && p.is_admin) : false}
         />
       )}
 
