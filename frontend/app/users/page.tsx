@@ -37,6 +37,9 @@ export default function Users() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'active' | 'deactivated'>('active')
+  const [userPasswords, setUserPasswords] = useState<{[key: number]: string}>({})
+  const [showPasswords, setShowPasswords] = useState<{[key: number]: boolean}>({})
+  const [regeneratingPasswords, setRegeneratingPasswords] = useState<{[key: number]: boolean}>({})
   
   // Проверка доступа - только администраторы
   if (user?.role !== 'admin') {
@@ -66,6 +69,14 @@ export default function Users() {
     }
   }
 
+  const handleUserCreated = (newUser: any) => {
+    if (newUser.generated_password) {
+      setUserPasswords(prev => ({ ...prev, [newUser.id]: newUser.generated_password }))
+      setShowPasswords(prev => ({ ...prev, [newUser.id]: true }))
+    }
+    fetchUsers()
+  }
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -89,6 +100,37 @@ export default function Users() {
       fetchUsers() // Перезагружаем список
     } catch (error: any) {
       alert(formatApiError(error, 'Ошибка при активации пользователя'))
+    }
+  }
+
+  const handleRegeneratePassword = async (userId: number) => {
+    try {
+      setRegeneratingPasswords(prev => ({ ...prev, [userId]: true }))
+      const response = await axios.post(`${getApiUrl()}/api/v1/users/${userId}/reset-password`)
+      
+      if (response.data.generated_password) {
+        setUserPasswords(prev => ({ ...prev, [userId]: response.data.generated_password }))
+        setShowPasswords(prev => ({ ...prev, [userId]: true }))
+      }
+    } catch (error) {
+      console.error('Ошибка перегенерации пароля:', error)
+      alert('Не удалось перегенерировать пароль')
+    } finally {
+      setRegeneratingPasswords(prev => ({ ...prev, [userId]: false }))
+    }
+  }
+
+  const togglePasswordVisibility = (userId: number) => {
+    setShowPasswords(prev => ({ ...prev, [userId]: !prev[userId] }))
+  }
+
+  const copyPassword = async (password: string) => {
+    try {
+      await navigator.clipboard.writeText(password)
+      alert('Пароль скопирован в буфер обмена!')
+    } catch (err) {
+      console.error('Ошибка копирования:', err)
+      alert('Не удалось скопировать пароль')
     }
   }
 
@@ -217,6 +259,7 @@ export default function Users() {
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Должность</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Роль</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">Статус</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Пароль</th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-900">
                         {activeTab === 'active' ? 'Действия' : 'Действия'}
                       </th>
@@ -270,6 +313,54 @@ export default function Users() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center space-x-2">
+                            {userPasswords[userItem.id] && showPasswords[userItem.id] ? (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  value={userPasswords[userItem.id]}
+                                  readOnly
+                                  className="px-2 py-1 text-xs bg-gray-100 border border-gray-300 rounded font-mono w-24"
+                                />
+                                <button
+                                  onClick={() => copyPassword(userPasswords[userItem.id])}
+                                  className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                                  title="Копировать пароль"
+                                >
+                                  📋
+                                </button>
+                                <button
+                                  onClick={() => togglePasswordVisibility(userItem.id)}
+                                  className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                                  title="Скрыть пароль"
+                                >
+                                  👁️
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleRegeneratePassword(userItem.id)}
+                                  disabled={regeneratingPasswords[userItem.id]}
+                                  className="px-2 py-1 text-xs bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                                  title="Сгенерировать пароль"
+                                >
+                                  {regeneratingPasswords[userItem.id] ? '⏳' : '🔑'}
+                                </button>
+                                {userPasswords[userItem.id] && (
+                                  <button
+                                    onClick={() => togglePasswordVisibility(userItem.id)}
+                                    className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                                    title="Показать пароль"
+                                  >
+                                    👁️
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center space-x-2">
                             <button 
                               onClick={() => handleEditUser(userItem)}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded" 
@@ -318,7 +409,7 @@ export default function Users() {
       <CreateUserModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onUserCreated={fetchUsers}
+        onUserCreated={handleUserCreated}
       />
 
       <EditUserModal

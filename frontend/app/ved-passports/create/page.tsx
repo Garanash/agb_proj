@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
-import { useAuth } from '../../../components/AuthContext'
+import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '../../../src/utils/api';
+import { useAuth } from '../../../src/hooks/useAuth'
 import { 
   ArrowLeftIcon,
   PlusIcon,
@@ -122,6 +122,19 @@ export default function CreateVEDPassportPage() {
     setSuccessMessage('')
 
     try {
+      // Подготавливаем данные запроса
+      const requestData = {
+        order_number: formData.orderNumber,
+        title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : undefined,
+        items: [{
+          code_1c: selectedNomenclature?.code_1c || '',
+          quantity: formData.quantity === 0 ? 1 : formData.quantity
+        }]
+      }
+      
+      console.log('Данные запроса:', requestData)
+      console.log('URL запроса:', `${getApiUrl()}/api/v1/ved-passports/bulk/`)
+      
       // Используем bulk API даже для одного паспорта для оптимизации
       const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
@@ -129,14 +142,7 @@ export default function CreateVEDPassportPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          order_number: formData.orderNumber,
-          title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : undefined,
-          items: [{
-            code_1c: selectedNomenclature?.code_1c,
-            quantity: formData.quantity === 0 ? 1 : formData.quantity
-          }]
-        })
+        body: JSON.stringify(requestData)
       })
 
       if (response.status >= 200 && response.status < 300) {
@@ -147,8 +153,8 @@ export default function CreateVEDPassportPage() {
           id: passport.id,
           passport_number: passport.passport_number,
           order_number: passport.order_number,
-          nomenclature: selectedNomenclature!,
-          quantity: 1,
+          nomenclature: passport.nomenclature || selectedNomenclature!,
+          quantity: passport.quantity || 1,
           status: passport.status,
           created_at: passport.created_at
         }))
@@ -157,13 +163,37 @@ export default function CreateVEDPassportPage() {
         setCreatedPassports(prev => [...passports, ...prev])
         setSuccessMessage(`Успешно создано ${passports.length} паспортов ВЭД!`)
 
+        // Очищаем форму
+        setFormData({
+          orderNumber: '',
+          nomenclatureId: null,
+          quantity: 1
+        })
+        setSelectedNomenclature(null)
+
         // Показываем ошибки если они есть
         if (result.errors && result.errors.length > 0) {
           console.warn('Предупреждения при создании:', result.errors)
         }
       } else {
         const errorData = await response.json()
-        throw new Error(errorData.detail || 'Произошла ошибка при создании паспорта')
+        console.error('Ошибка API:', errorData)
+        console.error('Статус ответа:', response.status)
+        console.error('Заголовки ответа:', response.headers)
+        
+        // Формируем детальное сообщение об ошибке
+        let errorMessage = 'Произошла ошибка при создании паспорта'
+        if (errorData.detail) {
+          errorMessage = errorData.detail
+        } else if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.errors) {
+          errorMessage = `Ошибки валидации: ${JSON.stringify(errorData.errors)}`
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData
+        }
+        
+        throw new Error(errorMessage)
       }
 
       // Очищаем форму
@@ -219,17 +249,22 @@ export default function CreateVEDPassportPage() {
         quantity: item.quantity
       }))
 
+      const requestData = {
+        order_number: formData.orderNumber || 'BULK-ORDER',
+        title: 'Массовое создание паспортов ВЭД',
+        items: bulkRequestItems
+      }
+
+      console.log('Данные массового запроса:', requestData)
+      console.log('URL запроса:', `${getApiUrl()}/api/v1/ved-passports/bulk/`)
+
       const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          order_number: formData.orderNumber || 'BULK-ORDER',
-          title: 'Массовое создание паспортов ВЭД',
-          items: bulkRequestItems
-        })
+        body: JSON.stringify(requestData)
       })
 
       if (response.status >= 200 && response.status < 300) {
@@ -237,9 +272,9 @@ export default function CreateVEDPassportPage() {
 
         // Преобразуем результат bulk API в формат для отображения
         const allPassports: CreatedPassport[] = result.passports.map((passport: any) => {
-          // Находим соответствующую номенклатуру для этого паспорта
-          const nomenclature = validItems.find(item =>
-            item.nomenclature!.code_1c === passport.nomenclature.code_1c
+          // Используем номенклатуру из ответа API, если она есть
+          const nomenclature = passport.nomenclature || validItems.find(item =>
+            item.nomenclature!.code_1c === passport.nomenclature?.code_1c
           )?.nomenclature!
 
           return {
@@ -247,7 +282,7 @@ export default function CreateVEDPassportPage() {
             passport_number: passport.passport_number,
             order_number: passport.order_number,
             nomenclature: nomenclature,
-            quantity: 1,
+            quantity: passport.quantity || 1,
             status: passport.status,
             created_at: passport.created_at
           }
@@ -256,6 +291,9 @@ export default function CreateVEDPassportPage() {
         // Добавляем созданные паспорты к списку
         setCreatedPassports(prev => [...allPassports, ...prev])
         setSuccessMessage(`Успешно создано ${allPassports.length} паспортов ВЭД!`)
+
+        // Очищаем форму массового ввода
+        setBulkItems([])
 
         // Показываем ошибки если они есть
         if (result.errors && result.errors.length > 0) {
@@ -308,15 +346,18 @@ export default function CreateVEDPassportPage() {
 
     // Создаем и скачиваем файл с правильной кодировкой
     const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8' })
-    const link: any = (window as any).document.createElement('a')
+    const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `паспорта_вэд_${new Date().toISOString().split('T')[0]}.csv`)
-    // console.log('Setting link visibility to hidden')
-    (window as any).document.body.appendChild(link)
-    link.click()
-    (window as any).document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    
+    if (link) {
+      link.href = url
+      link.setAttribute('download', `паспорта_вэд_${new Date().toISOString().split('T')[0]}.csv`)
+      // console.log('Setting link visibility to hidden')
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }
   }
 
   const exportCreatedPassports = async (format: 'pdf' | 'xlsx') => {
@@ -351,18 +392,21 @@ export default function CreateVEDPassportPage() {
       if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link: any = (window as any).document.createElement('a')
-        link.href = url
-        const contentDisposition = response.headers.get('Content-Disposition')
-        const filename = contentDisposition
-          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-          : `created_passports.${format}`
+        const link = document.createElement('a')
+        
+        if (link) {
+          link.href = url
+          const contentDisposition = response.headers.get('Content-Disposition')
+          const filename = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+            : `created_passports.${format}`
 
-        link.setAttribute('download', filename)
-        (window as any).document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
+          link.setAttribute('download', filename)
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        }
       } else {
         setErrorMessage('Ошибка при экспорте паспортов')
       }

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { getApiUrl } from '@/utils';
-import { useAuth } from '../../../components/AuthContext'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { getApiUrl } from '../../../src/utils/api';
+import { useAuth } from '../../../src/hooks/useAuth'
 import { 
   ArrowLeftIcon,
   EyeIcon,
@@ -156,18 +156,18 @@ export default function VEDPassportsArchivePage() {
   // Добавляем обработчики событий мыши
   useEffect(() => {
     if (isResizing) {
-      (window as any).document.addEventListener('mousemove', handleMouseMove)
-      (window as any).document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
       console.log('Resizing started')
     } else {
-      (window as any).document.removeEventListener('mousemove', handleMouseMove)
-      (window as any).document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
       console.log('Resizing stopped')
     }
 
     return () => {
-      (window as any).document.removeEventListener('mousemove', handleMouseMove)
-      (window as any).document.removeEventListener('mouseup', handleMouseUp)
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
       console.log('Resizing stopped')
     }
   }, [isResizing, resizingColumn, startX, startWidth])
@@ -493,18 +493,21 @@ export default function VEDPassportsArchivePage() {
       if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link: any = (window as any).document.createElement('a')
-        link.href = url
-        const contentDisposition = response.headers.get('Content-Disposition')
-        const filename = contentDisposition
-          ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-          : `passport_${passportId}.${format}`
+        const link = document.createElement('a')
+        
+        if (link) {
+          link.href = url
+          const contentDisposition = response.headers.get('Content-Disposition')
+          const filename = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+            : `passport_${passportId}.${format}`
 
-        link.setAttribute('download', filename)
-        (window as any).document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
+          link.setAttribute('download', filename)
+          document.body.appendChild(link)
+          link.click()
+          link.remove()
+          window.URL.revokeObjectURL(url)
+        }
       } else {
         alert('Ошибка при экспорте паспорта')
       }
@@ -537,15 +540,18 @@ export default function VEDPassportsArchivePage() {
 
     // Создаем и скачиваем файл с правильной кодировкой
     const blob = new Blob([BOM + csvData], { type: 'text/csv;charset=utf-8' })
-    const link: any = (window as any).document.createElement('a')
+    const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `архив_паспортов_вэд_${new Date().toISOString().split('T')[0]}.csv`)
-    // console.log('Exporting CSV')
-    (window as any).document.body.appendChild(link)
-    link.click()
-    (window as any).document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+    
+    if (link) {
+      link.href = url
+      link.setAttribute('download', `архив_паспортов_вэд_${new Date().toISOString().split('T')[0]}.csv`)
+      // console.log('Exporting CSV')
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }
   }, [filteredPassports])
 
   // Если пользователь не авторизован, показываем сообщение

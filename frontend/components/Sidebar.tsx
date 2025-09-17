@@ -21,7 +21,7 @@ import {
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import TextLogo from './TextLogo'
 
 interface NavigationItem {

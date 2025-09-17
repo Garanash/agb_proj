@@ -17,7 +17,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     first_name: '',
     last_name: '',
     middle_name: '',
-    password: '',
     role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
     prefix: 'AGB'
   })
@@ -55,7 +54,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
       first_name: '',
       last_name: '',
       middle_name: '',
-      password: '',
       role: 'employee',
       prefix: 'AGB'
     })
@@ -70,10 +68,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     try {
       // Убираем поле prefix из данных, так как бэкенд генерирует username автоматически
       const { prefix, ...userData } = formData
-      // Если пароль не указан, отправляем без него для автогенерации
-      if (!userData.password) {
-        delete userData.password
-      }
+      // Пароль всегда генерируется автоматически
       
       const response = await axios.post(`${getApiUrl()}/api/v1/users/`, userData)
       
@@ -93,7 +88,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
         first_name: '',
         last_name: '',
         middle_name: '',
-        password: '',
         role: 'employee',
         prefix: 'AGB'
       })
@@ -237,22 +231,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Пароль
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Оставьте пустым для автогенерации"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Если не указан, будет сгенерирован надежный пароль автоматически
-              </p>
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

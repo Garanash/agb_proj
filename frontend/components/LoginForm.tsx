@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 interface LoginFormProps {
   onClose?: () => void

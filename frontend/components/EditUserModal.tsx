@@ -47,6 +47,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showResetPassword, setShowResetPassword] = useState(false)
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false)
+  const [generatedPassword, setGeneratedPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   console.log('EditUserModal rendered:', { isOpen, user: !!user })
 
@@ -140,6 +144,42 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     }
   }
 
+  const handleResetPassword = async () => {
+    if (!user) return
+
+    setResetPasswordLoading(true)
+    setError('')
+
+    try {
+      const response = await axios.post(`${getApiUrl()}/api/v1/users/${user.id}/reset-password`)
+      
+      if (response.data.generated_password) {
+        setGeneratedPassword(response.data.generated_password)
+        setShowPassword(true)
+        setShowResetPassword(false)
+      }
+    } catch (error: any) {
+      setError(formatApiError(error, 'Произошла ошибка при сбросе пароля'))
+    } finally {
+      setResetPasswordLoading(false)
+    }
+  }
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedPassword)
+    } catch (err) {
+      console.error('Ошибка копирования пароля:', err)
+    }
+  }
+
+  const handleClose = () => {
+    setShowResetPassword(false)
+    setGeneratedPassword('')
+    setShowPassword(false)
+    onClose()
+  }
+
   if (!isOpen || !user) return null
 
   return (
@@ -151,7 +191,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               Редактировать пользователя
             </h3>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,25 +368,104 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
-            <button
-              type={"button" as const}
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              disabled={isLoading}
-            >
-              Отменить
-            </button>
-            <button
-              type={"submit" as const}
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
-            </button>
+          {showPassword && generatedPassword && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h4 className="text-lg font-semibold text-green-800 mb-2">
+                Новый пароль сгенерирован!
+              </h4>
+              <p className="text-sm text-green-700 mb-3">
+                Сохраните пароль для передачи пользователю:
+              </p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={generatedPassword}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-white border border-green-300 rounded-md font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={copyPassword}
+                  className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
+                >
+                  Копировать
+                </button>
+              </div>
+              <p className="text-xs text-green-600 mt-2">
+                Пользователь будет обязан сменить пароль при следующем входе в систему
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-6 mt-6 border-t border-gray-200">
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowResetPassword(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                disabled={isLoading || resetPasswordLoading}
+              >
+                {resetPasswordLoading ? 'Сброс...' : 'Сбросить пароль'}
+              </button>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type={"button" as const}
+                onClick={handleClose}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                disabled={isLoading}
+              >
+                Отменить
+              </button>
+              <button
+                type={"submit" as const}
+                disabled={isLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* Модальное окно подтверждения сброса пароля */}
+      {showResetPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full mx-4">
+            <div className="border-b border-gray-200 p-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Подтверждение сброса пароля
+              </h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-4">
+                Вы уверены, что хотите сбросить пароль для пользователя <strong>{user?.username}</strong>?
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                Будет сгенерирован новый надежный пароль, который нужно будет передать пользователю.
+                Пользователь будет обязан сменить пароль при следующем входе в систему.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowResetPassword(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  disabled={resetPasswordLoading}
+                >
+                  Отменить
+                </button>
+                <button
+                  onClick={handleResetPassword}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  disabled={resetPasswordLoading}
+                >
+                  {resetPasswordLoading ? 'Сброс...' : 'Сбросить пароль'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

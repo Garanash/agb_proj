@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { getApiUrl } from '@/utils/api';
 import { useRouter } from 'next/navigation'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import moment from 'moment'
 import 'moment/locale/ru'
 

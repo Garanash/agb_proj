@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 interface NavigationItem {
   path: string

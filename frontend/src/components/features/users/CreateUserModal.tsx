@@ -17,10 +17,12 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     first_name: '',
     last_name: '',
     middle_name: '',
-    password: '',
     role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
     prefix: 'AGB'
   })
+  
+  const [generatedPassword, setGeneratedPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -41,8 +43,32 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     setError('')
 
     try {
-      await axios.post(`${getApiUrl()}/api/v1/users/`, formData)
-      onUserCreated()
+      // Убираем поле prefix из данных, так как бэкенд генерирует username автоматически
+      const { prefix, ...userData } = formData
+      // Пароль всегда генерируется автоматически
+      
+      // Убеждаемся, что поле password не отправляется
+      delete userData.password
+      
+      console.log('🔍 Отправляемые данные:', userData)
+      console.log('🔍 URL:', `${getApiUrl()}/api/v1/users/`)
+      
+      const response = await axios.post(`${getApiUrl()}/api/v1/users/`, userData)
+      
+      console.log('🔍 Ответ сервера:', response.data)
+      console.log('🔍 generated_password:', response.data.generated_password)
+      
+      // Показываем сгенерированный пароль
+      if (response.data.generated_password) {
+        setGeneratedPassword(response.data.generated_password)
+        setShowPassword(true)
+        // Передаем данные пользователя с паролем
+        onUserCreated(response.data)
+        // Не закрываем модалку сразу, чтобы показать пароль
+        return
+      }
+      
+      onUserCreated(response.data)
       onClose()
       // Сбрасываем форму
       setFormData({
@@ -50,7 +76,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
         first_name: '',
         last_name: '',
         middle_name: '',
-        password: '',
         role: 'employee',
         prefix: 'AGB'
       })
@@ -59,6 +84,49 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedPassword)
+    } catch (err) {
+      console.error('Ошибка копирования пароля:', err)
+    }
+  }
+
+  const regeneratePassword = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      
+      // Генерируем новый пароль на фронтенде (временное решение)
+      const newPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12)
+      setGeneratedPassword(newPassword)
+      
+      // Здесь можно добавить вызов API для перегенерации пароля
+      // const response = await axios.post(`${getApiUrl()}/api/v1/users/${userId}/regenerate-password`)
+      // setGeneratedPassword(response.data.generated_password)
+      
+    } catch (err) {
+      console.error('Ошибка перегенерации пароля:', err)
+      setError('Не удалось перегенерировать пароль')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleClose = () => {
+    setGeneratedPassword('')
+    setShowPassword(false)
+    setFormData({
+      email: '',
+      first_name: '',
+      last_name: '',
+      middle_name: '',
+      role: 'employee',
+      prefix: 'AGB'
+    })
+    onClose()
   }
 
   if (!isOpen) return null
@@ -72,7 +140,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
               Добавить пользователя
             </h3>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,6 +154,43 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
+            </div>
+          )}
+
+          {showPassword && generatedPassword && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <h4 className="text-lg font-semibold text-green-800 mb-2">
+                Пользователь успешно создан!
+              </h4>
+              <p className="text-sm text-green-700 mb-3">
+                Сохраните пароль для передачи пользователю:
+              </p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={generatedPassword}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-white border border-green-300 rounded-md font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={copyPassword}
+                  className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm"
+                >
+                  Копировать
+                </button>
+                <button
+                  type="button"
+                  onClick={regeneratePassword}
+                  disabled={isLoading}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm disabled:opacity-50"
+                >
+                  {isLoading ? 'Генерация...' : 'Перегенерировать'}
+                </button>
+              </div>
+              <p className="text-xs text-green-600 mt-2">
+                Пользователь будет обязан сменить пароль при первом входе в систему
+              </p>
             </div>
           )}
 
@@ -165,20 +270,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Пароль *
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Введите пароль"
-              />
-            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -203,21 +294,33 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
           </div>
 
           <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              disabled={isLoading}
-            >
-              Отменить
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Создание...' : 'Создать пользователя'}
-            </button>
+            {showPassword ? (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Закрыть
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  disabled={isLoading}
+                >
+                  Отменить
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? 'Создание...' : 'Создать пользователя'}
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

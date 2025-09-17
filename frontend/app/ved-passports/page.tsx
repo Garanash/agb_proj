@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import React, { useState, useEffect } from 'react'
+import { getApiUrl } from '../../src/utils/api';
 import Link from 'next/link'
-import { useAuth } from '../../components/AuthContext'
+import { useAuth } from '../../src/hooks/useAuth'
 import { 
   DocumentIcon, 
   ArchiveBoxIcon, 

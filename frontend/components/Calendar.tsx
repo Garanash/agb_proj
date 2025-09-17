@@ -7,7 +7,7 @@ import axios from 'axios'
 import { formatApiError } from '../src/utils/api'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import 'moment/locale/ru'
 

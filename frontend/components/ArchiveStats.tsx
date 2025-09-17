@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { getApiUrl } from '@/utils/api';
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { 
   DocumentIcon, 
   ChartBarIcon, 

@@ -6,7 +6,7 @@ import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '@/utils/errorHandler'
 import Modal from './Modal'
-import { useAuth } from './AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 interface User {
   id: number
