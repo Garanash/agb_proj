@@ -9,7 +9,8 @@ import {
   PencilIcon,
   TrashIcon,
   PlusIcon,
-  DocumentIcon
+  DocumentIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters'
@@ -86,7 +87,7 @@ export default function VEDPassportsArchivePage() {
     order: 40,
     nomenclature: 180,
     date: 35,
-    actions: 50
+    actions: 80
   })
   
   const [showTableSettings, setShowTableSettings] = useState(false)
@@ -127,7 +128,7 @@ export default function VEDPassportsArchivePage() {
       order: 40,
       nomenclature: 180,
       date: 35,
-      actions: 50
+      actions: 80
     })
   }
 
@@ -413,7 +414,7 @@ export default function VEDPassportsArchivePage() {
       if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link: any = (window as any).document.createElement('a')
+        const link = document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -421,7 +422,7 @@ export default function VEDPassportsArchivePage() {
           : `bulk_passports.${format}`
 
         link.setAttribute('download', filename)
-        (window as any).document.body.appendChild(link)
+        document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -448,7 +449,7 @@ export default function VEDPassportsArchivePage() {
       if (response.status >= 200 && response.status < 300) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const link: any = (window as any).document.createElement('a')
+        const link = document.createElement('a')
         link.href = url
         const contentDisposition = response.headers.get('Content-Disposition')
         const filename = contentDisposition
@@ -456,7 +457,7 @@ export default function VEDPassportsArchivePage() {
           : `all_passports.${format}`
 
         link.setAttribute('download', filename)
-        (window as any).document.body.appendChild(link)
+        document.body.appendChild(link)
         link.click()
         link.remove()
         window.URL.revokeObjectURL(url)
@@ -656,6 +657,13 @@ export default function VEDPassportsArchivePage() {
                       Экспорт PDF
                     </button>
                     <button
+                      onClick={() => exportBulkPassports('xlsx')}
+                      className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
+                    >
+                      <DocumentIcon className="w-4 h-4 mr-2" />
+                      Экспорт Excel
+                    </button>
+                    <button
                       onClick={clearSelection}
                       className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                     >
@@ -671,6 +679,14 @@ export default function VEDPassportsArchivePage() {
                   >
                     <DocumentIcon className="w-4 h-4 mr-2" />
                     Выгрузка всех PDF
+                  </button>
+                  <button
+                    onClick={() => exportAllPassports('xlsx')}
+                    disabled={!filteredPassports || !Array.isArray(filteredPassports) || filteredPassports.length === 0}
+                    className="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <DocumentIcon className="w-4 h-4 mr-2" />
+                    Выгрузка всех Excel
                   </button>
                   <button
                     onClick={() => setShowTableSettings(true)}
@@ -910,6 +926,13 @@ export default function VEDPassportsArchivePage() {
                             title="Экспорт в PDF"
                           >
                             <DocumentIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => exportPassport(passport.id, 'xlsx')}
+                            className="text-green-600 hover:text-green-900"
+                            title="Экспорт в Excel"
+                          >
+                            <TableCellsIcon className="h-4 w-4" />
                           </button>
                           <button
                             className="text-red-600 hover:text-red-900"
