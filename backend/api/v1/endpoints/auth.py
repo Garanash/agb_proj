@@ -237,7 +237,7 @@ async def change_password(
         )
     
     # Проверяем новый пароль
-    from ..utils.password_generator import validate_password_strength
+        from utils.password_generator import validate_password_strength
     is_valid, errors = validate_password_strength(password_data.new_password)
     if not is_valid:
         raise HTTPException(

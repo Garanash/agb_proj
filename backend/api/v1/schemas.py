@@ -52,7 +52,8 @@ class PaginationParams(BaseModel):
     sort_by: Optional[str] = Field(None, description="Поле для сортировки")
     sort_order: str = Field(default="asc", description="Порядок сортировки (asc/desc)")
     
-    @validator('sort_order')
+    @field_validator('sort_order')
+    @classmethod
     def validate_sort_order(cls, v):
         if v not in ['asc', 'desc']:
             raise ValueError('Порядок сортировки должен быть asc или desc')
@@ -96,25 +97,34 @@ class UserBase(BaseModel):
     email: str = Field(description="Email адрес")
     first_name: str = Field(description="Имя")
     last_name: str = Field(description="Фамилия")
+    middle_name: Optional[str] = Field(None, description="Отчество")
     phone: Optional[str] = Field(None, description="Номер телефона")
+    department_id: Optional[int] = Field(None, description="ID отдела")
+    position: Optional[str] = Field(None, description="Должность")
     role: str = Field(default=UserRoles.EMPLOYEE, description="Роль пользователя")
     is_active: bool = Field(default=True, description="Активен ли пользователь")
 
 
 class UserCreate(UserBase):
     """Схема для создания пользователя"""
-    password: Optional[str] = Field(None, description="Пароль (если не указан, будет сгенерирован автоматически)")
+    username: Optional[str] = Field(default=None, description="Имя пользователя (если не указано, будет сгенерировано автоматически)")
+    middle_name: Optional[str] = Field(default=None, description="Отчество")
+    department_id: Optional[int] = Field(default=None, description="ID отдела")
+    position: Optional[str] = Field(default=None, description="Должность")
+    password: Optional[str] = Field(default=None, description="Пароль (если не указан, будет сгенерирован автоматически)")
     
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         from .shared.utils import validate_email
         if not validate_email(v):
             raise ValueError('Некорректный формат email адреса')
         return v
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
-        if v is not None:
+        if v is not None and v != "" and v != "undefined":
             from .shared.utils import validate_password_strength
             is_valid, errors = validate_password_strength(v)
             if not is_valid:
@@ -138,7 +148,8 @@ class UserUpdate(BaseModel):
     role: Optional[str] = Field(None, description="Роль пользователя")
     is_active: Optional[bool] = Field(None, description="Активен ли пользователь")
     
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         if v is not None:
             from .shared.utils import validate_email
@@ -210,6 +221,11 @@ class PasswordReset(BaseModel):
     """Схема сброса пароля"""
     old_password: str = Field(description="Старый пароль")
     new_password: str = Field(description="Новый пароль")
+
+
+class AdminPasswordReset(BaseModel):
+    """Схема сброса пароля администратором"""
+    user_id: int = Field(description="ID пользователя")
 
 
 class Department(BaseResponseModel):
@@ -487,11 +503,17 @@ class VEDNomenclature(BaseResponseModel):
 class VedPassport(BaseResponseModel):
     """Схема ВЭД паспорта"""
     id: int = Field(description="ID паспорта")
+    passport_number: str = Field(description="Номер паспорта")
+    title: Optional[str] = Field(None, description="Заголовок")
+    description: Optional[str] = Field(None, description="Описание")
+    status: str = Field(description="Статус")
+    order_number: str = Field(description="Номер заказа")
+    quantity: int = Field(description="Количество")
     nomenclature_id: int = Field(description="ID номенклатуры")
-    code_1c: str = Field(description="Код 1С")
-    name: str = Field(description="Название")
+    created_by: int = Field(description="ID создателя")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
+    nomenclature: Optional[VEDNomenclature] = Field(None, description="Номенклатура")
 
 
 class VedPassportCreate(BaseModel):
@@ -499,8 +521,10 @@ class VedPassportCreate(BaseModel):
 
     """Схема создания ВЭД паспорта"""
     nomenclature_id: int = Field(description="ID номенклатуры")
-    code_1c: str = Field(description="Код 1С")
-    name: str = Field(description="Название")
+    order_number: str = Field(description="Номер заказа")
+    quantity: int = Field(description="Количество", default=1)
+    title: Optional[str] = Field(None, description="Заголовок")
+    description: Optional[str] = Field(None, description="Описание")
 
 
 class VedPassportUpdate(BaseModel):
@@ -508,22 +532,49 @@ class VedPassportUpdate(BaseModel):
 
     """Схема обновления ВЭД паспорта"""
     nomenclature_id: Optional[int] = Field(None, description="ID номенклатуры")
-    code_1c: Optional[str] = Field(None, description="Код 1С")
-    name: Optional[str] = Field(None, description="Название")
+    order_number: Optional[str] = Field(None, description="Номер заказа")
+    quantity: Optional[int] = Field(None, description="Количество")
+    title: Optional[str] = Field(None, description="Заголовок")
+    description: Optional[str] = Field(None, description="Описание")
+    status: Optional[str] = Field(None, description="Статус")
+
+
+class BulkPassportItem(BaseModel):
+    """Схема элемента для массового создания паспортов"""
+    code_1c: str = Field(description="Код 1С")
+    quantity: int = Field(description="Количество", default=1)
 
 
 class BulkPassportCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     """Схема массового создания ВЭД паспортов"""
-    passports: List[VedPassportCreate] = Field(description="Список паспортов")
+    order_number: str = Field(description="Номер заказа")
+    title: Optional[str] = Field(None, description="Заголовок")
+    items: List[BulkPassportItem] = Field(description="Список позиций")
 
+
+class PassportWithNomenclature(BaseModel):
+    """Схема паспорта с полными данными номенклатуры"""
+    id: int = Field(description="ID паспорта")
+    passport_number: str = Field(description="Номер паспорта")
+    title: Optional[str] = Field(None, description="Заголовок")
+    description: Optional[str] = Field(None, description="Описание")
+    status: str = Field(description="Статус")
+    order_number: str = Field(description="Номер заказа")
+    quantity: int = Field(description="Количество")
+    nomenclature_id: int = Field(description="ID номенклатуры")
+    created_by: int = Field(description="ID создателя")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+    nomenclature: Optional[VEDNomenclature] = Field(None, description="Номенклатура")
 
 class PassportGenerationResult(BaseModel):
     """Схема результата генерации паспортов"""
     success: bool = Field(description="Статус операции")
     message: str = Field(description="Сообщение")
     generated_count: int = Field(description="Количество сгенерированных паспортов")
+    passports: List[PassportWithNomenclature] = Field(description="Список созданных паспортов", default=[])
     errors: List[str] = Field(description="Список ошибок")
 
 
@@ -907,7 +958,8 @@ class FileUpload(BaseModel):
     size: int = Field(description="Размер файла в байтах")
     file_type: str = Field(description="Тип файла")
     
-    @validator('file_type')
+    @field_validator('file_type')
+    @classmethod
     def validate_file_type(cls, v):
         if v not in [FileTypes.IMAGE, FileTypes.DOCUMENT, FileTypes.ARCHIVE, FileTypes.AUDIO, FileTypes.VIDEO]:
             raise ValueError('Неподдерживаемый тип файла')

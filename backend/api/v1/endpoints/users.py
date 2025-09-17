@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
@@ -6,7 +6,7 @@ from typing import List
 
 from database import get_db
 from models import User
-from ..schemas import UserResponse as UserSchema, UserCreate, UserUpdate, PasswordReset
+from ..schemas import UserResponse as UserSchema, UserCreate, UserUpdate, PasswordReset, AdminPasswordReset
 from .auth import get_current_user
 
 
@@ -169,23 +169,50 @@ async def read_deactivated_users_slash(
 
 
 # POST роуты для совместимости с frontend
-@router.post("/", response_model=UserSchema)
+@router.post("/")
 async def create_user_root(
-    user_data: UserCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Редирект на /create для совместимости с frontend POST /api/users/"""
-    return await create_user(user_data, current_user, db)
+    try:
+        # Получаем сырые данные из запроса
+        raw_data = await request.json()
+        print(f"🔍 create_user_root: сырые данные: {raw_data}")
+        
+        # Создаем объект UserCreate вручную
+        user_data = UserCreate(**raw_data)
+        print(f"🔍 create_user_root: создан объект UserCreate: {user_data}")
+        
+        return await create_user(user_data, current_user, db)
+    except Exception as e:
+        print(f"❌ Ошибка в create_user_root: {e}")
+        print(f"❌ Тип ошибки: {type(e)}")
+        print(f"❌ Детали ошибки: {str(e)}")
+        if "validation error" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Ошибка валидации данных: {str(e)}")
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
-@router.post("/create", response_model=UserSchema)
+@router.post("/create")
 async def create_user(
     user_data: UserCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Создание нового пользователя (только для администраторов)"""
+    try:
+        print(f"🔍 Получены данные для создания пользователя: {user_data}")
+        print(f"🔍 Тип данных: {type(user_data)}")
+        print(f"🔍 Словарь данных: {user_data.model_dump() if hasattr(user_data, 'model_dump') else user_data.__dict__}")
+        print(f"🔍 Поле password: {getattr(user_data, 'password', 'НЕТ')}")
+        print(f"🔍 Поле password равно None: {getattr(user_data, 'password', 'НЕТ') is None}")
+        print(f"🔍 Поле password равно пустой строке: {getattr(user_data, 'password', 'НЕТ') == ''}")
+    except Exception as e:
+        print(f"❌ Ошибка при логировании данных: {e}")
+    
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
@@ -217,9 +244,11 @@ async def create_user(
     
     # Генерируем пароль если не указан
     password = user_data.password
+    print(f"🔍 Пароль из данных: {password}")
     if not password:
-        from ..utils.password_generator import generate_secure_password
+        from utils.password_generator import generate_secure_password
         password = generate_secure_password(12)
+        print(f"🔍 Сгенерированный пароль: {password}")
     
     # Создаем нового пользователя
     hashed_password = get_password_hash(password)
@@ -489,18 +518,17 @@ async def activate_user(
 
 
 @router.post("/{user_id}/reset-password")
-async def reset_user_password(
+async def reset_user_password_admin(
     user_id: int,
-    password_data: PasswordReset,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Сброс пароля пользователя (только для администраторов)"""
+    """Сброс пароля пользователя администратором (генерирует новый пароль)"""
+    print(f"🔍 Сброс пароля для пользователя {user_id}")
+    print(f"🔍 Текущий пользователь: {current_user.username}, роль: {current_user.role}")
+    
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Доступ запрещен")
-    
-    if password_data.user_id != user_id:
-        raise HTTPException(status_code=400, detail="ID пользователя не совпадает")
     
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
@@ -508,8 +536,19 @@ async def reset_user_password(
     if user is None:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     
-    # Обновляем пароль
-    user.hashed_password = get_password_hash(password_data.new_password)
-    await db.commit()
+    # Генерируем новый пароль
+    from utils.password_generator import generate_secure_password
+    new_password = generate_secure_password(12)
+    print(f"🔍 Сгенерированный новый пароль: {new_password}")
     
-    return {"message": f"Пароль пользователя {user.username} успешно сброшен"}
+    # Обновляем пароль
+    user.hashed_password = get_password_hash(new_password)
+    user.is_password_changed = False  # Пользователь должен будет сменить пароль
+    
+    await db.commit()
+    print(f"🔍 Пароль успешно обновлен для пользователя {user.username}")
+    
+    return {
+        "message": f"Пароль пользователя {user.username} успешно сброшен",
+        "generated_password": new_password
+    }
