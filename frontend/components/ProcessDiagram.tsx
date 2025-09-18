@@ -90,9 +90,9 @@ export default function ProcessDiagram({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
         {isInteractive && (
           <div className="flex space-x-2">
             <button
@@ -121,43 +121,48 @@ export default function ProcessDiagram({
 
       <div className="relative">
         {/* Горизонтальная линия процесса */}
-        <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-200"></div>
+        <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-600"></div>
         
         {/* Шаги процесса */}
-        <div className="flex justify-between items-center relative">
+        <div className="flex justify-between items-start relative">
           {steps.map((step, index) => {
             const Icon = getStepIcon(step)
             const isActive = isInteractive ? currentStep === index : step.status === 'active'
             const isCompleted = isInteractive ? currentStep > index : step.status === 'completed'
             
             return (
-              <div key={step.id} className="flex flex-col items-center">
+              <div key={step.id} className="flex flex-col items-center flex-1">
                 {/* Иконка шага */}
                 <div
                   className={`
-                    w-16 h-16 rounded-full flex items-center justify-center mb-3 cursor-pointer transition-all duration-300
+                    w-16 h-16 rounded-full flex items-center justify-center mb-4 cursor-pointer transition-all duration-300
                     ${isInteractive ? 'hover:scale-110' : ''}
                     ${isCompleted ? 'bg-green-500 text-white' : ''}
                     ${isActive ? 'bg-blue-500 text-white' : ''}
-                    ${!isActive && !isCompleted ? 'bg-gray-300 text-gray-700' : ''}
+                    ${!isActive && !isCompleted ? 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300' : ''}
                   `}
                   onClick={() => handleStepClick(step.id, index)}
                 >
                   <Icon className="h-8 w-8" />
                 </div>
                 
-                {/* Название шага */}
-                <div className="text-center max-w-32">
-                  <h4 className={`text-sm font-medium ${
-                    isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-600'
+                {/* Контейнер для текста с фиксированной высотой */}
+                <div className="text-center w-full min-h-[120px] flex flex-col justify-start">
+                  {/* Название шага */}
+                  <h4 className={`text-sm font-medium mb-2 ${
+                    isActive ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'
                   }`}>
                     {step.title}
                   </h4>
-                  <p className="text-xs text-gray-500 mt-1">
+                  
+                  {/* Описание шага */}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex-1">
                     {step.description}
                   </p>
+                  
+                  {/* Длительность */}
                   {step.duration && (
-                    <span className="text-xs text-gray-400 mt-1 block">
+                    <span className="text-xs text-gray-400 dark:text-gray-500 block">
                       {step.duration}
                     </span>
                   )}
@@ -170,9 +175,9 @@ export default function ProcessDiagram({
 
       {/* Дополнительная информация */}
       {isInteractive && (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-800 mb-2">Текущий шаг:</h4>
-          <p className="text-sm text-gray-600">
+        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Текущий шаг:</h4>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             {steps[currentStep]?.description || 'Процесс завершен'}
           </p>
         </div>
@@ -217,8 +222,8 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">{title}</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">{title}</h3>
       
       <div className="relative" style={{ height: '400px', width: '100%' }}>
         {/* Соединения */}
