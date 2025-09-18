@@ -39,6 +39,12 @@ const navigationConfig: NavigationItem[] = [
     icon: '🤖',
     requiredRoles: ['admin']
   },
+  {
+    path: '/admin/ved-passports',
+    label: 'Паспорта ВЭД',
+    icon: '📄',
+    requiredRoles: ['admin']
+  },
 
   // Руководители отделов
   {

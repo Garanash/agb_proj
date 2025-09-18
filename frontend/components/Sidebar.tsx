@@ -107,13 +107,19 @@ const navigation: NavigationItem[] = [
   },
   { 
     name: 'Паспорта ВЭД', 
-    href: '/ved-passports', 
+    href: '/ved-passports',
     icon: DocumentIcon, 
-    roles: ['ved_passport'],
+    roles: ['ved_passport', 'admin'],
     children: [
       { name: 'Создание паспортов', href: '/ved-passports/create', icon: DocumentIcon },
       { name: 'Архив паспортов', href: '/ved-passports/archive', icon: ArchiveBoxIcon }
     ]
+  },
+  {
+    name: 'Управление паспортами ВЭД',
+    href: '/admin/ved-passports',
+    icon: DocumentIcon,
+    roles: ['admin']
   },
   {
     name: 'Управление ботами',

@@ -107,13 +107,19 @@ const navigation: NavigationItem[] = [
   },
   { 
     name: 'Паспорта ВЭД', 
-    href: '/ved-passports', 
+    href: '/ved-passports',
     icon: DocumentIcon, 
-    roles: ['ved_passport'],
+    roles: ['ved_passport', 'admin'],
     children: [
       { name: 'Создание паспортов', href: '/ved-passports/create', icon: DocumentIcon },
       { name: 'Архив паспортов', href: '/ved-passports/archive', icon: ArchiveBoxIcon }
     ]
+  },
+  {
+    name: 'Управление паспортами ВЭД',
+    href: '/admin/ved-passports',
+    icon: DocumentIcon,
+    roles: ['admin']
   },
   {
     name: 'Управление ботами',
@@ -182,9 +188,14 @@ export default function Sidebar() {
 
   // Мемоизируем отфильтрованную навигацию
   const filteredNavigation = useMemo(() => {
-    return navigation.filter(item => 
-      user ? item.roles.includes(user.role) : false
-    )
+    console.log('Filtering navigation for user:', user?.role)
+    const filtered = navigation.filter(item => {
+      const hasAccess = user ? item.roles.includes(user.role) : false
+      console.log(`Item "${item.name}" (roles: ${item.roles.join(', ')}) - hasAccess: ${hasAccess}`)
+      return hasAccess
+    })
+    console.log('Filtered navigation items:', filtered.map(item => item.name))
+    return filtered
   }, [user?.role])
 
   // Проверяем, активен ли текущий путь

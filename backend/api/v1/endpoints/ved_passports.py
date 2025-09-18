@@ -122,7 +122,10 @@ async def get_ved_passports(
     try:
         result = await db.execute(
             select(VedPassport)
-            .options(joinedload(VedPassport.nomenclature))
+            .options(
+                joinedload(VedPassport.nomenclature),
+                joinedload(VedPassport.creator)
+            )
             .where(VedPassport.created_by == current_user.id)
             .order_by(VedPassport.created_at.desc())
         )
@@ -131,6 +134,32 @@ async def get_ved_passports(
         
     except Exception as e:
         print(f"Ошибка при получении паспортов: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.get("/admin/all", response_model=List[VedPassportSchema])
+async def get_all_ved_passports_admin(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение всех паспортов ВЭД для админа"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Только для администраторов")
+    
+    try:
+        result = await db.execute(
+            select(VedPassport)
+            .options(
+                joinedload(VedPassport.nomenclature), 
+                joinedload(VedPassport.creator)
+            )
+            .order_by(VedPassport.created_at.desc())
+        )
+        passports = result.scalars().all()
+        return passports
+        
+    except Exception as e:
+        print(f"Ошибка при получении всех паспортов: {e}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 
@@ -483,7 +512,10 @@ async def get_ved_passport(
     try:
         result = await db.execute(
             select(VedPassport)
-            .options(joinedload(VedPassport.nomenclature))
+            .options(
+                joinedload(VedPassport.nomenclature),
+                joinedload(VedPassport.creator)
+            )
             .where(VedPassport.id == passport_id)
         )
         passport = result.scalar_one_or_none()
@@ -538,7 +570,10 @@ async def update_ved_passport(
         # Получаем полные данные
         result = await db.execute(
             select(VedPassport)
-            .options(joinedload(VedPassport.nomenclature))
+            .options(
+                joinedload(VedPassport.nomenclature),
+                joinedload(VedPassport.creator)
+            )
             .where(VedPassport.id == passport_id)
         )
         full_passport = result.scalar_one_or_none()
@@ -615,7 +650,10 @@ async def get_ved_passports_archive(
     
     try:
         # Базовый запрос
-        query = select(VedPassport).options(joinedload(VedPassport.nomenclature))
+        query = select(VedPassport).options(
+            joinedload(VedPassport.nomenclature),
+            joinedload(VedPassport.creator)
+        )
         
         # Фильтры
         filters = [VedPassport.created_by == current_user.id]
@@ -684,6 +722,103 @@ async def get_ved_passports_archive(
         
     except Exception as e:
         print(f"Ошибка при получении архива паспортов: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.get("/admin/archive/", response_model=List[VedPassportSchema])
+async def get_all_ved_passports_archive_admin(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    search: Optional[str] = None,
+    product_type: Optional[str] = None,
+    matrix: Optional[str] = None,
+    status: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    order_number: Optional[str] = None,
+    code_1c: Optional[str] = None,
+    created_by: Optional[int] = None
+):
+    """Получение архива всех паспортов ВЭД для админа с расширенной фильтрацией"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Только для администраторов")
+    
+    try:
+        # Базовый запрос
+        query = select(VedPassport).options(
+            joinedload(VedPassport.nomenclature), 
+            joinedload(VedPassport.creator)
+        )
+        
+        # Фильтры
+        filters = []
+        
+        # Поиск по тексту (точное совпадение)
+        if search:
+            search_term = search.strip()
+            search_filter = (
+                (VedPassport.passport_number == search_term) |
+                (VedPassport.order_number == search_term) |
+                (VEDNomenclature.code_1c == search_term) |
+                (VEDNomenclature.article == search_term) |
+                (VEDNomenclature.name == search_term) |
+                (VEDNomenclature.matrix == search_term)
+            )
+            filters.append(search_filter)
+        
+        # Фильтр по типу продукта
+        if product_type:
+            filters.append(VEDNomenclature.product_type == product_type)
+        
+        # Фильтр по матрице
+        if matrix:
+            filters.append(VEDNomenclature.matrix == matrix)
+        
+        # Фильтр по статусу
+        if status:
+            filters.append(VedPassport.status == status)
+        
+        # Фильтр по дате создания (от)
+        if date_from:
+            try:
+                from_date = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at >= from_date)
+            except ValueError:
+                pass
+        
+        # Фильтр по дате создания (до)
+        if date_to:
+            try:
+                to_date = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at <= to_date)
+            except ValueError:
+                pass
+        
+        # Фильтр по номеру заказа
+        if order_number:
+            filters.append(VedPassport.order_number == order_number.strip())
+
+        # Фильтр по коду 1С
+        if code_1c:
+            filters.append(VEDNomenclature.code_1c == code_1c.strip())
+        
+        # Фильтр по создателю
+        if created_by:
+            filters.append(VedPassport.created_by == created_by)
+        
+        # Применяем фильтры
+        if len(filters) > 0:
+            query = query.where(*filters)
+        
+        # Сортировка
+        query = query.order_by(VedPassport.created_at.desc())
+        
+        result = await db.execute(query)
+        passports = result.scalars().all()
+        return passports
+        
+    except Exception as e:
+        print(f"Ошибка при получении архива всех паспортов: {e}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 

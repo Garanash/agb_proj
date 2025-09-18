@@ -522,6 +522,7 @@ class VedPassport(BaseResponseModel):
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
     nomenclature: Optional[VEDNomenclature] = Field(None, description="Номенклатура")
+    creator: Optional[UserResponse] = Field(None, description="Создатель паспорта")
 
 
 class VedPassportCreate(BaseModel):
