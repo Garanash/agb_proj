@@ -131,16 +131,22 @@ export default function ProcessDiagram({
             
             return (
               <g key={index}>
-                {/* Прямая стрелка */}
+                {/* Прямая стрелка с градиентом */}
+                <defs>
+                  <linearGradient id={`arrow-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
                 <line
                   x1={currentX + 24}
                   y1={y}
                   x2={nextX - 24}
                   y2={y}
-                  stroke="#6B7280"
-                  strokeWidth="2"
+                  stroke={`url(#arrow-gradient-${index})`}
+                  strokeWidth="3"
                   markerEnd="url(#arrowhead-diagram)"
-                  className="transition-all duration-200"
+                  className="transition-all duration-200 drop-shadow-sm"
                 />
               </g>
             )
@@ -178,15 +184,15 @@ export default function ProcessDiagram({
                 {/* Иконка шага */}
                 <div
                   className={`
-                    w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3 cursor-pointer transition-all duration-300
-                    ${isInteractive ? 'hover:scale-110' : ''}
-                    ${isCompleted ? 'bg-green-500 text-white' : ''}
-                    ${isActive ? 'bg-blue-500 text-white' : ''}
-                    ${!isActive && !isCompleted ? 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300' : ''}
+                    w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-3 cursor-pointer transition-all duration-300 shadow-lg
+                    ${isInteractive ? 'hover:scale-110 hover:shadow-xl' : ''}
+                    ${isCompleted ? 'bg-gradient-to-br from-green-400 to-green-600 text-white shadow-green-200' : ''}
+                    ${isActive ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-blue-200' : ''}
+                    ${!isActive && !isCompleted ? 'bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 text-gray-600 dark:text-gray-300 shadow-gray-200' : ''}
                   `}
                   onClick={() => handleStepClick(step.id, index)}
                 >
-                  <Icon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
+                  <Icon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 drop-shadow-sm" />
                 </div>
                 
                 {/* Контейнер для текста с фиксированной высотой */}
@@ -293,59 +299,73 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               
               if (isHorizontal) {
                 // Горизонтальное соединение с плавной кривой
-                const controlOffset = Math.min(distance * 0.3, 50)
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y} ${toNode.x} ${toNode.y}`
-                labelY = fromNode.y - 15
+                const controlOffset = Math.min(distance * 0.4, 60)
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - 20} ${toNode.x} ${toNode.y}`
+                labelY = fromNode.y - 25
               } else if (isVertical) {
                 // Вертикальное соединение с плавной кривой
-                const controlOffset = Math.min(Math.abs(dy) * 0.3, 30)
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
-                labelX = fromNode.x + 20
+                const controlOffset = Math.min(Math.abs(dy) * 0.4, 40)
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + 30} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
+                labelX = fromNode.x + 35
               } else {
                 // Диагональное соединение с плавной кривой
-                const controlOffsetX = dx * 0.3
-                const controlOffsetY = dy * 0.3
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY} ${toNode.x} ${toNode.y}`
-                labelY = (fromNode.y + toNode.y) / 2 - 15
+                const controlOffsetX = dx * 0.4
+                const controlOffsetY = dy * 0.4
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - 15} ${toNode.x} ${toNode.y}`
+                labelY = (fromNode.y + toNode.y) / 2 - 20
               }
               
               return (
                 <g key={index}>
-                  {/* Плавная кривая */}
+                  {/* Плавная кривая с градиентом */}
+                  <defs>
+                    <linearGradient id={`curve-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.8" />
+                      <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.9" />
+                      <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.8" />
+                    </linearGradient>
+                  </defs>
                   <path
                     d={pathData}
-                    stroke="#6B7280"
-                    strokeWidth="2"
+                    stroke={`url(#curve-gradient-${index})`}
+                    strokeWidth="3"
                     fill="none"
                     markerEnd="url(#arrowhead)"
-                    className="transition-all duration-200 hover:stroke-blue-500"
+                    className="transition-all duration-200 hover:stroke-blue-500 drop-shadow-sm"
+                    filter="url(#glow)"
                   />
                   
-                  {/* Фон для текста с тенью */}
+                  {/* Фон для текста с градиентом */}
                   {conn.label && (
                     <g>
                       {/* Тень */}
                       <rect
+                        x={labelX - 24}
+                        y={labelY - 4}
+                        width="48"
+                        height="20"
+                        fill="black"
+                        fillOpacity="0.15"
+                        rx="8"
+                        filter="url(#shadow)"
+                      />
+                      {/* Градиентный фон */}
+                      <defs>
+                        <linearGradient id={`label-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                          <stop offset="100%" stopColor="#F8FAFC" stopOpacity="0.95" />
+                        </linearGradient>
+                      </defs>
+                      <rect
                         x={labelX - 22}
                         y={labelY - 6}
                         width="44"
-                        height="20"
-                        fill="black"
-                        fillOpacity="0.1"
+                        height="18"
+                        fill={`url(#label-gradient-${index})`}
+                        stroke="#E2E8F0"
+                        strokeWidth="1.5"
                         rx="6"
-                      />
-                      {/* Основной фон */}
-                      <rect
-                        x={labelX - 20}
-                        y={labelY - 8}
-                        width="40"
-                        height="16"
-                        fill="white"
-                        fillOpacity="0.95"
-                        stroke="#D1D5DB"
-                        strokeWidth="1"
-                        rx="4"
-                        className="dark:fill-gray-800 dark:stroke-gray-500"
+                        className="dark:fill-gray-800 dark:stroke-gray-600"
                       />
                     </g>
                   )}
@@ -354,10 +374,13 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
                   {conn.label && (
                     <text
                       x={labelX}
-                      y={labelY + 2}
+                      y={labelY + 3}
                       textAnchor="middle"
-                      className="text-xs font-semibold fill-gray-800 dark:fill-gray-100 pointer-events-none"
-                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+                      className="text-xs font-bold fill-gray-800 dark:fill-gray-100 pointer-events-none"
+                      style={{ 
+                        textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        letterSpacing: '0.025em'
+                      }}
                     >
                       {conn.label}
                     </text>
@@ -366,21 +389,35 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               )
             })}
             
-            {/* Определение стрелки */}
+            {/* Определение стрелки и эффектов */}
             <defs>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
               <marker
                 id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="9"
-                refY="3.5"
+                markerWidth="12"
+                markerHeight="8"
+                refX="11"
+                refY="4"
                 orient="auto"
                 markerUnits="strokeWidth"
               >
                 <polygon
-                  points="0 0, 10 3.5, 0 7"
-                  fill="#6B7280"
-                  className="transition-all duration-200"
+                  points="0 0, 12 4, 0 8"
+                  fill="#3B82F6"
+                  className="transition-all duration-200 drop-shadow-sm"
                 />
               </marker>
             </defs>
