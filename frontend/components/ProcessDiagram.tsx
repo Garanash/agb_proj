@@ -143,17 +143,17 @@ export default function ProcessDiagram({
           {steps.map((_, index) => {
             if (index === steps.length - 1) return null
             
-            const currentX = 80 + (index * 200) // Еще больше увеличили расстояние
-            const nextX = 80 + ((index + 1) * 200)
+            const currentX = 60 + (index * 140) // Уменьшили расстояние для компактности
+            const nextX = 60 + ((index + 1) * 140)
             const y = 40 // Немного ниже для лучшего позиционирования
             
             return (
               <g key={index}>
                 {/* Простая стрелка */}
                 <line
-                  x1={currentX + 40}
+                  x1={currentX + 32}
                   y1={y}
-                  x2={nextX - 40}
+                  x2={nextX - 32}
                   y2={y}
                   stroke="#374151"
                   strokeWidth="2"
@@ -173,7 +173,7 @@ export default function ProcessDiagram({
             const isCompleted = isInteractive ? currentStep > index : step.status === 'completed'
             
             return (
-              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-48 mx-6 relative z-10">
+              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-36 mx-3 relative z-10">
                 {/* Иконка шага */}
                 <div
                   className={`
