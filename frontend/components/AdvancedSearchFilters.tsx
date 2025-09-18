@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from '@/hooks/useAuth'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 import { 
   MagnifyingGlassIcon, 
   FunnelIcon, 

@@ -150,7 +150,7 @@ export default function VEDPassportsPage() {
 
           {/* Архив паспортов */}
           <Link 
-            href="/ved-passports/archive"
+            href="/admin/ved-passports"
             className="group relative bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow duration-200"
           >
             <div className="p-6">

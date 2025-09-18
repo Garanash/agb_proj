@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from '@/hooks/useAuth';
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks';
 
 interface Department {
   id: number;

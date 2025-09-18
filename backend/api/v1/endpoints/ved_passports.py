@@ -783,11 +783,11 @@ async def get_all_ved_passports_archive_admin(
         raise HTTPException(status_code=403, detail="Доступ запрещен. Только для администраторов")
     
     try:
-        # Базовый запрос
+        # Базовый запрос с JOIN для поиска по номенклатуре
         query = select(VedPassport).options(
             joinedload(VedPassport.nomenclature), 
             joinedload(VedPassport.creator)
-        )
+        ).join(VEDNomenclature, VedPassport.nomenclature_id == VEDNomenclature.id)
         
         # Фильтры
         filters = []
@@ -1640,3 +1640,184 @@ async def export_bulk_passports_xlsx(
     except Exception as e:
         print(f"Ошибка при массовом экспорте выбранных паспортов в XLSX: {e}")
         raise HTTPException(status_code=500, detail=f"Ошибка при экспорте: {str(e)}")
+
+
+@router.get("/admin/archive/export/excel")
+async def export_archive_excel(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    search: Optional[str] = None,
+    product_type: Optional[str] = None,
+    matrix: Optional[str] = None,
+    status: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    order_number: Optional[str] = None,
+    code_1c: Optional[str] = None,
+    created_by: Optional[int] = None
+):
+    """Экспорт архива паспортов ВЭД в Excel для админа"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Только для администраторов")
+    
+    try:
+        # Базовый запрос с JOIN для поиска по номенклатуре
+        query = select(VedPassport).options(
+            joinedload(VedPassport.nomenclature), 
+            joinedload(VedPassport.creator)
+        ).join(VEDNomenclature, VedPassport.nomenclature_id == VEDNomenclature.id)
+        
+        # Фильтры (используем ту же логику, что и в get_all_ved_passports_archive_admin)
+        filters = []
+        
+        if search:
+            search_term = search.strip()
+            search_filter = (
+                (VedPassport.passport_number == search_term) |
+                (VedPassport.order_number == search_term) |
+                (VEDNomenclature.code_1c == search_term) |
+                (VEDNomenclature.article == search_term) |
+                (VEDNomenclature.name == search_term) |
+                (VEDNomenclature.matrix == search_term)
+            )
+            filters.append(search_filter)
+        
+        if product_type:
+            filters.append(VEDNomenclature.product_type == product_type)
+        
+        if matrix:
+            filters.append(VEDNomenclature.matrix == matrix)
+        
+        if status:
+            filters.append(VedPassport.status == status)
+        
+        if date_from:
+            try:
+                from_date = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at >= from_date)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                to_date = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at <= to_date)
+            except ValueError:
+                pass
+        
+        if order_number:
+            filters.append(VedPassport.order_number == order_number.strip())
+
+        if code_1c:
+            filters.append(VEDNomenclature.code_1c == code_1c.strip())
+        
+        if created_by:
+            filters.append(VedPassport.created_by == created_by)
+        
+        if len(filters) > 0:
+            query = query.where(*filters)
+        
+        query = query.order_by(VedPassport.created_at.desc())
+        
+        result = await db.execute(query)
+        passports = result.scalars().all()
+        
+        # Используем существующую функцию экспорта
+        return await export_all_passports_xlsx_internal(passports, current_user)
+        
+    except Exception as e:
+        print(f"Ошибка при экспорте архива в Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.get("/admin/archive/export/pdf")
+async def export_archive_pdf(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    search: Optional[str] = None,
+    product_type: Optional[str] = None,
+    matrix: Optional[str] = None,
+    status: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    order_number: Optional[str] = None,
+    code_1c: Optional[str] = None,
+    created_by: Optional[int] = None
+):
+    """Экспорт архива паспортов ВЭД в PDF для админа"""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Доступ запрещен. Только для администраторов")
+    
+    try:
+        # Базовый запрос с JOIN для поиска по номенклатуре
+        query = select(VedPassport).options(
+            joinedload(VedPassport.nomenclature), 
+            joinedload(VedPassport.creator)
+        ).join(VEDNomenclature, VedPassport.nomenclature_id == VEDNomenclature.id)
+        
+        # Фильтры (используем ту же логику, что и в get_all_ved_passports_archive_admin)
+        filters = []
+        
+        if search:
+            search_term = search.strip()
+            search_filter = (
+                (VedPassport.passport_number == search_term) |
+                (VedPassport.order_number == search_term) |
+                (VEDNomenclature.code_1c == search_term) |
+                (VEDNomenclature.article == search_term) |
+                (VEDNomenclature.name == search_term) |
+                (VEDNomenclature.matrix == search_term)
+            )
+            filters.append(search_filter)
+        
+        if product_type:
+            filters.append(VEDNomenclature.product_type == product_type)
+        
+        if matrix:
+            filters.append(VEDNomenclature.matrix == matrix)
+        
+        if status:
+            filters.append(VedPassport.status == status)
+        
+        if date_from:
+            try:
+                from_date = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at >= from_date)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                to_date = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+                filters.append(VedPassport.created_at <= to_date)
+            except ValueError:
+                pass
+        
+        if order_number:
+            filters.append(VedPassport.order_number == order_number.strip())
+
+        if code_1c:
+            filters.append(VEDNomenclature.code_1c == code_1c.strip())
+        
+        if created_by:
+            filters.append(VedPassport.created_by == created_by)
+        
+        if len(filters) > 0:
+            query = query.where(*filters)
+        
+        query = query.order_by(VedPassport.created_at.desc())
+        
+        result = await db.execute(query)
+        passports = result.scalars().all()
+        
+        # Используем существующую функцию экспорта PDF
+        pdf_content = generate_bulk_passports_pdf(passports)
+        return Response(
+            content=pdf_content,
+            media_type="application/pdf",
+            headers={"Content-Disposition": "attachment; filename=ved_passports_archive.pdf"}
+        )
+        
+    except Exception as e:
+        print(f"Ошибка при экспорте архива в PDF: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")

@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '@/utils'
 
 interface User {
   id: number

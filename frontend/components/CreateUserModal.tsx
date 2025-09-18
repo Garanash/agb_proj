@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import axios from 'axios'
-import { formatApiError } from '@/utils/errorHandler'
+import { formatApiError } from '@/utils'
 
 interface CreateUserModalProps {
   isOpen: boolean
   onClose: () => void
-  onUserCreated: () => void
+  onUserCreated: (newUser: any) => void
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUserCreated }) => {
@@ -76,11 +76,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
       if (response.data.generated_password) {
         setGeneratedPassword(response.data.generated_password)
         setShowPassword(true)
+        // Передаем данные пользователя с паролем
+        onUserCreated(response.data)
         // Не закрываем модалку сразу, чтобы показать пароль
         return
       }
       
-      onUserCreated()
+      onUserCreated(response.data)
       onClose()
       // Сбрасываем форму
       setFormData({

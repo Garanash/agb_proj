@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react'
 
-import type { ModalProps } from '@/types';
+import type { ModalProps } from '@/types/index';
 
 const Modal: React.FC<ModalProps> = ({ 
   isOpen, 

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { ClipboardDocumentIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from '@/hooks/useAuth'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 
 interface NomenclatureItem {
   id: number

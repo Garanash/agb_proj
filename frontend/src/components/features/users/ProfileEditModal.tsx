@@ -5,7 +5,7 @@ import { getApiUrl } from '@/utils';
 import { useAuth } from '@/hooks'
 import axios from 'axios'
 import { formatApiError } from '@/utils'
-import Modal from '@/components/ui'
+import { Modal } from '@/components/ui'
 
 interface ProfileEditModalProps {
   isOpen: boolean

@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../src/utils/api';
+import { getApiUrl } from '@/utils';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '../src/utils/api'
+import { formatApiError } from '@/utils'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks'
 import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import 'moment/locale/ru'
 

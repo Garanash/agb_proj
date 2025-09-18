@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '../src/utils/api';
-import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '../src/components'
-import { useAuth } from '../src/hooks/useAuth'
+import { getApiUrl } from '@/utils';
+import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
+import { useAuth } from '@/hooks'
 import Link from 'next/link'
 
 export default function Home() {

@@ -3,7 +3,7 @@
  */
 
 import { useContext } from 'react'
-import { AuthContext } from '../contexts/AuthContext'
+import { AuthContext } from '../../components/AuthContext'
 import type { AuthContextType } from '../types/index'
 
 export const useAuth = (): AuthContextType => {

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { AuthProvider } from '@/contexts'
-import { AuthGuard, AppLayout } from '@/components'
+import { AuthGuard } from '@/components'
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -12,9 +12,7 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
     <AuthProvider>
       <AuthGuard>
-        <AppLayout>
-          {children}
-        </AppLayout>
+        {children}
       </AuthGuard>
     </AuthProvider>
   )

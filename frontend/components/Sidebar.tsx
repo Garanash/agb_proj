@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
@@ -21,7 +21,7 @@ import {
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/hooks'
 import TextLogo from './TextLogo'
 
 interface NavigationItem {
@@ -112,14 +112,8 @@ const navigation: NavigationItem[] = [
     roles: ['ved_passport', 'admin'],
     children: [
       { name: 'Создание паспортов', href: '/ved-passports/create', icon: DocumentIcon },
-      { name: 'Архив паспортов', href: '/ved-passports/archive', icon: ArchiveBoxIcon }
+      { name: 'Архив паспортов', href: '/admin/ved-passports', icon: ArchiveBoxIcon }
     ]
-  },
-  {
-    name: 'Управление паспортами ВЭД',
-    href: '/admin/ved-passports',
-    icon: DocumentIcon,
-    roles: ['admin']
   },
   {
     name: 'Автоматизация',

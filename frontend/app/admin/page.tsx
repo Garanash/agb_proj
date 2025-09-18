@@ -94,7 +94,7 @@ const AdminPage = () => {
               </div>
               <h3 className="text-lg font-semibold text-gray-800 ml-4">Паспорта ВЭД</h3>
             </div>
-            <p className="text-gray-600">Управление паспортами ВЭД и архивом</p>
+            <p className="text-gray-600">Управление паспортами ВЭД, архив и номенклатура</p>
           </Link>
 
           <Link

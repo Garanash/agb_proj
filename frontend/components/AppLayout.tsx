@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getApiUrl } from '@/utils';
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 
@@ -16,6 +16,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   
   // Если находимся на странице входа или регистрации, не показываем сайдбар
   if (pathname === '/login' || pathname === '/register') {
+    console.log('AppLayout: showing auth page without sidebar:', pathname)
     return <>{children}</>
   }
 

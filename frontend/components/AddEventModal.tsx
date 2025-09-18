@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../src/utils/api';
+import { getApiUrl } from '@/utils';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '../src/utils/api'
+import { formatApiError } from '@/utils'
 import Modal from './Modal'
-import { useAuth } from '../src/hooks/useAuth'
+import { useAuth } from '@/hooks'
 
 interface User {
   id: number

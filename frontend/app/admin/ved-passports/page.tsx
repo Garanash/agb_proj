@@ -39,13 +39,37 @@ interface VedPassport {
   };
 }
 
+interface FilterOptions {
+  product_types: string[];
+  matrices: string[];
+  statuses: string[];
+  creators: Array<{ id: number; name: string }>;
+}
+
 const AdminVEDPassportsPage = () => {
   const { user, token, isLoading } = useAuth();
   const router = useRouter();
   const [passports, setPassports] = useState<VedPassport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'create' | 'archive'>('all');
+  const [activeTab, setActiveTab] = useState<'create' | 'archive'>('archive');
+  const [filters, setFilters] = useState({
+    search: '',
+    product_type: '',
+    matrix: '',
+    status: '',
+    date_from: '',
+    date_to: '',
+    order_number: '',
+    code_1c: '',
+    created_by: ''
+  });
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    product_types: [],
+    matrices: [],
+    statuses: [],
+    creators: []
+  });
 
   // Проверяем права доступа
   useEffect(() => {
@@ -54,15 +78,55 @@ const AdminVEDPassportsPage = () => {
     }
   }, [user, isLoading, router]);
 
-  // Загрузка всех паспортов
+  // Загрузка фильтров
   useEffect(() => {
-    const fetchPassports = async () => {
+    const fetchFilterOptions = async () => {
       if (!token) return;
       
       try {
-        setLoading(true);
         const apiUrl = getApiUrl();
-        const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/admin/all`, {
+        const response: any = await fetch(`${apiUrl}/api/v1/ved-passports/archive/filters`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status >= 200 && response.status < 300) {
+          const data = await response.json();
+          setFilterOptions({
+            product_types: data.product_types || [],
+            matrices: data.matrices || [],
+            statuses: data.statuses || [],
+            creators: [] // Будет заполнено отдельно
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке фильтров:', error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, [token]);
+
+  // Загрузка паспортов
+  const fetchPassports = async () => {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const apiUrl = getApiUrl();
+      
+      // Всегда загружаем архив с фильтрами
+      const endpoint = '/api/v1/ved-passports/admin/archive/';
+      const queryParams = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response: any = await fetch(`${apiUrl}${endpoint}?${queryParams}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -81,13 +145,117 @@ const AdminVEDPassportsPage = () => {
       }
     };
 
+  useEffect(() => {
     fetchPassports();
-  }, [token]);
+  }, [token, activeTab, filters]);
+
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      product_type: '',
+      matrix: '',
+      status: '',
+      date_from: '',
+      date_to: '',
+      order_number: '',
+      code_1c: '',
+      created_by: ''
+    });
+  };
+
+  // Экспорт в Excel
+  const exportToExcel = async () => {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const apiUrl = getApiUrl();
+      const queryParams = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/admin/archive/export/excel?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ved_passports_archive_${new Date().toISOString().split('T')[0]}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        throw new Error('Ошибка при экспорте в Excel');
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Произошла ошибка при экспорте в Excel');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Экспорт в PDF
+  const exportToPDF = async () => {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const apiUrl = getApiUrl();
+      const queryParams = new URLSearchParams();
+      
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          queryParams.append(key, value);
+        }
+      });
+
+      const response = await fetch(`${apiUrl}/api/v1/ved-passports/admin/archive/export/pdf?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ved_passports_archive_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        throw new Error('Ошибка при экспорте в PDF');
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Произошла ошибка при экспорте в PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Показываем загрузку или редирект
   if (isLoading || !user || user.role !== 'admin') {
     return (
-      <PageLayout title="Управление паспортами ВЭД">
+      <PageLayout title="Паспорта ВЭД">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -125,25 +293,15 @@ const AdminVEDPassportsPage = () => {
   };
 
   return (
-    <PageLayout title="Управление паспортами ВЭД">
+    <PageLayout title="Паспорта ВЭД">
       <div className="p-6 bg-white rounded-lg shadow-lg">
         {/* Заголовок и навигация */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Управление паспортами ВЭД</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Паспорта ВЭД</h1>
           
           {/* Табы */}
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'all'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Все паспорта
-              </button>
               <button
                 onClick={() => setActiveTab('create')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -175,14 +333,217 @@ const AdminVEDPassportsPage = () => {
         )}
 
         {/* Контент табов */}
-        {activeTab === 'all' && (
+
+        {activeTab === 'create' && (
           <div>
-            <div className="mb-4 flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Все паспорта ВЭД ({passports.length})
-              </h2>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Создание паспорта ВЭД</h2>
+              <p className="text-gray-600 mb-6">
+                Для создания паспорта ВЭД используйте стандартную форму создания.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link
+                href="/ved-passports/create"
+                className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Создать паспорт
+              </Link>
+              
+              <Link
+                href="/ved-passports"
+                className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Управление номенклатурой
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'archive' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2">Архив паспортов ВЭД</h2>
+              <p className="text-gray-600">Просмотр и управление всеми паспортами ВЭД в системе с расширенными фильтрами</p>
+            </div>
+            
+            {/* Фильтры */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Фильтры</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {/* Поиск */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Поиск
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.search}
+                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    placeholder="Номер паспорта, заказа, код 1С..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Тип продукта */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Тип продукта
+                  </label>
+                  <select
+                    value={filters.product_type}
+                    onChange={(e) => handleFilterChange('product_type', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Все типы</option>
+                    {filterOptions.product_types.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Матрица */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Матрица
+                  </label>
+                  <select
+                    value={filters.matrix}
+                    onChange={(e) => handleFilterChange('matrix', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Все матрицы</option>
+                    {filterOptions.matrices.map((matrix) => (
+                      <option key={matrix} value={matrix}>{matrix}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Статус */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Статус
+                  </label>
+                  <select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Все статусы</option>
+                    {filterOptions.statuses.map((status) => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Дата от */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Дата от
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.date_from}
+                    onChange={(e) => handleFilterChange('date_from', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Дата до */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Дата до
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.date_to}
+                    onChange={(e) => handleFilterChange('date_to', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Номер заказа */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Номер заказа
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.order_number}
+                    onChange={(e) => handleFilterChange('order_number', e.target.value)}
+                    placeholder="Номер заказа"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  </div>
+
+                {/* Код 1С */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Код 1С
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.code_1c}
+                    onChange={(e) => handleFilterChange('code_1c', e.target.value)}
+                    placeholder="Код 1С"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                  Очистить фильтры
+                </button>
+                <button
+                  onClick={fetchPassports}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  Применить фильтры
+                </button>
+              </div>
             </div>
 
+            {/* Результаты */}
+            <div className="mb-4 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Найдено паспортов: {passports.length}
+              </h3>
+              {passports.length > 0 && (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={exportToExcel}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Экспорт в Excel</span>
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Экспорт в PDF</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -283,87 +644,12 @@ const AdminVEDPassportsPage = () => {
                   <div className="text-center py-8 text-gray-500">
                     <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
+              </svg>
                     <p>Паспорта ВЭД не найдены</p>
                   </div>
                 )}
               </div>
             )}
-          </div>
-        )}
-
-        {activeTab === 'create' && (
-          <div>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Создание паспорта ВЭД</h2>
-              <p className="text-gray-600 mb-6">
-                Для создания паспорта ВЭД используйте стандартную форму создания.
-              </p>
-            </div>
-            
-            <div className="flex space-x-4">
-              <Link
-                href="/ved-passports/create"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Создать паспорт
-              </Link>
-              
-              <Link
-                href="/ved-passports"
-                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Управление номенклатурой
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'archive' && (
-          <div>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Архив паспортов ВЭД</h2>
-              <p className="text-gray-600 mb-6">
-                Просмотр и управление всеми паспортами ВЭД в системе с расширенными фильтрами.
-              </p>
-            </div>
-            
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-yellow-800">
-                    Функция архива в разработке
-                  </h3>
-                  <div className="mt-2 text-sm text-yellow-700">
-                    <p>
-                      Расширенная фильтрация и управление архивом паспортов будет доступна в следующем обновлении.
-                      Пока используйте вкладку "Все паспорта" для просмотра всех паспортов в системе.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <Link
-              href="/admin/ved-passports/archive"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              Перейти к архиву
-            </Link>
           </div>
         )}
       </div>

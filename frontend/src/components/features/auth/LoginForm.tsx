@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { getApiUrl } from '@/utils';
 import { useAuth } from '@/hooks';
-import type { LoginFormProps } from '@/types';
+import type { LoginFormProps } from '@/types/index';
 
 const LoginForm: React.FC<LoginFormProps> = ({ onClose }) => {
   const [username, setUsername] = useState('')

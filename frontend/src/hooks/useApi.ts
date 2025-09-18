@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react'
 import { getApiEndpoint } from '@/utils'
-import type { ApiResponse } from '@/types'
+import type { ApiResponse } from '@/types/index'
 
 interface UseApiOptions {
   onSuccess?: (data: any) => void

@@ -112,7 +112,7 @@ const navigation: NavigationItem[] = [
     roles: ['ved_passport', 'admin'],
     children: [
       { name: 'Создание паспортов', href: '/ved-passports/create', icon: DocumentIcon },
-      { name: 'Архив паспортов', href: '/ved-passports/archive', icon: ArchiveBoxIcon }
+      { name: 'Архив паспортов', href: '/admin/ved-passports', icon: ArchiveBoxIcon }
     ]
   },
   {

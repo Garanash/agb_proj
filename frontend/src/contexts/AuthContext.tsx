@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { getApiUrl } from '../utils/api';
+import { getApiUrl } from '@/utils';
 import type { User, AuthContextType } from '../types/index';
 import axios from 'axios'
 
@@ -10,6 +10,13 @@ import axios from 'axios'
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // useAuth перенесен в @/hooks/useAuth
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -31,15 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      // Проверяем валидность токена при загрузке с таймаутом
-      console.log('Checking token validity...')
-      checkTokenValidity()
-      
-      // Устанавливаем таймаут на случай, если проверка токена зависнет
-      setTimeout(() => {
-        console.log('Token validation timeout, setting isLoading to false')
-        setIsLoading(false)
-      }, 5000)
+      // Не проверяем токен при загрузке, просто завершаем загрузку
+      console.log('Token found, setting isLoading to false')
+      setIsLoading(false)
     } else {
       // Если токена нет, сразу завершаем загрузку
       console.log('No token found, setting isLoading to false')

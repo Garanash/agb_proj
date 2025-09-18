@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { getApiUrl } from '@/utils/api';
-import { useAuth } from '@/hooks/useAuth'
+import { getApiUrl } from '@/utils';
+import { useAuth } from '@/hooks'
 import axios from 'axios'
 import { formatApiError } from '@/utils/errorHandler'
 import Modal from './Modal'

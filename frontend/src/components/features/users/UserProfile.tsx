@@ -149,7 +149,7 @@ export default function UserProfile() {
         {/* Информация о пользователе */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">
-            {user?.full_name || `${user?.last_name} ${user?.first_name} ${user?.middle_name || ''}`.trim()}
+            {`${user?.last_name} ${user?.first_name} ${user?.middle_name || ''}`.trim()}
           </p>
           <p className="text-xs text-gray-600 truncate">
             @{user?.username}

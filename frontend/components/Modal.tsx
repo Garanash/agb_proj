@@ -2,15 +2,7 @@
 
 import React, { useEffect } from 'react'
 
-import { getApiUrl } from '@/utils/api';
-interface ModalProps {
-  isOpen: boolean
-  onClose: () => void
-  title?: string
-  children: React.ReactNode
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl'
-  showCloseButton?: boolean
-}
+import type { ModalProps } from '@/types/index';
 
 const Modal: React.FC<ModalProps> = ({ 
   isOpen, 
@@ -22,22 +14,22 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   // Обработка клавиши Escape
   useEffect(() => {
-  const handleEscape = (e: any) => {
-    if (e.key === 'Escape' && isOpen) {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
         onClose()
       }
     }
 
     if (isOpen) {
-      (window as any).document.addEventListener('keydown', handleEscape)
+      document.addEventListener('keydown', handleEscape)
       // Блокируем скролл body
-      (window as any).document.body.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
     }
 
     return () => {
-      (window as any).document.removeEventListener('keydown', handleEscape)
+      document.removeEventListener('keydown', handleEscape)
       // Восстанавливаем скролл body
-      (window as any).document.body.style.overflow = 'unset'
+      document.body.style.overflow = 'unset'
     }
   }, [isOpen, onClose])
 
@@ -54,7 +46,7 @@ const Modal: React.FC<ModalProps> = ({
     '5xl': 'max-w-5xl',
     '6xl': 'max-w-6xl',
     '7xl': 'max-w-7xl'
-  }
+  } as const
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
@@ -75,7 +67,7 @@ const Modal: React.FC<ModalProps> = ({
                   aria-label="Закрыть"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}

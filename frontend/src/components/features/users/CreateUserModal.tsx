@@ -8,7 +8,7 @@ import { formatApiError } from '@/utils'
 interface CreateUserModalProps {
   isOpen: boolean
   onClose: () => void
-  onUserCreated: () => void
+  onUserCreated: (newUser: any) => void
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUserCreated }) => {
@@ -46,9 +46,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
       // Убираем поле prefix из данных, так как бэкенд генерирует username автоматически
       const { prefix, ...userData } = formData
       // Пароль всегда генерируется автоматически
-      
-      // Убеждаемся, что поле password не отправляется
-      delete userData.password
       
       console.log('🔍 Отправляемые данные:', userData)
       console.log('🔍 URL:', `${getApiUrl()}/api/v1/users/`)

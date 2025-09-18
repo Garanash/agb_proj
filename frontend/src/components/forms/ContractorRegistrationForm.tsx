@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { getApiUrl } from '@/utils'
-import LoginSuccessModal from '@/components/features/auth'
+import { LoginSuccessModal } from '../features/auth/LoginSuccessModal'
 
 interface ContractorRegistrationFormProps {
   onSuccess?: (username: string) => void
