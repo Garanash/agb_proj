@@ -143,17 +143,17 @@ export default function ProcessDiagram({
           {steps.map((_, index) => {
             if (index === steps.length - 1) return null
             
-            const currentX = 64 + (index * 160) // Увеличили расстояние между узлами
-            const nextX = 64 + ((index + 1) * 160)
-            const y = 32
+            const currentX = 80 + (index * 200) // Еще больше увеличили расстояние
+            const nextX = 80 + ((index + 1) * 200)
+            const y = 40 // Немного ниже для лучшего позиционирования
             
             return (
               <g key={index}>
                 {/* Простая стрелка */}
                 <line
-                  x1={currentX + 32}
+                  x1={currentX + 40}
                   y1={y}
-                  x2={nextX - 32}
+                  x2={nextX - 40}
                   y2={y}
                   stroke="#374151"
                   strokeWidth="2"
@@ -173,7 +173,7 @@ export default function ProcessDiagram({
             const isCompleted = isInteractive ? currentStep > index : step.status === 'completed'
             
             return (
-              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-40 mx-4 relative z-10">
+              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-48 mx-6 relative z-10">
                 {/* Иконка шага */}
                 <div
                   className={`
@@ -309,20 +309,20 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               
               if (isHorizontal) {
                 // Простая горизонтальная кривая
-                const controlOffset = dx * 0.3
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - 15} ${toNode.x} ${toNode.y}`
-                labelY = fromNode.y - 20
+                const controlOffset = dx * 0.4
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - 25} ${toNode.x} ${toNode.y}`
+                labelY = fromNode.y - 30
               } else if (isVertical) {
                 // Простая вертикальная кривая
-                const controlOffset = dy * 0.3
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + 20} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
-                labelX = fromNode.x + 25
+                const controlOffset = dy * 0.4
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + 30} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
+                labelX = fromNode.x + 35
               } else {
                 // Простая диагональная кривая
-                const controlOffsetX = dx * 0.3
-                const controlOffsetY = dy * 0.3
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - 10} ${toNode.x} ${toNode.y}`
-                labelY = (fromNode.y + toNode.y) / 2 - 15
+                const controlOffsetX = dx * 0.4
+                const controlOffsetY = dy * 0.4
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - 15} ${toNode.x} ${toNode.y}`
+                labelY = (fromNode.y + toNode.y) / 2 - 20
               }
               
               return (
