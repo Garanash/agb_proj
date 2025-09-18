@@ -23,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline'
 import ProcessDiagram, { ProcessGraph } from '@/components/ProcessDiagram'
 import InteractiveDemo from '@/components/InteractiveDemo'
+import VideoDemo from '@/components/VideoDemo'
+import VideoPlaceholder from '@/components/VideoPlaceholder'
 
 interface WikiSection {
   id: string
@@ -201,122 +203,154 @@ export default function WikiPage() {
     },
     {
       id: 'demo',
-      title: 'Демо работы',
+      title: 'Видео демонстрации',
       icon: PlayIcon,
-      description: 'Интерактивные примеры использования функций',
+      description: 'Видео-руководства по работе с платформой',
       content: (
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Интерактивные демонстрации</h3>
-            
-            {/* Демо создания заявки */}
-            <div className="mb-8">
-              <InteractiveDemo
-                title="Создание заявки"
-                description="Пошаговое руководство по созданию новой заявки в системе"
-                steps={[
-                  {
-                    id: 'login',
-                    title: 'Вход в систему',
-                    description: 'Авторизуйтесь в системе, используя свои учетные данные',
-                    isInteractive: true,
-                    action: 'Нажмите кнопку "Войти"',
-                    result: 'Вы успешно авторизованы в системе'
-                  },
-                  {
-                    id: 'navigate',
-                    title: 'Переход к созданию заявки',
-                    description: 'Перейдите в раздел создания новой заявки',
-                    isInteractive: true,
-                    action: 'Нажмите "Новая заявка" в главном меню',
-                    result: 'Открыта форма создания заявки'
-                  },
-                  {
-                    id: 'fill_form',
-                    title: 'Заполнение формы',
-                    description: 'Заполните все обязательные поля формы заявки',
-                    isInteractive: true,
-                    action: 'Заполните поля: тип заявки, описание, приоритет',
-                    result: 'Форма заполнена корректно'
-                  },
-                  {
-                    id: 'upload_files',
-                    title: 'Загрузка документов',
-                    description: 'Прикрепите необходимые документы к заявке',
-                    isInteractive: true,
-                    action: 'Нажмите "Выбрать файлы" и загрузите документы',
-                    result: 'Документы успешно загружены'
-                  },
-                  {
-                    id: 'submit',
-                    title: 'Отправка заявки',
-                    description: 'Отправьте заявку на рассмотрение',
-                    isInteractive: true,
-                    action: 'Нажмите кнопку "Создать заявку"',
-                    result: 'Заявка успешно создана и отправлена на рассмотрение'
-                  }
-                ]}
-                onComplete={() => console.log('Демо создания заявки завершено')}
-              />
-            </div>
+        <div className="space-y-8">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Видео-руководства</h3>
+            <p className="text-gray-700 dark:text-gray-300">
+              Смотрите реальные демонстрации работы с платформой Felix. Все видео содержат пошаговые инструкции и практические примеры.
+            </p>
+          </div>
 
-            {/* Демо работы с документами */}
-            <div className="mb-8">
-              <InteractiveDemo
-                title="Работа с документами"
-                description="Демонстрация загрузки и управления документами"
-                steps={[
-                  {
-                    id: 'select_doc',
-                    title: 'Выбор документа',
-                    description: 'Выберите документ для загрузки в систему',
-                    isInteractive: true,
-                    action: 'Нажмите "Выбрать файл" и выберите документ',
-                    result: 'Документ выбран для загрузки'
-                  },
-                  {
-                    id: 'upload_doc',
-                    title: 'Загрузка документа',
-                    description: 'Загрузите документ в систему',
-                    isInteractive: true,
-                    action: 'Нажмите "Загрузить" для начала загрузки',
-                    result: 'Документ успешно загружен'
-                  },
-                  {
-                    id: 'verify_doc',
-                    title: 'Проверка документа',
-                    description: 'Система автоматически проверит формат и содержимое',
-                    isInteractive: false,
-                    action: 'Ожидание завершения проверки...',
-                    result: 'Документ прошел проверку'
-                  },
-                  {
-                    id: 'categorize',
-                    title: 'Категоризация',
-                    description: 'Назначьте категорию и теги документу',
-                    isInteractive: true,
-                    action: 'Выберите категорию и добавьте теги',
-                    result: 'Документ успешно категоризирован'
-                  }
-                ]}
-                onComplete={() => console.log('Демо работы с документами завершено')}
-              />
+          {/* Демо создания заявки */}
+          <VideoPlaceholder
+            title="Создание заявки в системе"
+            description="Полное руководство по созданию новой заявки от авторизации до отправки на рассмотрение"
+            duration="3:45"
+            steps={[
+              "Авторизация в системе с учетными данными",
+              "Переход в раздел создания заявки",
+              "Заполнение всех обязательных полей формы",
+              "Прикрепление необходимых документов",
+              "Отправка заявки на рассмотрение"
+            ]}
+          />
+
+          {/* Демо работы с паспортами ВЭД */}
+          <VideoPlaceholder
+            title="Работа с паспортами ВЭД"
+            description="Создание, редактирование и управление паспортами ВЭД в системе"
+            duration="5:20"
+            steps={[
+              "Выбор номенклатуры для паспорта",
+              "Заполнение данных заказа",
+              "Создание паспорта ВЭД",
+              "Просмотр и редактирование паспорта",
+              "Архивирование готового паспорта"
+            ]}
+          />
+
+          {/* Демо управления пользователями */}
+          <VideoPlaceholder
+            title="Управление пользователями"
+            description="Добавление новых пользователей, назначение ролей и управление доступом"
+            duration="4:15"
+            steps={[
+              "Добавление нового пользователя",
+              "Назначение роли и прав доступа",
+              "Настройка профиля пользователя",
+              "Активация и деактивация аккаунта",
+              "Просмотр статистики пользователя"
+            ]}
+          />
+
+          {/* Демо работы с отчетами */}
+          <VideoPlaceholder
+            title="Создание и просмотр отчетов"
+            description="Генерация отчетов, настройка фильтров и экспорт данных"
+            duration="3:30"
+            steps={[
+              "Выбор типа отчета",
+              "Настройка параметров и фильтров",
+              "Генерация отчета",
+              "Просмотр результатов",
+              "Экспорт в Excel/PDF"
+            ]}
+          />
+
+          {/* Демо работы с чатом */}
+          <VideoPlaceholder
+            title="Работа с корпоративным чатом"
+            description="Создание чатов, общение с коллегами и управление беседами"
+            duration="2:45"
+            steps={[
+              "Создание нового чата",
+              "Добавление участников",
+              "Отправка сообщений",
+              "Прикрепление файлов",
+              "Управление настройками чата"
+            ]}
+          />
+
+          {/* Демо настроек профиля */}
+          <VideoPlaceholder
+            title="Настройка профиля и системы"
+            description="Персонализация профиля, изменение пароля и настройка уведомлений"
+            duration="2:20"
+            steps={[
+              "Редактирование личной информации",
+              "Изменение пароля",
+              "Настройка уведомлений",
+              "Выбор темы оформления",
+              "Управление безопасностью"
+            ]}
+          />
+
+          {/* Рекомендации по ролям */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Рекомендуемые демонстрации по ролям</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-2">Администратор</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Управление пользователями</li>
+                  <li>• Настройка системы</li>
+                  <li>• Просмотр отчетов</li>
+                </ul>
+              </div>
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-green-600 dark:text-green-400 mb-2">Менеджер</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Создание заявок</li>
+                  <li>• Работа с отчетами</li>
+                  <li>• Управление проектами</li>
+                </ul>
+              </div>
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-purple-600 dark:text-purple-400 mb-2">ВЭД Паспорт</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Работа с паспортами ВЭД</li>
+                  <li>• Создание заявок</li>
+                  <li>• Управление документами</li>
+                </ul>
+              </div>
             </div>
           </div>
 
-          <div className="bg-blue-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">Быстрый старт</h3>
-            <p className="text-blue-800 text-sm mb-4">
-              Выберите демонстрацию, соответствующую вашей роли, чтобы быстро освоить основные функции платформы.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs">
-                {user?.role === 'admin' && 'Административные функции'}
-                {user?.role === 'manager' && 'Управленческие функции'}
-                {user?.role === 'employee' && 'Рабочие функции'}
-                {user?.role === 'ved_passport' && 'Функции ВЭД'}
-                {user?.role === 'service_engineer' && 'Сервисные функции'}
-              </span>
+          {/* Технические требования */}
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Технические требования</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-yellow-700 dark:text-yellow-300">
+              <div>
+                <h4 className="font-medium mb-2">Браузеры:</h4>
+                <ul className="space-y-1">
+                  <li>• Chrome 90+</li>
+                  <li>• Firefox 88+</li>
+                  <li>• Safari 14+</li>
+                  <li>• Edge 90+</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium mb-2">Интернет:</h4>
+                <ul className="space-y-1">
+                  <li>• Скорость от 5 Мбит/с</li>
+                  <li>• Стабильное соединение</li>
+                  <li>• Поддержка HTML5 видео</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
