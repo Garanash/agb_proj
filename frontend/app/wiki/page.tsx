@@ -10,7 +10,16 @@ import {
   ChevronRightIcon,
   DocumentTextIcon,
   VideoCameraIcon,
-  CogIcon
+  CogIcon,
+  UserGroupIcon,
+  DocumentIcon,
+  ShieldCheckIcon,
+  ClockIcon,
+  AcademicCapIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+  InformationCircleIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline'
 import ProcessDiagram, { ProcessGraph } from '@/components/ProcessDiagram'
 import InteractiveDemo from '@/components/InteractiveDemo'
@@ -25,7 +34,7 @@ interface WikiSection {
 
 export default function WikiPage() {
   const { user } = useAuth()
-  const [activeSection, setActiveSection] = useState<string>('usage')
+  const [activeSection, setActiveSection] = useState<string>('getting-started')
 
   // Проверяем доступ к Wiki (исключаем заказчиков и исполнителей)
   if (!user || ['customer', 'contractor'].includes(user.role)) {
@@ -44,8 +53,80 @@ export default function WikiPage() {
 
   const sections: WikiSection[] = [
     {
+      id: 'getting-started',
+      title: 'Быстрый старт',
+      icon: RocketLaunchIcon,
+      description: 'Начало работы с платформой',
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Добро пожаловать в Felix!</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Корпоративная платформа для управления проектами, заявками и документами компании Алмазгеобур.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                <UserGroupIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">Команда</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Управление пользователями и ролями</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                <DocumentIcon className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">Документы</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Работа с паспортами ВЭД</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 text-center">
+                <ChartBarIcon className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">Отчеты</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Аналитика и мониторинг</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Первые шаги</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold text-sm">1</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Настройте профиль</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Заполните информацию о себе в разделе "Настройки" → "Профиль"
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 dark:text-green-400 font-semibold text-sm">2</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Изучите интерфейс</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Ознакомьтесь с навигацией и основными разделами платформы
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 dark:text-purple-400 font-semibold text-sm">3</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">Начните работу</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Создайте первую заявку или изучите доступные функции согласно вашей роли
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
       id: 'usage',
-      title: 'Как пользоваться платформой',
+      title: 'Руководство пользователя',
       icon: BookOpenIcon,
       description: 'Подробное руководство по работе с системой',
       content: (
@@ -471,6 +552,223 @@ export default function WikiPage() {
                     <span>Управление ресурсами</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'security',
+      title: 'Безопасность и доступы',
+      icon: ShieldCheckIcon,
+      description: 'Политики безопасности и управления доступом',
+      content: (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Политика безопасности</h3>
+            <div className="space-y-4">
+              <div className="border-l-4 border-red-500 pl-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Пароли</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Минимум 8 символов</li>
+                  <li>• Обязательно: заглавные и строчные буквы, цифры</li>
+                  <li>• Смена пароля каждые 90 дней</li>
+                  <li>• Запрещено использовать простые пароли</li>
+                </ul>
+              </div>
+              <div className="border-l-4 border-blue-500 pl-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Сессии</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Автоматический выход через 8 часов неактивности</li>
+                  <li>• Один активный сеанс на пользователя</li>
+                  <li>• Уведомления о входе с новых устройств</li>
+                </ul>
+              </div>
+              <div className="border-l-4 border-green-500 pl-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Данные</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  <li>• Шифрование всех передаваемых данных</li>
+                  <li>• Резервное копирование каждые 24 часа</li>
+                  <li>• Логирование всех действий пользователей</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Уровни доступа</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-red-600 dark:text-red-400 mb-2">Критический</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Доступ только к административным функциям</p>
+                <ul className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+                  <li>• Управление пользователями</li>
+                  <li>• Настройки системы</li>
+                  <li>• Просмотр логов</li>
+                </ul>
+              </div>
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-yellow-600 dark:text-yellow-400 mb-2">Ограниченный</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Доступ к рабочим функциям</p>
+                <ul className="text-xs text-gray-500 dark:text-gray-500 space-y-1">
+                  <li>• Создание заявок</li>
+                  <li>• Просмотр проектов</li>
+                  <li>• Работа с документами</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'troubleshooting',
+      title: 'Решение проблем',
+      icon: ExclamationTriangleIcon,
+      description: 'Частые проблемы и способы их решения',
+      content: (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Технические проблемы</h3>
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Страница не загружается</h4>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Возможные причины:</p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                    <li>• Проблемы с интернет-соединением</li>
+                    <li>• Блокировка антивирусом</li>
+                    <li>• Устаревший браузер</li>
+                  </ul>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Решение:</p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                    <li>• Проверьте подключение к интернету</li>
+                    <li>• Обновите браузер до последней версии</li>
+                    <li>• Очистите кэш браузера (Ctrl+F5)</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Файлы не загружаются</h4>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Проверьте:</p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                    <li>• Размер файла (максимум 10 МБ)</li>
+                    <li>• Формат файла (PDF, DOC, DOCX, JPG, PNG)</li>
+                    <li>• Наличие вирусов в файле</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">Медленная работа</h4>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Рекомендации:</p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                    <li>• Закройте неиспользуемые вкладки</li>
+                    <li>• Перезагрузите страницу</li>
+                    <li>• Проверьте скорость интернета</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Когда обращаться в поддержку</h3>
+            <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+              <li>• Проблема не решается стандартными способами</li>
+              <li>• Ошибки в работе системы</li>
+              <li>• Потеря данных</li>
+              <li>• Подозрение на взлом аккаунта</li>
+            </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'best-practices',
+      title: 'Лучшие практики',
+      icon: AcademicCapIcon,
+      description: 'Рекомендации по эффективной работе',
+      content: (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Эффективная работа с заявками</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">Создание заявок</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                  <li>• Используйте понятные заголовки</li>
+                  <li>• Подробно описывайте проблему</li>
+                  <li>• Прикрепляйте скриншоты</li>
+                  <li>• Указывайте приоритет корректно</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">Обработка заявок</h4>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                  <li>• Отвечайте в течение 2 часов</li>
+                  <li>• Обновляйте статус регулярно</li>
+                  <li>• Комментируйте свои действия</li>
+                  <li>• Закрывайте только после решения</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Работа с документами</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-500 dark:text-green-400 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-gray-800 dark:text-gray-200">Правильное именование</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Используйте формат: "Тип_Дата_Номер_Описание.pdf"
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-500 dark:text-green-400 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-gray-800 dark:text-gray-200">Категоризация</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Всегда указывайте правильную категорию и теги
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-500 dark:text-green-400 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-gray-800 dark:text-gray-200">Версионность</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    При обновлении документа создавайте новую версию
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Командная работа</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <ClockIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">Время</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Соблюдайте дедлайны</p>
+              </div>
+              <div className="text-center">
+                <UserGroupIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">Коммуникация</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Используйте чат для обсуждений</p>
+              </div>
+              <div className="text-center">
+                <DocumentTextIcon className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">Документирование</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300">Ведите записи о работе</p>
               </div>
             </div>
           </div>
