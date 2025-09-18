@@ -120,7 +120,7 @@ export default function ProcessDiagram({
       </div>
 
       <div className="relative overflow-x-auto">
-        {/* SVG для стрелок между узлами */}
+        {/* SVG для прямых стрелок между узлами */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           {steps.map((_, index) => {
             if (index === steps.length - 1) return null
@@ -131,12 +131,14 @@ export default function ProcessDiagram({
             
             return (
               <g key={index}>
-                {/* Плавная стрелка */}
-                <path
-                  d={`M ${currentX + 24} ${y} Q ${(currentX + nextX) / 2} ${y - 10} ${nextX - 24} ${y}`}
+                {/* Прямая стрелка */}
+                <line
+                  x1={currentX + 24}
+                  y1={y}
+                  x2={nextX - 24}
+                  y2={y}
                   stroke="#6B7280"
                   strokeWidth="2"
-                  fill="none"
                   markerEnd="url(#arrowhead-diagram)"
                   className="transition-all duration-200"
                 />
@@ -319,20 +321,33 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
                     className="transition-all duration-200 hover:stroke-blue-500"
                   />
                   
-                  {/* Фон для текста */}
+                  {/* Фон для текста с тенью */}
                   {conn.label && (
-                    <rect
-                      x={labelX - 20}
-                      y={labelY - 8}
-                      width="40"
-                      height="16"
-                      fill="white"
-                      fillOpacity="0.9"
-                      stroke="#E5E7EB"
-                      strokeWidth="1"
-                      rx="4"
-                      className="dark:fill-gray-800 dark:stroke-gray-600"
-                    />
+                    <g>
+                      {/* Тень */}
+                      <rect
+                        x={labelX - 22}
+                        y={labelY - 6}
+                        width="44"
+                        height="20"
+                        fill="black"
+                        fillOpacity="0.1"
+                        rx="6"
+                      />
+                      {/* Основной фон */}
+                      <rect
+                        x={labelX - 20}
+                        y={labelY - 8}
+                        width="40"
+                        height="16"
+                        fill="white"
+                        fillOpacity="0.95"
+                        stroke="#D1D5DB"
+                        strokeWidth="1"
+                        rx="4"
+                        className="dark:fill-gray-800 dark:stroke-gray-500"
+                      />
+                    </g>
                   )}
                   
                   {/* Текст на стрелке */}
@@ -341,7 +356,8 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
                       x={labelX}
                       y={labelY + 2}
                       textAnchor="middle"
-                      className="text-xs font-medium fill-gray-700 dark:fill-gray-200 pointer-events-none"
+                      className="text-xs font-semibold fill-gray-800 dark:fill-gray-100 pointer-events-none"
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
                     >
                       {conn.label}
                     </text>
