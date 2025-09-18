@@ -547,43 +547,266 @@ export default function WikiPage() {
                   ]}
                 />
               </div>
+
+              <div>
+                <ProcessGraph
+                  title="Процесс автоматизации через n8n"
+                  nodes={[
+                    { id: 'trigger', title: 'Триггер', type: 'start', x: 50, y: 200 },
+                    { id: 'webhook', title: 'Webhook', type: 'process', x: 200, y: 200 },
+                    { id: 'process_data', title: 'Обработка данных', type: 'process', x: 350, y: 200 },
+                    { id: 'decision', title: 'Условие', type: 'decision', x: 500, y: 200 },
+                    { id: 'send_email', title: 'Отправка email', type: 'process', x: 650, y: 150 },
+                    { id: 'update_db', title: 'Обновление БД', type: 'process', x: 650, y: 250 },
+                    { id: 'end', title: 'Завершение', type: 'end', x: 800, y: 200 }
+                  ]}
+                  connections={[
+                    { from: 'trigger', to: 'webhook' },
+                    { from: 'webhook', to: 'process_data' },
+                    { from: 'process_data', to: 'decision' },
+                    { from: 'decision', to: 'send_email', label: 'Успешно' },
+                    { from: 'decision', to: 'update_db', label: 'Ошибка' },
+                    { from: 'send_email', to: 'end' },
+                    { from: 'update_db', to: 'end' }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <ProcessDiagram
+                  title="Процесс создания паспорта ВЭД"
+                  steps={[
+                    {
+                      id: 'select_nomenclature',
+                      title: 'Выбор номенклатуры',
+                      description: 'Выбор товара из справочника',
+                      status: 'completed',
+                      duration: '2 мин'
+                    },
+                    {
+                      id: 'fill_data',
+                      title: 'Заполнение данных',
+                      description: 'Ввод данных заказа и поставщика',
+                      status: 'active',
+                      duration: '5 мин'
+                    },
+                    {
+                      id: 'validation',
+                      title: 'Валидация',
+                      description: 'Проверка корректности данных',
+                      status: 'pending',
+                      duration: '1 мин'
+                    },
+                    {
+                      id: 'generate',
+                      title: 'Генерация',
+                      description: 'Создание паспорта ВЭД',
+                      status: 'pending',
+                      duration: '30 сек'
+                    },
+                    {
+                      id: 'approval',
+                      title: 'Согласование',
+                      description: 'Проверка и утверждение',
+                      status: 'pending',
+                      duration: '10 мин'
+                    },
+                    {
+                      id: 'archive',
+                      title: 'Архивирование',
+                      description: 'Сохранение в архив',
+                      status: 'pending',
+                      duration: '5 сек'
+                    }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <ProcessDiagram
+                  title="Процесс генерации отчетов"
+                  steps={[
+                    {
+                      id: 'select_type',
+                      title: 'Выбор типа отчета',
+                      description: 'Выбор шаблона отчета',
+                      status: 'completed',
+                      duration: '30 сек'
+                    },
+                    {
+                      id: 'set_filters',
+                      title: 'Настройка фильтров',
+                      description: 'Установка параметров выборки',
+                      status: 'active',
+                      duration: '2 мин'
+                    },
+                    {
+                      id: 'generate',
+                      title: 'Генерация',
+                      description: 'Создание отчета',
+                      status: 'pending',
+                      duration: '1 мин'
+                    },
+                    {
+                      id: 'review',
+                      title: 'Просмотр',
+                      description: 'Проверка результатов',
+                      status: 'pending',
+                      duration: '3 мин'
+                    },
+                    {
+                      id: 'export',
+                      title: 'Экспорт',
+                      description: 'Сохранение в файл',
+                      status: 'pending',
+                      duration: '30 сек'
+                    }
+                  ]}
+                />
+              </div>
+
+              <div>
+                <ProcessGraph
+                  title="Процесс управления проектами"
+                  nodes={[
+                    { id: 'init', title: 'Инициация', type: 'start', x: 50, y: 200 },
+                    { id: 'plan', title: 'Планирование', type: 'process', x: 200, y: 200 },
+                    { id: 'assign', title: 'Назначение', type: 'process', x: 350, y: 200 },
+                    { id: 'execute', title: 'Выполнение', type: 'process', x: 500, y: 200 },
+                    { id: 'monitor', title: 'Контроль', type: 'decision', x: 650, y: 200 },
+                    { id: 'complete', title: 'Завершение', type: 'process', x: 800, y: 150 },
+                    { id: 'review', title: 'Доработка', type: 'process', x: 800, y: 250 },
+                    { id: 'close', title: 'Закрытие', type: 'end', x: 950, y: 200 }
+                  ]}
+                  connections={[
+                    { from: 'init', to: 'plan' },
+                    { from: 'plan', to: 'assign' },
+                    { from: 'assign', to: 'execute' },
+                    { from: 'execute', to: 'monitor' },
+                    { from: 'monitor', to: 'complete', label: 'Готово' },
+                    { from: 'monitor', to: 'review', label: 'Требует доработки' },
+                    { from: 'complete', to: 'close' },
+                    { from: 'review', to: 'execute' }
+                  ]}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Схемы по ролям</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium text-blue-600 mb-2">Администратор</h4>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Схемы по ролям</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-blue-600 dark:text-blue-400 mb-2">Администратор</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <span>Управление пользователями</span>
+                    <span className="text-gray-700 dark:text-gray-300">Управление пользователями</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <span>Настройка системы</span>
+                    <span className="text-gray-700 dark:text-gray-300">Настройка системы</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                    <span>Мониторинг процессов</span>
+                    <span className="text-gray-700 dark:text-gray-300">Мониторинг процессов</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Настройка автоматизации</span>
                   </div>
                 </div>
               </div>
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium text-green-600 mb-2">Менеджер</h4>
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-green-600 dark:text-green-400 mb-2">Менеджер</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span>Координация проектов</span>
+                    <span className="text-gray-700 dark:text-gray-300">Координация проектов</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span>Анализ отчетов</span>
+                    <span className="text-gray-700 dark:text-gray-300">Анализ отчетов</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                    <span>Управление ресурсами</span>
+                    <span className="text-gray-700 dark:text-gray-300">Управление ресурсами</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Создание заявок</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-purple-600 dark:text-purple-400 mb-2">ВЭД Паспорт</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Работа с паспортами ВЭД</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Создание заявок</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Управление документами</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Работа с номенклатурой</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-orange-600 dark:text-orange-400 mb-2">Исполнитель</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Выполнение задач</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Обновление статусов</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Работа с чатом</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-red-600 dark:text-red-400 mb-2">Заказчик</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Просмотр заявок</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Отслеживание статуса</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Просмотр отчетов</span>
+                  </div>
+                </div>
+              </div>
+              <div className="border dark:border-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-indigo-600 dark:text-indigo-400 mb-2">Аналитик</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Анализ данных</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Создание отчетов</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+                    <span className="text-gray-700 dark:text-gray-300">Мониторинг KPI</span>
                   </div>
                 </div>
               </div>

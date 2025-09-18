@@ -215,7 +215,7 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
       case 'end':
         return 'bg-red-500 text-white'
       case 'decision':
-        return 'bg-yellow-500 text-white transform rotate-45'
+        return 'bg-yellow-500 text-white'
       default:
         return 'bg-blue-500 text-white'
     }
@@ -282,16 +282,18 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
           <div
             key={node.id}
             className={`
-              absolute w-20 h-20 rounded-lg flex items-center justify-center text-center text-xs font-medium
+              absolute flex items-center justify-center text-center text-xs font-medium
               ${getNodeStyle(node.type)}
-              ${node.type === 'decision' ? 'w-16 h-16' : ''}
+              ${node.type === 'decision' ? 'w-16 h-16 transform rotate-45' : 'w-20 h-20 rounded-lg'}
             `}
             style={{
               left: node.x - (node.type === 'decision' ? 32 : 40),
               top: node.y - 40,
             }}
           >
-            {node.title}
+            <span className={node.type === 'decision' ? 'transform -rotate-45' : ''}>
+              {node.title}
+            </span>
           </div>
         ))}
       </div>
