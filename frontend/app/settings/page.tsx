@@ -11,10 +11,12 @@ import {
 } from '@heroicons/react/24/outline'
 import { PageLayout } from '@/components/layout'
 import { useAuth } from '@/hooks'
+import ChangePasswordModal from '@/components/ChangePasswordModal'
 
 export default function Settings() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [activeTab, setActiveTab] = useState('profile')
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
 
   const tabs = [
     { id: 'profile', name: 'Профиль', icon: UserIcon },
@@ -164,7 +166,10 @@ export default function Settings() {
                   <div className="p-4 border border-gray-200 rounded-lg">
                     <h3 className="font-medium text-gray-900 mb-2">Смена пароля</h3>
                     <p className="text-sm text-gray-600 mb-4">Обновите свой пароль для обеспечения безопасности</p>
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    <button 
+                      onClick={() => setShowChangePasswordModal(true)}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
                       Изменить пароль
                     </button>
                   </div>
@@ -174,6 +179,33 @@ export default function Settings() {
                     <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
                       Настроить 2FA
                     </button>
+                  </div>
+
+                  {/* Информация о безопасности */}
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-medium text-blue-900 mb-2">Рекомендации по безопасности</h3>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Используйте сложные пароли с буквами, цифрами и символами</li>
+                      <li>• Не используйте один пароль для разных сервисов</li>
+                      <li>• Регулярно обновляйте пароли</li>
+                      <li>• Не передавайте пароли третьим лицам</li>
+                    </ul>
+                  </div>
+
+                  {/* Статус пароля */}
+                  <div className="p-4 border border-gray-200 rounded-lg">
+                    <h3 className="font-medium text-gray-900 mb-2">Статус пароля</h3>
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        user?.is_password_changed ? 'bg-green-500' : 'bg-yellow-500'
+                      }`}></div>
+                      <span className="text-sm text-gray-600">
+                        {user?.is_password_changed 
+                          ? 'Пароль был изменен' 
+                          : 'Рекомендуется сменить пароль'
+                        }
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -243,6 +275,18 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Модальное окно изменения пароля */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => {
+          // Обновляем информацию о пользователе после успешного изменения пароля
+          if (refreshUser) {
+            refreshUser()
+          }
+        }}
+      />
     </PageLayout>
   )
 }

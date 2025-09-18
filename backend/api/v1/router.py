@@ -118,6 +118,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.wiki import router as wiki_router
+    api_router.include_router(wiki_router, prefix="/wiki", tags=["📚 Wiki"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

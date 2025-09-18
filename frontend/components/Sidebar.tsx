@@ -18,7 +18,8 @@ import {
   ChevronRightIcon,
   ClipboardDocumentListIcon,
   ArchiveBoxIcon as ArchiveIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  BookOpenIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from '@/hooks'
@@ -44,6 +45,12 @@ const navigation: NavigationItem[] = [
     href: '/about', 
     icon: InformationCircleIcon, 
     roles: ['admin', 'manager', 'employee', 'ved_passport'] 
+  },
+  { 
+    name: 'Wiki', 
+    href: '/wiki', 
+    icon: BookOpenIcon, 
+    roles: ['admin', 'manager', 'employee', 'ved_passport', 'service_engineer'] 
   },
   {
     name: 'Управление пользователями',
