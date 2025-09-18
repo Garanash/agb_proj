@@ -120,39 +120,22 @@ export default function ProcessDiagram({
       </div>
 
       <div className="relative overflow-x-auto">
-        {/* SVG для красивых стрелок между узлами */}
+        {/* SVG для простых стрелок между узлами */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
           <defs>
-            {/* Градиент для стрелок */}
-            <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#3B82F6" stopOpacity="1" />
-              <stop offset="50%" stopColor="#8B5CF6" stopOpacity="1" />
-              <stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
-            </linearGradient>
-            
-            {/* Фильтр для свечения */}
-            <filter id="arrowGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-              <feMerge> 
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            
-            {/* Красивая стрелка */}
+            {/* Простая стрелка */}
             <marker
               id="arrowhead-diagram"
-              markerWidth="16"
-              markerHeight="12"
-              refX="15"
-              refY="6"
+              markerWidth="8"
+              markerHeight="6"
+              refX="7"
+              refY="3"
               orient="auto"
               markerUnits="strokeWidth"
             >
-              <path
-                d="M 0 0 L 16 6 L 0 12 L 4 6 Z"
-                fill="url(#arrowGradient)"
-                filter="url(#arrowGlow)"
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="#374151"
               />
             </marker>
           </defs>
@@ -160,34 +143,22 @@ export default function ProcessDiagram({
           {steps.map((_, index) => {
             if (index === steps.length - 1) return null
             
-            const currentX = 64 + (index * 128)
-            const nextX = 64 + ((index + 1) * 128)
+            const currentX = 64 + (index * 160) // Увеличили расстояние между узлами
+            const nextX = 64 + ((index + 1) * 160)
             const y = 32
             
             return (
               <g key={index}>
-                {/* Основная стрелка */}
+                {/* Простая стрелка */}
                 <line
                   x1={currentX + 32}
                   y1={y}
                   x2={nextX - 32}
                   y2={y}
-                  stroke="url(#arrowGradient)"
-                  strokeWidth="4"
-                  markerEnd="url(#arrowhead-diagram)"
-                  filter="url(#arrowGlow)"
-                  className="transition-all duration-300"
-                />
-                
-                {/* Дополнительная линия для объема */}
-                <line
-                  x1={currentX + 32}
-                  y1={y + 1}
-                  x2={nextX - 32}
-                  y2={y + 1}
-                  stroke="rgba(255,255,255,0.3)"
+                  stroke="#374151"
                   strokeWidth="2"
                   markerEnd="url(#arrowhead-diagram)"
+                  className="transition-all duration-200"
                 />
               </g>
             )
@@ -202,7 +173,7 @@ export default function ProcessDiagram({
             const isCompleted = isInteractive ? currentStep > index : step.status === 'completed'
             
             return (
-              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-32 mx-2 relative z-10">
+              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-40 mx-4 relative z-10">
                 {/* Иконка шага */}
                 <div
                   className={`
@@ -301,46 +272,19 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
           {/* Соединения */}
           <svg className="absolute inset-0 w-full h-full">
             <defs>
-              {/* Красивый градиент для стрелок */}
-              <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity="1" />
-                <stop offset="30%" stopColor="#8B5CF6" stopOpacity="1" />
-                <stop offset="70%" stopColor="#EC4899" stopOpacity="1" />
-                <stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
-              </linearGradient>
-              
-              {/* Фильтр для свечения */}
-              <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                <feMerge> 
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-              
-              {/* Фильтр для тени текста */}
-              <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge> 
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-              
-              {/* Красивая стрелка */}
+              {/* Простая стрелка */}
               <marker
                 id="arrowhead"
-                markerWidth="20"
-                markerHeight="16"
-                refX="19"
-                refY="8"
+                markerWidth="8"
+                markerHeight="6"
+                refX="7"
+                refY="3"
                 orient="auto"
                 markerUnits="strokeWidth"
               >
-                <path
-                  d="M 0 0 L 20 8 L 0 16 L 6 8 Z"
-                  fill="url(#connectionGradient)"
-                  filter="url(#connectionGlow)"
+                <polygon
+                  points="0 0, 8 3, 0 6"
+                  fill="#374151"
                 />
               </marker>
             </defs>
@@ -351,12 +295,11 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               
               if (!fromNode || !toNode) return null
               
-              // Вычисляем красивые кривые Безье
+              // Простые кривые Безье
               const dx = toNode.x - fromNode.x
               const dy = toNode.y - fromNode.y
-              const distance = Math.sqrt(dx * dx + dy * dy)
               
-              // Определяем тип соединения и создаем красивые кривые
+              // Определяем тип соединения
               const isHorizontal = Math.abs(dy) < 30
               const isVertical = Math.abs(dx) < 30
               
@@ -365,98 +308,58 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               let labelY = (fromNode.y + toNode.y) / 2
               
               if (isHorizontal) {
-                // Красивая горизонтальная кривая
-                const controlOffset = Math.min(distance * 0.5, 80)
-                const curveHeight = 30
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - curveHeight} ${toNode.x} ${toNode.y}`
-                labelY = fromNode.y - curveHeight - 10
+                // Простая горизонтальная кривая
+                const controlOffset = dx * 0.3
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - 15} ${toNode.x} ${toNode.y}`
+                labelY = fromNode.y - 20
               } else if (isVertical) {
-                // Красивая вертикальная кривая
-                const controlOffset = Math.min(Math.abs(dy) * 0.5, 50)
-                const curveWidth = 40
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + curveWidth} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
-                labelX = fromNode.x + curveWidth + 10
+                // Простая вертикальная кривая
+                const controlOffset = dy * 0.3
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + 20} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
+                labelX = fromNode.x + 25
               } else {
-                // Красивая диагональная кривая
-                const controlOffsetX = dx * 0.5
-                const controlOffsetY = dy * 0.5
-                const curveOffset = 25
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - curveOffset} ${toNode.x} ${toNode.y}`
-                labelY = (fromNode.y + toNode.y) / 2 - curveOffset - 10
+                // Простая диагональная кривая
+                const controlOffsetX = dx * 0.3
+                const controlOffsetY = dy * 0.3
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - 10} ${toNode.x} ${toNode.y}`
+                labelY = (fromNode.y + toNode.y) / 2 - 15
               }
               
               return (
                 <g key={index}>
-                  {/* Основная кривая */}
+                  {/* Простая кривая */}
                   <path
                     d={pathData}
-                    stroke="url(#connectionGradient)"
-                    strokeWidth="5"
-                    fill="none"
-                    markerEnd="url(#arrowhead)"
-                    filter="url(#connectionGlow)"
-                    className="transition-all duration-300"
-                  />
-                  
-                  {/* Дополнительная линия для объема */}
-                  <path
-                    d={pathData}
-                    stroke="rgba(255,255,255,0.4)"
+                    stroke="#374151"
                     strokeWidth="2"
                     fill="none"
                     markerEnd="url(#arrowhead)"
+                    className="transition-all duration-200"
                   />
                   
-                  {/* Красивый фон для текста */}
+                  {/* Простой фон для текста */}
                   {conn.label && (
-                    <g>
-                      {/* Внешняя тень */}
-                      <rect
-                        x={labelX - 28}
-                        y={labelY - 8}
-                        width="56"
-                        height="24"
-                        fill="rgba(0,0,0,0.2)"
-                        rx="12"
-                        filter="url(#textShadow)"
-                      />
-                      
-                      {/* Основной фон с градиентом */}
-                      <rect
-                        x={labelX - 26}
-                        y={labelY - 6}
-                        width="52"
-                        height="20"
-                        fill="rgba(255,255,255,0.95)"
-                        stroke="rgba(59,130,246,0.3)"
-                        strokeWidth="2"
-                        rx="10"
-                        className="dark:fill-gray-800 dark:stroke-gray-500"
-                      />
-                      
-                      {/* Внутренняя подсветка */}
-                      <rect
-                        x={labelX - 24}
-                        y={labelY - 4}
-                        width="48"
-                        height="16"
-                        fill="rgba(255,255,255,0.1)"
-                        rx="8"
-                      />
-                    </g>
+                    <rect
+                      x={labelX - 20}
+                      y={labelY - 8}
+                      width="40"
+                      height="16"
+                      fill="white"
+                      fillOpacity="0.9"
+                      stroke="#E5E7EB"
+                      strokeWidth="1"
+                      rx="4"
+                      className="dark:fill-gray-800 dark:stroke-gray-600"
+                    />
                   )}
                   
-                  {/* Красивый текст */}
+                  {/* Простой текст */}
                   {conn.label && (
                     <text
                       x={labelX}
-                      y={labelY + 4}
+                      y={labelY + 2}
                       textAnchor="middle"
-                      className="text-sm font-bold fill-gray-800 dark:fill-gray-100 pointer-events-none"
-                      style={{ 
-                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                        letterSpacing: '0.05em'
-                      }}
+                      className="text-xs font-medium fill-gray-700 dark:fill-gray-200 pointer-events-none"
                     >
                       {conn.label}
                     </text>

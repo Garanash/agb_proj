@@ -495,11 +495,11 @@ export default function WikiPage() {
                   title="Процесс управления пользователями"
                   nodes={[
                     { id: 'start', title: 'Начало', type: 'start', x: 80, y: 150 },
-                    { id: 'register', title: 'Регистрация', type: 'process', x: 200, y: 150 },
-                    { id: 'verify', title: 'Проверка данных', type: 'decision', x: 320, y: 150 },
-                    { id: 'activate', title: 'Активация', type: 'process', x: 440, y: 100 },
-                    { id: 'assign_role', title: 'Назначение роли', type: 'process', x: 440, y: 200 },
-                    { id: 'end', title: 'Завершение', type: 'end', x: 560, y: 150 }
+                    { id: 'register', title: 'Регистрация', type: 'process', x: 240, y: 150 },
+                    { id: 'verify', title: 'Проверка данных', type: 'decision', x: 400, y: 150 },
+                    { id: 'activate', title: 'Активация', type: 'process', x: 560, y: 100 },
+                    { id: 'assign_role', title: 'Назначение роли', type: 'process', x: 560, y: 200 },
+                    { id: 'end', title: 'Завершение', type: 'end', x: 720, y: 150 }
                   ]}
                   connections={[
                     { from: 'start', to: 'register' },
@@ -552,13 +552,13 @@ export default function WikiPage() {
                 <ProcessGraph
                   title="Процесс автоматизации через n8n"
                   nodes={[
-                    { id: 'trigger', title: 'Триггер', type: 'start', x: 60, y: 150 },
-                    { id: 'webhook', title: 'Webhook', type: 'process', x: 160, y: 150 },
-                    { id: 'process_data', title: 'Обработка данных', type: 'process', x: 260, y: 150 },
-                    { id: 'decision', title: 'Условие', type: 'decision', x: 360, y: 150 },
-                    { id: 'send_email', title: 'Отправка email', type: 'process', x: 460, y: 100 },
-                    { id: 'update_db', title: 'Обновление БД', type: 'process', x: 460, y: 200 },
-                    { id: 'end', title: 'Завершение', type: 'end', x: 560, y: 150 }
+                    { id: 'trigger', title: 'Триггер', type: 'start', x: 80, y: 150 },
+                    { id: 'webhook', title: 'Webhook', type: 'process', x: 240, y: 150 },
+                    { id: 'process_data', title: 'Обработка данных', type: 'process', x: 400, y: 150 },
+                    { id: 'decision', title: 'Условие', type: 'decision', x: 560, y: 150 },
+                    { id: 'send_email', title: 'Отправка email', type: 'process', x: 720, y: 100 },
+                    { id: 'update_db', title: 'Обновление БД', type: 'process', x: 720, y: 200 },
+                    { id: 'end', title: 'Завершение', type: 'end', x: 880, y: 150 }
                   ]}
                   connections={[
                     { from: 'trigger', to: 'webhook' },
@@ -669,14 +669,14 @@ export default function WikiPage() {
                 <ProcessGraph
                   title="Процесс управления проектами"
                   nodes={[
-                    { id: 'init', title: 'Инициация', type: 'start', x: 60, y: 150 },
-                    { id: 'plan', title: 'Планирование', type: 'process', x: 160, y: 150 },
-                    { id: 'assign', title: 'Назначение', type: 'process', x: 260, y: 150 },
-                    { id: 'execute', title: 'Выполнение', type: 'process', x: 360, y: 150 },
-                    { id: 'monitor', title: 'Контроль', type: 'decision', x: 460, y: 150 },
-                    { id: 'complete', title: 'Завершение', type: 'process', x: 560, y: 100 },
-                    { id: 'review', title: 'Доработка', type: 'process', x: 560, y: 200 },
-                    { id: 'close', title: 'Закрытие', type: 'end', x: 660, y: 150 }
+                    { id: 'init', title: 'Инициация', type: 'start', x: 80, y: 150 },
+                    { id: 'plan', title: 'Планирование', type: 'process', x: 240, y: 150 },
+                    { id: 'assign', title: 'Назначение', type: 'process', x: 400, y: 150 },
+                    { id: 'execute', title: 'Выполнение', type: 'process', x: 560, y: 150 },
+                    { id: 'monitor', title: 'Контроль', type: 'decision', x: 720, y: 150 },
+                    { id: 'complete', title: 'Завершение', type: 'process', x: 880, y: 100 },
+                    { id: 'review', title: 'Доработка', type: 'process', x: 880, y: 200 },
+                    { id: 'close', title: 'Закрытие', type: 'end', x: 1040, y: 150 }
                   ]}
                   connections={[
                     { from: 'init', to: 'plan' },
