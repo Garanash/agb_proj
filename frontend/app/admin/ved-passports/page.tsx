@@ -279,12 +279,12 @@ const AdminVEDPassportsPage = () => {
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      'active': { text: 'Активен', class: 'bg-green-100 text-green-800' },
-      'archived': { text: 'Архив', class: 'bg-gray-100 text-gray-800' },
-      'draft': { text: 'Черновик', class: 'bg-yellow-100 text-yellow-800' }
+      'active': { text: 'Активен', class: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' },
+      'archived': { text: 'Архив', class: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' },
+      'draft': { text: 'Черновик', class: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' }
     };
     
-    const statusInfo = statusMap[status as keyof typeof statusMap] || { text: status, class: 'bg-gray-100 text-gray-800' };
+    const statusInfo = statusMap[status as keyof typeof statusMap] || { text: status, class: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200' };
     
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusInfo.class}`}>
@@ -295,20 +295,20 @@ const AdminVEDPassportsPage = () => {
 
   return (
     <PageLayout title="Паспорта ВЭД">
-      <div className="p-6 bg-white rounded-lg shadow-lg">
+      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         {/* Заголовок и навигация */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Паспорта ВЭД</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Паспорта ВЭД</h1>
           
           {/* Табы */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
               <button
                 onClick={() => setActiveTab('nomenclature')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'nomenclature'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 Управление номенклатурами
@@ -317,8 +317,8 @@ const AdminVEDPassportsPage = () => {
                 onClick={() => setActiveTab('archive')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'archive'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 Архив
@@ -328,7 +328,7 @@ const AdminVEDPassportsPage = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded">
             {error}
           </div>
         )}
@@ -338,8 +338,8 @@ const AdminVEDPassportsPage = () => {
         {activeTab === 'nomenclature' && (
           <div>
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Управление номенклатурами</h2>
-              <p className="text-gray-600 mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Управление номенклатурами</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Управление номенклатурами для создания паспортов ВЭД. Добавляйте, редактируйте и удаляйте номенклатуры.
               </p>
             </div>
@@ -363,18 +363,18 @@ const AdminVEDPassportsPage = () => {
         {activeTab === 'archive' && (
           <div>
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">Архив паспортов ВЭД</h2>
-              <p className="text-gray-600">Просмотр и управление всеми паспортами ВЭД в системе с расширенными фильтрами</p>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">Архив паспортов ВЭД</h2>
+              <p className="text-gray-600 dark:text-gray-400">Просмотр и управление всеми паспортами ВЭД в системе с расширенными фильтрами</p>
             </div>
             
             {/* Фильтры */}
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Фильтры</h3>
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Фильтры</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {/* Поиск */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Поиск
                   </label>
                   <input
@@ -382,19 +382,19 @@ const AdminVEDPassportsPage = () => {
                     value={filters.search}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     placeholder="Номер паспорта, заказа, код 1С..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
 
                 {/* Тип продукта */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Тип продукта
                   </label>
                   <select
                     value={filters.product_type}
                     onChange={(e) => handleFilterChange('product_type', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Все типы</option>
                     {filterOptions.product_types.map((type) => (
@@ -405,13 +405,13 @@ const AdminVEDPassportsPage = () => {
 
                 {/* Матрица */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Матрица
                   </label>
                   <select
                     value={filters.matrix}
                     onChange={(e) => handleFilterChange('matrix', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Все матрицы</option>
                     {filterOptions.matrices.map((matrix) => (
@@ -422,13 +422,13 @@ const AdminVEDPassportsPage = () => {
 
                 {/* Статус */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Статус
                   </label>
                   <select
                     value={filters.status}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">Все статусы</option>
                     {filterOptions.statuses.map((status) => (
@@ -439,33 +439,33 @@ const AdminVEDPassportsPage = () => {
 
                 {/* Дата от */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Дата от
                   </label>
                   <input
                     type="date"
                     value={filters.date_from}
                     onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
 
                 {/* Дата до */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Дата до
                   </label>
                   <input
                     type="date"
                     value={filters.date_to}
                     onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   />
                 </div>
 
                 {/* Номер заказа */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Номер заказа
                   </label>
                   <input
@@ -473,13 +473,13 @@ const AdminVEDPassportsPage = () => {
                     value={filters.order_number}
                     onChange={(e) => handleFilterChange('order_number', e.target.value)}
                     placeholder="Номер заказа"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   </div>
 
                 {/* Код 1С */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Код 1С
                   </label>
                   <input
@@ -487,7 +487,7 @@ const AdminVEDPassportsPage = () => {
                     value={filters.code_1c}
                     onChange={(e) => handleFilterChange('code_1c', e.target.value)}
                     placeholder="Код 1С"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -510,7 +510,7 @@ const AdminVEDPassportsPage = () => {
 
             {/* Результаты */}
             <div className="mb-4 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 Найдено паспортов: {passports.length}
               </h3>
               {passports.length > 0 && (
@@ -543,50 +543,50 @@ const AdminVEDPassportsPage = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Номер паспорта
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Номер заказа
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Номенклатура
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Создатель
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Статус
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Дата создания
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Действия
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {passports.map((passport) => (
-                      <tr key={passport.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <tr key={passport.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                           {passport.passport_number}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {passport.order_number}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           <div>
                             <div className="font-medium">{passport.nomenclature?.name || 'Не указано'}</div>
-                            <div className="text-gray-500 text-xs">
+                            <div className="text-gray-500 dark:text-gray-400 text-xs">
                               {passport.nomenclature?.code_1c} | {passport.nomenclature?.matrix}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {passport.creator ? (
                             <div>
                               <div className="font-medium">
@@ -595,7 +595,7 @@ const AdminVEDPassportsPage = () => {
                                   : passport.creator.username
                                 }
                               </div>
-                              <div className="text-gray-500 text-xs">ID: {passport.creator.id}</div>
+                              <div className="text-gray-500 dark:text-gray-400 text-xs">ID: {passport.creator.id}</div>
                             </div>
                           ) : (
                             'Неизвестно'
@@ -604,13 +604,13 @@ const AdminVEDPassportsPage = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {getStatusBadge(passport.status)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {formatDate(passport.created_at)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
                             <button
-                              className="text-blue-600 hover:text-blue-900"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                               title="Просмотр"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -619,7 +619,7 @@ const AdminVEDPassportsPage = () => {
                               </svg>
                             </button>
                             <button
-                              className="text-green-600 hover:text-green-900"
+                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                               title="Экспорт PDF"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -634,8 +634,8 @@ const AdminVEDPassportsPage = () => {
                 </table>
                 
                 {passports.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <svg className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
                     <p>Паспорта ВЭД не найдены</p>

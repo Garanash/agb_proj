@@ -114,7 +114,7 @@ const ChatPage = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка чата...</p>
+            <p className="text-gray-600 dark:text-gray-400">Загрузка чата...</p>
           </div>
         </div>
       </PageLayout>
@@ -656,8 +656,8 @@ const ChatPage = () => {
       );
     } else {
       return (
-        <div className={`${size} rounded-full bg-gray-300 flex items-center justify-center`}>
-          <span className="text-sm font-medium text-gray-600">
+        <div className={`${size} rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center`}>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
             {user.first_name[0]}
             {user.last_name[0]}
           </span>
@@ -669,8 +669,8 @@ const ChatPage = () => {
   // Функция для отображения аватара бота
   const renderBotAvatar = (bot: ChatBot, size: string = "w-10 h-10") => {
     return (
-      <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center`}>
-        <span className="text-sm font-medium text-blue-600">
+      <div className={`${size} rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center`}>
+        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
           🤖
         </span>
       </div>
@@ -706,10 +706,10 @@ const ChatPage = () => {
     <PageLayout title="Рабочий чат">
       <div className="flex h-[calc(100vh-64px)]">
         {/* Список бесед */}
-        <div className="w-1/4 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4 border-b border-gray-200">
+        <div className="w-1/4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Рабочий чат</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Рабочий чат</h2>
               <button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
@@ -719,20 +719,20 @@ const ChatPage = () => {
             </div>
           </div>
           {/* Папки */}
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {folders && Array.isArray(folders) && folders.length > 0 ? folders.map(folder => (
               <div key={folder.id}>
                 <div
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedFolder?.id === folder.id ? 'bg-gray-100' : ''}`}
+                  className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedFolder?.id === folder.id ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                   onClick={() => setSelectedFolder(selectedFolder?.id === folder.id ? null : folder)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <span className="text-lg mr-2">📁</span>
-                      <h3 className="font-medium">{folder.name}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">{folder.name}</h3>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
                         {rooms && Array.isArray(rooms) ? rooms.filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id)).length : 0} чатов
                       </span>
                       {getFolderUnreadCount(folder.id) > 0 && (
@@ -744,19 +744,19 @@ const ChatPage = () => {
                   </div>
                 </div>
                 {selectedFolder?.id === folder.id && (
-                  <div className="pl-8 divide-y divide-gray-200">
+                  <div className="pl-8 divide-y divide-gray-200 dark:divide-gray-700">
                     {rooms && Array.isArray(rooms) && rooms.length > 0 ? rooms
                       .filter(room => room.folders && room.folders.some(f => f.folder_id === folder.id))
                       .map(room => (
                         <div
                           key={room.id}
-                          className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedRoom?.id === room.id ? 'bg-gray-100' : ''}`}
+                          className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedRoom?.id === room.id ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                           onClick={() => handleRoomSelect(room)}
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <h3 className="font-medium">{room.name}</h3>
-                              <p className="text-sm text-gray-500">
+                              <h3 className="font-medium text-gray-900 dark:text-gray-100">{room.name}</h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Беседа создана {room.created_at ? new Date(room.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
                               </p>
                             </div>
@@ -769,7 +769,7 @@ const ChatPage = () => {
                         </div>
                       ))
                     : (
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                         <p>Нет чатов в этой папке</p>
                       </div>
                     )}
@@ -777,7 +777,7 @@ const ChatPage = () => {
                 )}
               </div>
             )) : (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 <p>Нет папок</p>
               </div>
             )}
@@ -785,20 +785,20 @@ const ChatPage = () => {
 
           {/* Чаты без папок */}
           <div className="mt-4">
-            <h3 className="px-4 py-2 text-sm font-medium text-gray-500">Чаты без папки</h3>
-            <div className="divide-y divide-gray-200">
+            <h3 className="px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Чаты без папки</h3>
+            <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {rooms && Array.isArray(rooms) && rooms.length > 0 ? rooms
                 .filter(room => !room.folders || !room.folders.length)
                 .map(room => (
                   <div
                     key={room.id}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedRoom?.id === room.id ? 'bg-gray-100' : ''}`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${selectedRoom?.id === room.id ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                     onClick={() => handleRoomSelect(room)}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium">{room.name}</h3>
-                        <p className="text-sm text-gray-500">
+                        <h3 className="font-medium text-gray-900 dark:text-gray-100">{room.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
                           Беседа создана {room.created_at ? new Date(room.created_at).toLocaleDateString('ru-RU') : 'Неизвестно'}
                         </p>
                       </div>
@@ -811,7 +811,7 @@ const ChatPage = () => {
                   </div>
                 ))
               : (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   <p>Нет доступных чатов</p>
                 </div>
               )}
@@ -820,13 +820,13 @@ const ChatPage = () => {
         </div>
 
         {/* Область чата */}
-        <div className="flex-1 flex flex-col bg-gray-50">
+        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
           {selectedRoom ? (
             <React.Fragment key={selectedRoom.id}>
               {/* Заголовок беседы */}
-              <div className="p-4 bg-white border-b border-gray-200">
+              <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">{selectedRoom.name}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{selectedRoom.name}</h2>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={handleOpenParticipantsModal}
@@ -865,8 +865,8 @@ const ChatPage = () => {
                           ) : message.bot ? (
                             renderBotAvatar(message.bot)
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                              <span className="text-sm font-medium text-gray-600">
+                            <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                                 ?
                               </span>
                             </div>
@@ -876,10 +876,10 @@ const ChatPage = () => {
                           message.sender?.id === user?.id 
                             ? 'bg-blue-500 text-white' 
                             : message.bot 
-                              ? 'bg-blue-100 text-blue-900' 
+                              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100' 
                               : (!message.sender && !message.bot)
-                                ? 'bg-gray-100 text-gray-700'
-                                : 'bg-white'
+                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                : 'bg-white dark:bg-gray-800'
                         } rounded-lg p-3 shadow`}>
                           <div className="flex items-center space-x-2">
                             <span className="font-medium">
@@ -900,7 +900,7 @@ const ChatPage = () => {
                       </div>
                     </div>
                   )) : (
-                    <div className="text-center text-gray-500 py-8">
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
                       <p>Нет сообщений в этом чате</p>
                     </div>
                   )}
@@ -909,7 +909,7 @@ const ChatPage = () => {
               </div>
 
               {/* Поле ввода */}
-              <div className="p-4 bg-white border-t border-gray-200">
+              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex space-x-4">
                   <input
                     type="text"
@@ -917,7 +917,7 @@ const ChatPage = () => {
                     onChange={(e: any) => setMessage(e.target.value)}
                     onKeyPress={(e: any) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Введите сообщение..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <button
                     onClick={handleSendMessage}
@@ -930,7 +930,7 @@ const ChatPage = () => {
             </React.Fragment>
           ) : (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-gray-500">Выберите беседу для начала общения</p>
+              <p className="text-gray-500 dark:text-gray-400">Выберите беседу для начала общения</p>
             </div>
           )}
         </div>

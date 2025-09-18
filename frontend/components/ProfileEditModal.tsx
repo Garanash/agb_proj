@@ -110,7 +110,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
       <div className="p-6">
         <form onSubmit={handleSubmit}>
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 rounded">
               {error}
             </div>
           )}
@@ -119,7 +119,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
           <div className="mb-6 text-center">
             <div className="relative inline-block">
               <div 
-                className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={handleAvatarClick}
               >
                 {previewAvatar ? (
@@ -158,13 +158,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
               onChange={handleFileChange}
               className="hidden"
             />
-            <p className="text-sm text-gray-600 mt-2">Нажмите для изменения аватара</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Нажмите для изменения аватара</p>
           </div>
 
           {/* Основная информация */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Фамилия *
               </label>
               <input
@@ -173,13 +173,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
                 value={formData.last_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Введите фамилию"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Имя *
               </label>
               <input
@@ -188,13 +188,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
                 value={formData.first_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-2"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Введите имя"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Отчество
               </label>
               <input
@@ -202,13 +202,13 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
                 name="middle_name"
                 value={formData.middle_name}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Введите отчество"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email *
               </label>
               <input
@@ -217,7 +217,7 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
                 value={formData.email}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 placeholder="Введите email"
               />
             </div>
@@ -226,11 +226,11 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
           </div>
 
           {/* Кнопки */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type={"button" as const}
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
               disabled={isLoading}
             >
               Отменить

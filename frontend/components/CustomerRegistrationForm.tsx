@@ -111,21 +111,21 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
   return (
     <div>
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-red-800">{error}</p>
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
+          <p className="text-red-800 dark:text-red-200">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Данные компании */}
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2">
             Данные компании
           </h3>
 
           {/* Название компании */}
           <div>
-            <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Название компании *
             </label>
             <input
@@ -134,7 +134,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
               name="company_name"
               value={formData.company_name}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="Введите название вашей компании"
               required
             />
@@ -142,7 +142,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
 
           {/* Контактное лицо */}
           <div>
-            <label htmlFor="contact_person" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="contact_person" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Контактное лицо *
             </label>
             <input
@@ -151,7 +151,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
               name="contact_person"
               value={formData.contact_person}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="ФИО контактного лица"
               required
             />
@@ -159,7 +159,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
 
           {/* Телефон компании */}
           <div>
-            <label htmlFor="company_phone" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="company_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Телефон компании *
             </label>
             <input
@@ -168,7 +168,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
               name="company_phone"
               value={formData.company_phone}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="+7 (999) 123-45-67"
               required
             />
@@ -176,7 +176,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
 
           {/* Email компании */}
           <div>
-            <label htmlFor="company_email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="company_email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Email компании *
             </label>
             <input
@@ -185,7 +185,7 @@ const CustomerRegistrationForm: React.FC<CustomerRegistrationFormProps> = ({
               name="company_email"
               value={formData.company_email}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
               placeholder="info@company.com"
               required
             />

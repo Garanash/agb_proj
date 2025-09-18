@@ -20,9 +20,9 @@ export default function Reports() {
   if (!user || !['admin', 'manager'].includes(user.role)) {
     return (
       <PageLayout title="Доступ запрещен">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-900 mb-2">Недостаточно прав</h2>
-          <p className="text-red-700">Данная страница доступна только администраторам и менеджерам.</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">Недостаточно прав</h2>
+          <p className="text-red-700 dark:text-red-300">Данная страница доступна только администраторам и менеджерам.</p>
         </div>
       </PageLayout>
     )
@@ -73,22 +73,22 @@ export default function Reports() {
           const Icon = report.icon
           
           return (
-            <div key={report.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div key={report.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start space-x-4">
                 <div className={`p-3 rounded-lg ${report.color}`}>
                   <Icon className="h-6 w-6" />
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.title}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{report.description}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{report.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{report.description}</p>
                   
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       Последнее обновление: {new Date(report.lastGenerated).toLocaleDateString('ru-RU')}
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                      <button className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium">
                         Просмотр
                       </button>
                       <button className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
@@ -104,28 +104,28 @@ export default function Reports() {
       </div>
 
       {/* Быстрая аналитика */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Быстрая аналитика</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-6">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Быстрая аналитика</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-2xl font-bold text-blue-600 mb-2">12</div>
-            <div className="text-sm text-gray-600">Активных проектов</div>
+          <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-2">12</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Активных проектов</div>
           </div>
           
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-2xl font-bold text-green-600 mb-2">85%</div>
-            <div className="text-sm text-gray-600">Средний прогресс</div>
+          <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">85%</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Средний прогресс</div>
           </div>
           
-          <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-2xl font-bold text-purple-600 mb-2">47</div>
-            <div className="text-sm text-gray-600">Сотрудников в работе</div>
+          <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mb-2">47</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Сотрудников в работе</div>
           </div>
           
-          <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <div className="text-2xl font-bold text-orange-600 mb-2">98%</div>
-            <div className="text-sm text-gray-600">Готовность оборудования</div>
+          <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+            <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-2">98%</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Готовность оборудования</div>
           </div>
         </div>
       </div>

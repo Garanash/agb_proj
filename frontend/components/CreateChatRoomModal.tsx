@@ -177,47 +177,47 @@ export default function CreateChatRoomModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Создать новый чат</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Создать новый чат</h2>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <div className="bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
               Название чата
             </label>
             <input
               type="text"
               value={name}
               onChange={(e: any) => setName(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 dark:text-gray-100 leading-tight focus:outline-none focus:shadow-outline bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
               required
             />
           </div>
 
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
               Участники
             </label>
             
             {/* Информация о создателе */}
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
                 <strong>Создатель чата:</strong> {user?.first_name} {user?.last_name}
                 <br />
-                <span className="text-blue-600">(автоматически добавлен как участник и администратор)</span>
+                <span className="text-blue-600 dark:text-blue-300">(автоматически добавлен как участник и администратор)</span>
               </p>
             </div>
             
             {/* Боты */}
             {bots.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">ИИ Боты</h3>
+                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">ИИ Боты</h3>
                 <div className="space-y-2">
                   {bots.map(bot => (
                     <div key={bot.id} className="flex items-center">
@@ -229,12 +229,12 @@ export default function CreateChatRoomModal({
                         className="mr-2"
                       />
                       <label htmlFor={`bot-${bot.id}`} className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-2">
                           <span className="text-sm">🤖</span>
                         </div>
-                        <span>{bot.name}</span>
+                        <span className="text-gray-900 dark:text-gray-100">{bot.name}</span>
                         {bot.description && (
-                          <span className="text-gray-500 text-sm ml-2">
+                          <span className="text-gray-500 dark:text-gray-400 text-sm ml-2">
                             ({bot.description})
                           </span>
                         )}
@@ -249,7 +249,7 @@ export default function CreateChatRoomModal({
             {usersByDepartment.map(({ department, users }) => (
               users.length > 0 && (
                 <div key={department.id} className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2">{department.name}</h3>
+                  <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{department.name}</h3>
                   <div className="space-y-2">
                     {users.map(user => (
                       <div key={user.id} className="flex items-center">
@@ -272,14 +272,14 @@ export default function CreateChatRoomModal({
                               }}
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                              <span className="text-sm font-medium text-gray-600">
+                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
+                              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                                 {user.first_name[0]}
                                 {user.last_name[0]}
                               </span>
                             </div>
                           )}
-                          <span>
+                          <span className="text-gray-900 dark:text-gray-100">
                             {user.first_name} {user.last_name}
                           </span>
                         </label>
@@ -338,7 +338,7 @@ export default function CreateChatRoomModal({
             <button
               type={"button" as const}
               onClick={onClose}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
+              className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded"
               disabled={isLoading}
             >
               Отмена

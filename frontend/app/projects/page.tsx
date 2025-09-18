@@ -20,9 +20,9 @@ export default function Projects() {
   if (!user || !['admin', 'manager'].includes(user.role)) {
     return (
       <PageLayout title="Доступ запрещен">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-900 mb-2">Недостаточно прав</h2>
-          <p className="text-red-700">Данная страница доступна только администраторам и менеджерам.</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">Недостаточно прав</h2>
+          <p className="text-red-700 dark:text-red-300">Данная страница доступна только администраторам и менеджерам.</p>
         </div>
       </PageLayout>
     )
@@ -91,25 +91,25 @@ export default function Projects() {
           const StatusIcon = statusInfo.icon
           
           return (
-            <div key={project.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+            <div key={project.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{project.name}</h3>
                   <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusInfo.color}`}>
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {statusInfo.label}
                   </div>
                 </div>
                 
-                <p className="text-gray-600 text-sm mb-4">{project.description}</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{project.description}</p>
                 
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
                       <span>Прогресс</span>
                       <span>{project.progress}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div 
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                         style={{ width: `${project.progress}%` }}
@@ -117,7 +117,7 @@ export default function Projects() {
                     </div>
                   </div>
                   
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex justify-between">
                       <span>Начало:</span>
                       <span>{new Date(project.startDate).toLocaleDateString('ru-RU')}</span>
@@ -134,8 +134,8 @@ export default function Projects() {
                 </div>
               </div>
               
-              <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium">
                   Подробнее →
                 </button>
               </div>

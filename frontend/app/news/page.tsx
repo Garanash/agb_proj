@@ -169,7 +169,7 @@ export default function NewsPage() {
     >
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {canManageNews ? 'Управление новостями' : 'Новости'}
           </h1>
           {canManageNews && (
@@ -184,16 +184,16 @@ export default function NewsPage() {
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Загрузка новостей...</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">Загрузка новостей...</p>
             </div>
           </div>
         ) : news.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="text-center py-8">
-              <p className="text-gray-500">
+              <p className="text-gray-500 dark:text-gray-400">
                 {canManageNews ? 'У вас пока нет новостей' : 'Новостей пока нет'}
               </p>
               {canManageNews && (
@@ -209,26 +209,26 @@ export default function NewsPage() {
         ) : (
           <div className="space-y-4">
             {news.map((newsItem) => (
-              <div key={newsItem.id} className="bg-white rounded-lg shadow p-6">
+              <div key={newsItem.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                         {newsItem.title}
                       </h3>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getCategoryColor(newsItem.category)}`}>
                         {getCategoryLabel(newsItem.category)}
                       </span>
                       {!newsItem.is_published && (
-                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
                           Не опубликовано
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-3 line-clamp-3">
+                    <p className="text-gray-600 dark:text-gray-400 mb-3 line-clamp-3">
                       {newsItem.content}
                     </p>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       <span>Автор: {newsItem.author_name}</span>
                       <span className="mx-2">•</span>
                       <span>{formatDate(newsItem.created_at)}</span>

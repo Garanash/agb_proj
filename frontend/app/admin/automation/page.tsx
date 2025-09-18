@@ -207,7 +207,7 @@ export default function AutomationPage() {
               </button>
               <button
                 onClick={fetchData}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <ChartBarIcon className="h-4 w-4 mr-2" />
                 Обновить
@@ -219,18 +219,18 @@ export default function AutomationPage() {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <CogIcon className="h-6 w-6 text-gray-400" />
+                    <CogIcon className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                         Всего Workflows
                       </dt>
-                      <dd className="text-lg font-medium text-gray-900">
+                      <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {stats.workflows}
                       </dd>
                     </dl>
@@ -239,18 +239,18 @@ export default function AutomationPage() {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <PlayIcon className="h-6 w-6 text-green-400" />
+                    <PlayIcon className="h-6 w-6 text-green-400 dark:text-green-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                         Активные
                       </dt>
-                      <dd className="text-lg font-medium text-gray-900">
+                      <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {stats.activeWorkflows}
                       </dd>
                     </dl>
@@ -259,18 +259,18 @@ export default function AutomationPage() {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <ChartBarIcon className="h-6 w-6 text-blue-400" />
+                    <ChartBarIcon className="h-6 w-6 text-blue-400 dark:text-blue-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                         Выполнений
                       </dt>
-                      <dd className="text-lg font-medium text-gray-900">
+                      <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {stats.executions}
                       </dd>
                     </dl>
@@ -279,18 +279,18 @@ export default function AutomationPage() {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
-                    <CheckCircleIcon className="h-6 w-6 text-green-400" />
+                    <CheckCircleIcon className="h-6 w-6 text-green-400 dark:text-green-500" />
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
+                      <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
                         Успешность
                       </dt>
-                      <dd className="text-lg font-medium text-gray-900">
+                      <dd className="text-lg font-medium text-gray-900 dark:text-gray-100">
                         {stats.successRate}%
                       </dd>
                     </dl>
@@ -303,7 +303,7 @@ export default function AutomationPage() {
 
         {/* Tabs */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8">
               {[
                 { id: 'workflows', name: 'Workflows', count: workflows.length },
@@ -315,13 +315,13 @@ export default function AutomationPage() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   {tab.name}
                   {tab.count !== null && (
-                    <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs">
+                    <span className="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-0.5 px-2.5 rounded-full text-xs">
                       {tab.count}
                     </span>
                   )}

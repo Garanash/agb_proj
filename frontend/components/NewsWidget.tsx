@@ -106,11 +106,11 @@ const NewsWidget: React.FC = () => {
     : news.filter(item => item.category === selectedCategory)
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 h-full flex flex-col">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 h-full flex flex-col">
       {/* Заголовок */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Новости компании</h2>
-        <div className="text-sm text-gray-500">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Новости компании</h2>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           {news.length} новостей
         </div>
       </div>
@@ -123,7 +123,7 @@ const NewsWidget: React.FC = () => {
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               selectedCategory === 'all' 
                 ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
             }`}
           >
             Все
@@ -135,7 +135,7 @@ const NewsWidget: React.FC = () => {
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 selectedCategory === category 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               {getCategoryName(category)}
@@ -148,18 +148,18 @@ const NewsWidget: React.FC = () => {
       <div className="space-y-4 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Загрузка новостей...</p>
+            <p className="text-gray-500 dark:text-gray-400">Загрузка новостей...</p>
           </div>
         ) : filteredNews.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Нет новостей в этой категории.</p>
+            <p className="text-gray-500 dark:text-gray-400">Нет новостей в этой категории.</p>
           </div>
         ) : (
           filteredNews.map((item) => (
-            <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div key={item.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-700">
               {/* Заголовок и категория */}
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-gray-800 text-sm leading-tight flex-1">
+                <h3 className="font-semibold text-gray-800 dark:text-gray-100 text-sm leading-tight flex-1">
                   {item.title}
                 </h3>
                 <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
@@ -168,12 +168,12 @@ const NewsWidget: React.FC = () => {
               </div>
 
               {/* Содержимое */}
-              <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-3">
                 {item.content}
               </p>
 
               {/* Мета-информация */}
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>Автор: {item.author}</span>
                 <span>{moment(item.publishedAt).format('DD MMMM, HH:mm')}</span>
               </div>

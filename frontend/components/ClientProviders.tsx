@@ -3,6 +3,7 @@
 import React from 'react'
 import { AuthProvider } from './AuthContext'
 import { AuthGuard } from '@/components'
+import { ThemeProvider } from '../contexts/ThemeContext'
 
 interface ClientProvidersProps {
   children: React.ReactNode
@@ -10,10 +11,12 @@ interface ClientProvidersProps {
 
 export default function ClientProviders({ children }: ClientProvidersProps) {
   return (
-    <AuthProvider>
-      <AuthGuard>
-        {children}
-      </AuthGuard>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AuthGuard>
+          {children}
+        </AuthGuard>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }

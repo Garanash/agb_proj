@@ -203,14 +203,14 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
   return (
     <div className={className}>
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Массовый ввод позиций
         </label>
-        <div className="text-sm text-gray-500 mb-2">
-          Введите коды 1С и количество в формате: <code>УТ-00047870 5</code> (по одному на строку)
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          Введите коды 1С и количество в формате: <code className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1 rounded">УТ-00047870 5</code> (по одному на строку)
         </div>
         <textarea
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           rows={6}
           placeholder="УТ-00047870 5&#10;УТ-00047871 3&#10;УТ-00047885 2"
           value={inputText}
@@ -220,19 +220,19 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
 
       {/* Статистика */}
       {items.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-gray-900">{items.length}</div>
-              <div className="text-sm text-gray-500">Всего позиций</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{items.length}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Всего позиций</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-green-600">{validItemsCount}</div>
-              <div className="text-sm text-gray-500">Валидных</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{validItemsCount}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Валидных</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-600">{totalQuantity}</div>
-              <div className="text-sm text-gray-500">Общее количество</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalQuantity}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Общее количество</div>
             </div>
           </div>
         </div>
@@ -241,33 +241,33 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
       {/* Список распознанных позиций */}
       {items.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-lg font-medium text-gray-900">Распознанные позиции:</h4>
+          <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">Распознанные позиции:</h4>
           {items.map((item, index) => (
             <div
               key={index}
               className={`p-4 border rounded-lg ${
-                item.isValid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                item.isValid ? 'border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/20' : 'border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <span className="font-medium text-gray-900">
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
                       {item.code_1c}
                     </span>
                     {item.isValid ? (
-                      <CheckIcon className="h-5 w-5 text-green-600" />
+                      <CheckIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                     ) : (
-                      <span className="text-red-600 text-sm">{item.error}</span>
+                      <span className="text-red-600 dark:text-red-400 text-sm">{item.error}</span>
                     )}
                   </div>
                   
                   {item.nomenclature && (
                     <div className="space-y-1">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
                         {item.nomenclature.name}
                       </div>
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                         <span>Артикул: {item.nomenclature.article}</span>
                         <span>Матрица: {item.nomenclature.matrix}</span>
                         {item.nomenclature.drilling_depth && (
@@ -290,19 +290,19 @@ export default function BulkInputArea({ onItemsChange, className = "" }: BulkInp
                 <div className="flex items-center space-x-3">
                   {item.isValid && (
                     <div className="flex items-center space-x-2">
-                      <label className="text-sm text-gray-700">Количество:</label>
+                      <label className="text-sm text-gray-700 dark:text-gray-300">Количество:</label>
                       <input
                         type="text"
                         value={item.quantity.toString()}
                         onChange={(e: any) => handleQuantityChange(index, e.target.value)}
-                        className="w-16 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                         placeholder="0"
                       />
                     </div>
                   )}
                   <button
                     onClick={() => removeItem(index)}
-                    className="text-red-600 hover:text-red-800"
+                    className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
                     title="Удалить позицию"
                   >
                     <XMarkIcon className="h-5 w-5" />

@@ -119,11 +119,11 @@ export default function CustomerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Заголовок страницы */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {getCurrentTabTitle()}
           </h1>
           <button
@@ -140,7 +140,7 @@ export default function CustomerDashboard() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка...</p>
+            <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
           </div>
         ) : (
           <>
@@ -305,28 +305,28 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
         <div className="bg-blue-600 text-white px-6 py-4">
           <h2 className="text-2xl font-bold">Создание новой заявки</h2>
           <p className="text-blue-100 mt-1">Заполните все поля для точного описания проблемы</p>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800">{error}</p>
+          <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
+            <p className="text-red-800 dark:text-red-200">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-8">
           {/* Основная информация о заявке */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
               Основная информация
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Название заявки *
                 </label>
                 <input
@@ -335,19 +335,19 @@ function CreateRequestForm({ onSuccess }: { onSuccess: () => void }) {
                   value={formData.title}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   placeholder="Краткое описание проблемы"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Срочность *
                 </label>
                 <select
                   name="urgency"
                   value={formData.urgency}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="низкая">Низкая</option>
                   <option value="средне">Средняя</option>

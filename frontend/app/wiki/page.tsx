@@ -480,12 +480,12 @@ export default function WikiPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Заголовок */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Wiki платформы</h1>
-          <p className="text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Wiki платформы</h1>
+          <p className="text-gray-600 dark:text-gray-400">
             Полное руководство по использованию корпоративной платформы Алмазгеобур
           </p>
         </div>
@@ -493,9 +493,9 @@ export default function WikiPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Боковое меню */}
           <div className="lg:w-80 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
               <div className="p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Разделы</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Разделы</h2>
                 <nav className="space-y-2">
                   {sections.map((section) => {
                     const Icon = section.icon
@@ -505,14 +505,14 @@ export default function WikiPage() {
                         onClick={() => setActiveSection(section.id)}
                         className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
                           activeSection === section.id
-                            ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-600'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-4 border-blue-600 dark:border-blue-400'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
                         <div className="text-left">
                           <div className="font-medium">{section.title}</div>
-                          <div className="text-xs text-gray-500 mt-1">{section.description}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{section.description}</div>
                         </div>
                       </button>
                     )
@@ -524,7 +524,7 @@ export default function WikiPage() {
 
           {/* Основной контент */}
           <div className="flex-1">
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
               <div className="p-6">
                 {sections.find(section => section.id === activeSection)?.content}
               </div>

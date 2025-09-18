@@ -33,8 +33,8 @@ export default function TextLogo({ size = 'md', showIcon = true, className = '' 
         </div>
       )}
       <div>
-        <h1 className={`font-bold text-gray-900 ${sizeClasses[size]}`}>Felix</h1>
-        <p className="text-sm text-gray-600">Корпоративная платформа</p>
+        <h1 className={`font-bold text-gray-900 dark:text-gray-100 ${sizeClasses[size]}`}>Felix</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Корпоративная платформа</p>
       </div>
     </div>
   )

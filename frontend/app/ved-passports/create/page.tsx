@@ -424,15 +424,15 @@ export default function CreateVEDPassportPage() {
   // Если пользователь не авторизован, показываем сообщение
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-400 mb-4">
+          <div className="text-gray-400 dark:text-gray-500 mb-4">
             <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Требуется авторизация</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Требуется авторизация</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             Для создания паспортов ВЭД необходимо авторизоваться
           </p>
           <Link
@@ -447,46 +447,46 @@ export default function CreateVEDPassportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Заголовок и навигация */}
         <div className="mb-8">
           <Link 
             href="/ved-passports"
-            className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 mb-4"
+            className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mb-4"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />
             Назад к паспортам ВЭД
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Создание паспортов ВЭД</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Создание паспортов ВЭД</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Создайте новые паспорта внешнеэкономической деятельности
           </p>
         </div>
 
         {/* Сообщения об успехе/ошибке */}
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-            <div className="text-green-800">{successMessage}</div>
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md">
+            <div className="text-green-800 dark:text-green-200">{successMessage}</div>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <div className="text-red-800">{errorMessage}</div>
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md">
+            <div className="text-red-800 dark:text-red-200">{errorMessage}</div>
           </div>
         )}
 
         {/* Вкладки */}
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg mb-6">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab('single')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'single'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 <DocumentIcon className="w-5 h-5 inline mr-2" />
@@ -496,8 +496,8 @@ export default function CreateVEDPassportPage() {
                 onClick={() => setActiveTab('bulk')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'bulk'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 <ClipboardDocumentIcon className="w-5 h-5 inline mr-2" />
@@ -509,11 +509,11 @@ export default function CreateVEDPassportPage() {
           <div className="p-6">
             {activeTab === 'single' ? (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">Создание одного паспорта</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Создание одного паспорта</h3>
                 
                 {/* Номер заказа */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Номер заказа поставщику *
                   </label>
                   <input
@@ -521,7 +521,7 @@ export default function CreateVEDPassportPage() {
                     name="orderNumber"
                     value={formData.orderNumber}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="Введите номер заказа"
                     required
                   />
@@ -529,7 +529,7 @@ export default function CreateVEDPassportPage() {
 
                 {/* Выбор номенклатуры */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Выбор номенклатуры *
                   </label>
                   <NomenclatureSelector 
@@ -540,7 +540,7 @@ export default function CreateVEDPassportPage() {
 
                 {/* Количество */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Количество экземпляров *
                   </label>
                   <input
@@ -548,10 +548,10 @@ export default function CreateVEDPassportPage() {
                     name="quantity"
                     value={formData.quantity === 0 ? '' : formData.quantity.toString()}
                     onChange={handleQuantityChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="1"
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Будет создано {formData.quantity === 0 ? 1 : formData.quantity} паспортов (по одному на каждый экземпляр)
                   </p>
                 </div>
@@ -567,11 +567,11 @@ export default function CreateVEDPassportPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">Массовое создание паспортов</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Массовое создание паспортов</h3>
                 
                 {/* Номер заказа для массового создания */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Номер заказа поставщику *
                   </label>
                   <input
@@ -579,7 +579,7 @@ export default function CreateVEDPassportPage() {
                     name="orderNumber"
                     value={formData.orderNumber}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="Введите номер заказа"
                     required
                   />
@@ -587,7 +587,7 @@ export default function CreateVEDPassportPage() {
 
                 {/* Область для массового ввода */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Введите номенклатуру и количество
                   </label>
                   <BulkInputArea onItemsChange={handleBulkItemsChange} />

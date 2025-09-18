@@ -49,6 +49,13 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Темная тема */
+.dark {
+  --foreground-rgb: 248, 250, 252;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -81,6 +88,50 @@ a {
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
+.dark .sidebar-shadow {
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
 .user-card-shadow {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark .user-card-shadow {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Дополнительные стили для темной темы */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Стили для темных модальных окон */
+.dark .modal-content {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+/* Стили для темных форм */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }

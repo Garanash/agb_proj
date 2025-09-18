@@ -89,7 +89,7 @@ const BotsPage = () => {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Загрузка...</p>
+            <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
           </div>
         </div>
       </PageLayout>
@@ -98,10 +98,10 @@ const BotsPage = () => {
 
   return (
     <PageLayout title="Управление ботами">
-      <div className="p-6 bg-white rounded-lg shadow-lg">
+      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         {/* Заголовок и кнопка создания */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Управление ботами</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Управление ботами</h1>
           <button
             onClick={() => {
               setSelectedBot(null);
@@ -114,7 +114,7 @@ const BotsPage = () => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 rounded">
             {error}
           </div>
         )}
@@ -124,22 +124,22 @@ const BotsPage = () => {
           {bots.map(bot => (
             <div
               key={bot.id}
-              className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+              className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {bot.name}
                     {!bot.is_active && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium text-red-600 bg-red-100 rounded-full">
+                      <span className="ml-2 px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 rounded-full">
                         Неактивен
                       </span>
                     )}
                   </h3>
                   {bot.description && (
-                    <p className="mt-1 text-gray-600">{bot.description}</p>
+                    <p className="mt-1 text-gray-600 dark:text-gray-400">{bot.description}</p>
                   )}
-                  <div className="mt-2 space-y-1 text-sm text-gray-500">
+                  <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
                     <p>Модель: {bot.model_id}</p>
                     <p>Создан: {new Date(bot.created_at).toLocaleDateString('ru-RU')}</p>
                   </div>
@@ -150,7 +150,7 @@ const BotsPage = () => {
                       setSelectedBot(bot);
                       setIsEditorOpen(true);
                     }}
-                    className="p-2 text-blue-600 hover:bg-blue-100 rounded"
+                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded"
                     title="Редактировать"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +159,7 @@ const BotsPage = () => {
                   </button>
                   <button
                     onClick={() => handleDeleteBot(bot)}
-                    className="p-2 text-red-600 hover:bg-red-100 rounded"
+                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded"
                     title="Удалить"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,8 +171,8 @@ const BotsPage = () => {
             </div>
           ))}
           {bots.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap={"round" as const} strokeLinejoin={"round" as const} strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               <p>Пока нет ни одного бота</p>

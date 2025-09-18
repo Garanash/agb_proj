@@ -45,13 +45,13 @@ const AdminPage = () => {
 
   return (
     <PageLayout title="Админ панель">
-      <div className="p-6 bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Админ панель</h1>
+      <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Админ панель</h1>
         
         {/* Отладочная информация */}
-        <div className="mb-6 p-4 bg-gray-100 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">Отладочная информация:</h3>
-          <pre className="text-sm text-gray-700 overflow-auto">
+        <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Отладочная информация:</h3>
+          <pre className="text-sm text-gray-700 dark:text-gray-300 overflow-auto">
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
         </div>
@@ -60,54 +60,54 @@ const AdminPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link
             href="/admin/users"
-            className="p-6 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+            className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
           >
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xl">
                 👥
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 ml-4">Управление пользователями</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 ml-4">Управление пользователями</h3>
             </div>
-            <p className="text-gray-600">Создание, редактирование и управление пользователями системы</p>
+            <p className="text-gray-600 dark:text-gray-400">Создание, редактирование и управление пользователями системы</p>
           </Link>
 
           <Link
             href="/admin/bots"
-            className="p-6 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+            className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
           >
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center text-white text-xl">
                 🤖
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 ml-4">Управление ботами</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 ml-4">Управление ботами</h3>
             </div>
-            <p className="text-gray-600">Настройка и управление чат-ботами</p>
+            <p className="text-gray-600 dark:text-gray-400">Настройка и управление чат-ботами</p>
           </Link>
 
           <Link
             href="/admin/ved-passports"
-            className="p-6 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+            className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
           >
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xl">
                 📄
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 ml-4">Паспорта ВЭД</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 ml-4">Паспорта ВЭД</h3>
             </div>
-            <p className="text-gray-600">Управление паспортами ВЭД, архив и номенклатура</p>
+            <p className="text-gray-600 dark:text-gray-400">Управление паспортами ВЭД, архив и номенклатура</p>
           </Link>
 
           <Link
             href="/ved-passports"
-            className="p-6 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
+            className="p-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
           >
             <div className="flex items-center mb-4">
               <div className="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center text-white text-xl">
                 📋
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 ml-4">Создание паспортов</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 ml-4">Создание паспортов</h3>
             </div>
-            <p className="text-gray-600">Создание новых паспортов ВЭД</p>
+            <p className="text-gray-600 dark:text-gray-400">Создание новых паспортов ВЭД</p>
           </Link>
         </div>
       </div>

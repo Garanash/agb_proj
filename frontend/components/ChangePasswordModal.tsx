@@ -146,13 +146,13 @@ export default function ChangePasswordModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Изменение пароля</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Изменение пароля</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -162,21 +162,21 @@ export default function ChangePasswordModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Сообщение об успехе */}
           {successMessage && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 text-sm">{successMessage}</p>
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+              <p className="text-green-800 dark:text-green-200 text-sm">{successMessage}</p>
             </div>
           )}
 
           {/* Общая ошибка */}
           {errors.submit && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{errors.submit}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
+              <p className="text-red-800 dark:text-red-200 text-sm">{errors.submit}</p>
             </div>
           )}
 
           {/* Текущий пароль */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Текущий пароль
             </label>
             <div className="relative">
@@ -184,8 +184,8 @@ export default function ChangePasswordModal({
                 type={showPasswords.old ? 'text' : 'password'}
                 value={formData.oldPassword}
                 onChange={(e) => handleInputChange('oldPassword', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.oldPassword ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  errors.oldPassword ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="Введите текущий пароль"
                 disabled={isLoading}
@@ -193,7 +193,7 @@ export default function ChangePasswordModal({
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('old')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 disabled={isLoading}
               >
                 {showPasswords.old ? (
@@ -204,13 +204,13 @@ export default function ChangePasswordModal({
               </button>
             </div>
             {errors.oldPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.oldPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.oldPassword}</p>
             )}
           </div>
 
           {/* Новый пароль */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Новый пароль
             </label>
             <div className="relative">
@@ -218,8 +218,8 @@ export default function ChangePasswordModal({
                 type={showPasswords.new ? 'text' : 'password'}
                 value={formData.newPassword}
                 onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.newPassword ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  errors.newPassword ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="Введите новый пароль"
                 disabled={isLoading}
@@ -227,7 +227,7 @@ export default function ChangePasswordModal({
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('new')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 disabled={isLoading}
               >
                 {showPasswords.new ? (
@@ -238,16 +238,16 @@ export default function ChangePasswordModal({
               </button>
             </div>
             {errors.newPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Минимум 8 символов, заглавные и строчные буквы, цифры
             </p>
           </div>
 
           {/* Подтверждение пароля */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Подтвердите новый пароль
             </label>
             <div className="relative">
@@ -255,8 +255,8 @@ export default function ChangePasswordModal({
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 ${
+                  errors.confirmPassword ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                 }`}
                 placeholder="Подтвердите новый пароль"
                 disabled={isLoading}
@@ -264,7 +264,7 @@ export default function ChangePasswordModal({
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirm')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 disabled={isLoading}
               >
                 {showPasswords.confirm ? (
@@ -275,7 +275,7 @@ export default function ChangePasswordModal({
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
             )}
           </div>
 
@@ -284,7 +284,7 @@ export default function ChangePasswordModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               disabled={isLoading}
             >
               Отмена

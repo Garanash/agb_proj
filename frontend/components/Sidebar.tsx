@@ -24,6 +24,7 @@ import {
 import UserProfile from './UserProfile'
 import { useAuth } from '@/hooks'
 import TextLogo from './TextLogo'
+import ThemeToggle from './ThemeToggle'
 
 interface NavigationItem {
   name: string
@@ -272,9 +273,9 @@ export default function Sidebar() {
   }, [pathname, filteredNavigation, isItemActive])
 
   return (
-    <div className="w-80 bg-white sidebar-shadow flex flex-col h-full relative z-50">
+    <div className="w-80 bg-white dark:bg-gray-800 sidebar-shadow flex flex-col h-full relative z-50">
       {/* Логотип и название платформы */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <TextLogo size="md" />
       </div>
 
@@ -292,23 +293,23 @@ export default function Sidebar() {
                 className={`
                   w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group cursor-pointer text-left
                   ${isActive 
-                    ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-600' 
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-l-4 border-blue-600' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                   }
                 `}
               >
                 <item.icon 
                   className={`
                     mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200
-                    ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}
+                    ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}
                   `} 
                 />
                 <span className="flex-1">{item.name}</span>
                 {hasChildren && (
                   isExpanded ? (
-                    <ChevronDownIcon className="h-4 w-4 text-gray-400" />
+                    <ChevronDownIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   ) : (
-                    <ChevronRightIcon className="h-4 w-4 text-gray-400" />
+                    <ChevronRightIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   )
                 )}
               </button>
@@ -328,15 +329,15 @@ export default function Sidebar() {
                         className={`
                           w-full flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-left
                           ${isChildActive 
-                            ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-400' 
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-l-2 border-blue-400' 
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'
                           }
                         `}
                       >
                         <child.icon 
                           className={`
                             mr-3 h-4 w-4 flex-shrink-0
-                            ${isChildActive ? 'text-blue-500' : 'text-gray-400'}
+                            ${isChildActive ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}
                           `} 
                         />
                         {child.name}
@@ -350,8 +351,16 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Переключатель темы */}
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Тема</span>
+          <ThemeToggle variant="button" size="sm" showLabel={false} />
+        </div>
+      </div>
+
       {/* Виджет пользователя */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
         <UserProfile />
       </div>
     </div>

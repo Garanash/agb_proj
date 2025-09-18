@@ -223,7 +223,7 @@ const NomenclatureManagement: React.FC = () => {
     <div className="space-y-6">
       {/* Заголовок и кнопка добавления */}
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">Номенклатуры</h2>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Номенклатуры</h2>
         <button
           onClick={openModal}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -243,45 +243,45 @@ const NomenclatureManagement: React.FC = () => {
       {/* Список номенклатур */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Код 1С
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Название
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Артикул
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Матрица
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Тип продукта
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Статус
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Действия
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {nomenclatures.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     {item.code_1c}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {item.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {item.article}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {item.matrix}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -291,7 +291,7 @@ const NomenclatureManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      item.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      item.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200'
                     }`}>
                       {item.is_active ? 'Активна' : 'Неактивна'}
                     </span>
@@ -300,20 +300,20 @@ const NomenclatureManagement: React.FC = () => {
                     <div className="flex space-x-2">
                       <button
                         onClick={() => openViewModal(item)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
                         title="Просмотр"
                       >
                         <EyeIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openEditModal(item)}
-                        className="text-green-600 hover:text-green-900"
+                        className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
                         title="Редактировать"
                       >
                         <PencilIcon className="w-4 h-4" />
                       </button>
                       <button
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300"
                         title="Удалить"
                       >
                         <TrashIcon className="w-4 h-4" />
@@ -327,7 +327,7 @@ const NomenclatureManagement: React.FC = () => {
         </div>
 
         {nomenclatures.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <p>Номенклатуры не найдены</p>
           </div>
         )}
@@ -336,15 +336,15 @@ const NomenclatureManagement: React.FC = () => {
       {/* Модальное окно для добавления/редактирования */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-4 mx-auto p-4 border w-96 max-h-[calc(100vh-2rem)] shadow-lg rounded-md bg-white overflow-y-auto">
+          <div className="relative top-4 mx-auto p-4 border w-96 max-h-[calc(100vh-2rem)] shadow-lg rounded-md bg-white dark:bg-gray-800 overflow-y-auto">
             <div className="mt-3">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                   {editingItem ? 'Редактировать номенклатуру' : 'Добавить номенклатуру'}
                 </h3>
                 <button
                   onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   <XMarkIcon className="w-6 h-6" />
                 </button>

@@ -38,7 +38,7 @@ export default function Dashboard() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Загрузка...</p>
+          <p className="text-gray-600 dark:text-gray-400">Загрузка...</p>
         </div>
       </div>
     )
@@ -48,7 +48,7 @@ export default function Dashboard() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-        <p className="text-gray-600">Перенаправление в личный кабинет...</p>
+        <p className="text-gray-600 dark:text-gray-400">Перенаправление в личный кабинет...</p>
       </div>
     </div>
   )

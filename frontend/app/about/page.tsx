@@ -135,13 +135,13 @@ export default function About() {
       title="О нас"
       subtitle="ООО «Алмазгеобур» - НАДЁЖНЫЙ ПРОИЗВОДИТЕЛЬ бурового оборудования и запасных частей для всех видов горных работ"
     >
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {/* Информация о компании */}
         <div className="p-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Наша компания</h2>
-              <div className="space-y-4 text-gray-700">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Наша компания</h2>
+              <div className="space-y-4 text-gray-700 dark:text-gray-300">
                 <p>
                 Алмазгеобур осуществляет деятельность с 2013 года.
                 С 2019 года производственной деятельности компания поставила рекорд на российском рынке, 
@@ -158,50 +158,50 @@ export default function About() {
             </div>
             
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Мы производим и обслуживаем оборудование для всех видов горных работ</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Мы производим и обслуживаем оборудование для всех видов горных работ</h2>
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">ГЕОЛОГОРАЗВЕДОЧНЫЕ РАБОТЫ</span>
+                  <span className="text-gray-700 dark:text-gray-300">ГЕОЛОГОРАЗВЕДОЧНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700"> БУРОВЗРЫВНЫЕ РАБОТЫ</span>
+                  <span className="text-gray-700 dark:text-gray-300"> БУРОВЗРЫВНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700"> ПОДЗЕМНЫЕ ГОРНЫЕ РАБОТЫ</span>
+                  <span className="text-gray-700 dark:text-gray-300"> ПОДЗЕМНЫЕ ГОРНЫЕ РАБОТЫ</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-gray-700">ТЕХНИКА NORMET</span>
+                  <span className="text-gray-700 dark:text-gray-300">ТЕХНИКА NORMET</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Статистика */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 p-6 bg-blue-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">12+</div>
-              <div className="text-sm text-gray-600">Лет опыта</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">12+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Лет опыта</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">3000+</div>
-              <div className="text-sm text-gray-600">крупных проектов по импортозамещению
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">3000+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">крупных проектов по импортозамещению
 на самую дефицитную
 технику в России</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">13+</div>
-              <div className="text-sm text-gray-600">филиалов
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">13+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">филиалов
 с каждым годом наше
 покрытие в мире
 только растет</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">100+</div>
-              <div className="text-sm text-gray-600">единиц капитального
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">100+</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">единиц капитального
 бурового оборудования
 с 2019 года производственной деятельности</div>
             </div>
@@ -210,7 +210,7 @@ export default function About() {
           {/* Сотрудники по отделам */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Наша команда</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Наша команда</h2>
               {isAdmin && (
                 <div className="flex space-x-3">
                   <button
@@ -232,18 +232,18 @@ export default function About() {
             </div>
             <div className="space-y-4">
               {departments && departments.length > 0 ? departments.map((department) => (
-                <div key={department.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div key={department.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                   <div className="flex items-center">
                     <button
                       onClick={() => toggleDepartment(department.name)}
-                      className="flex-1 px-6 py-4 text-left bg-gray-50 hover:bg-gray-100 transition-colors duration-200 flex items-center justify-between"
+                      className="flex-1 px-6 py-4 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
                     >
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{department.name}</h3>
-                        <p className="text-sm text-gray-600">{department.description}</p>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{department.name}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">{department.description}</p>
                       </div>
                       <ChevronDownIcon 
-                        className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
                           openDepartment === department.name ? 'rotate-180' : ''
                         }`}
                       />
@@ -252,13 +252,13 @@ export default function About() {
                       <div className="flex items-center space-x-2 px-4">
                         <button
                           onClick={() => setEditingDepartment(department)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                         >
                           <PencilIcon className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteDepartment(department.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
@@ -267,7 +267,7 @@ export default function About() {
                   </div>
                   
                   {openDepartment === department.name && (
-                    <div className="px-6 py-4 bg-white">
+                    <div className="px-6 py-4 bg-white dark:bg-gray-800">
                       <div className="space-y-4">
                         {/* Сотрудники отдела */}
                         <div>
@@ -275,27 +275,27 @@ export default function About() {
                             {companyEmployees && Array.isArray(companyEmployees) && companyEmployees.length > 0 ? companyEmployees
                               .filter(emp => emp.department_id === department.id && emp.is_active)
                               .map(employee => (
-                                <div key={employee.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div key={employee.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                                   <div>
-                                    <div className="font-medium text-gray-900">
+                                    <div className="font-medium text-gray-900 dark:text-gray-100">
                                       {employee.last_name} {employee.first_name} {employee.middle_name}
                                     </div>
-                                    <div className="text-sm text-gray-600">{employee.position}</div>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400">{employee.position}</div>
                                     {employee.email && (
-                                      <div className="text-xs text-gray-500">{employee.email}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{employee.email}</div>
                                     )}
                                   </div>
                                   {isAdmin && (
                                     <div className="flex items-center space-x-2">
                                       <button
                                         onClick={() => setEditingEmployee(employee)}
-                                        className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                        className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                                       >
                                         <PencilIcon className="w-4 h-4" />
                                       </button>
                                       <button
                                         onClick={() => handleDeleteEmployee(employee.id)}
-                                        className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                       >
                                         <TrashIcon className="w-4 h-4" />
                                       </button>
@@ -305,7 +305,7 @@ export default function About() {
                               )) : null}
                             {(!companyEmployees || !Array.isArray(companyEmployees) || companyEmployees.length === 0 || 
                               companyEmployees.filter(emp => emp.department_id === department.id && emp.is_active).length === 0) && (
-                              <div className="text-sm text-gray-500 italic">В отделе пока нет сотрудников</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 italic">В отделе пока нет сотрудников</div>
                             )}
                           </div>
                         </div>
@@ -314,7 +314,7 @@ export default function About() {
                   )}
                 </div>
               )) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   {isLoading ? 'Загрузка отделов...' : 'Отделы не найдены'}
                 </div>
               )}

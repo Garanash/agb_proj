@@ -66,16 +66,16 @@ const RegistrationModal: React.FC<RegistrationModalProps> = ({
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         style={{ pointerEvents: showPrivacyPolicy ? 'none' : 'auto' as any }}
       >
-        <div className="bg-white rounded-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
           {/* Заголовок */}
-          <div className="border-b border-gray-200 p-6 flex-shrink-0">
+          <div className="border-b border-gray-200 dark:border-gray-700 p-6 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 Регистрация
               </h2>
               <button
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                 aria-label="Закрыть"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

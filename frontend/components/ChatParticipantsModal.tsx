@@ -264,8 +264,8 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
       );
     } else {
       return (
-        <div className={`${size} rounded-full bg-gray-300 flex items-center justify-center`}>
-          <span className="text-sm font-medium text-gray-600">
+        <div className={`${size} rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center`}>
+          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
             {user.first_name[0]}
             {user.last_name[0]}
           </span>
@@ -277,8 +277,8 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
   // Функция для отображения аватара бота
   const renderBotAvatar = (bot: ChatBot, size: string = "w-10 h-10") => {
     return (
-      <div className={`${size} rounded-full bg-blue-100 flex items-center justify-center`}>
-        <span className="text-sm font-medium text-blue-600">
+      <div className={`${size} rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center`}>
+        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
           🤖
         </span>
       </div>
@@ -289,16 +289,16 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg w-full max-w-2xl mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
         {/* Заголовок */}
-        <div className="border-b border-gray-200 p-6 flex-shrink-0">
+        <div className="border-b border-gray-200 dark:border-gray-700 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Управление участниками
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded"
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,19 +312,19 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+              <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-400 rounded">
                 {error}
               </div>
             )}
 
             {/* Текущие участники */}
             <div className="mb-6">
-              <h4 className="font-medium text-gray-900 mb-4">Текущие участники</h4>
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Текущие участники</h4>
               <div className="space-y-3">
                 {participants.map(participant => (
                   <div
                     key={participant.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
                       {participant.user ? (
@@ -332,29 +332,29 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                       ) : participant.bot ? (
                         renderBotAvatar(participant.bot)
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
+                        <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                             ?
                           </span>
                         </div>
                       )}
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
                           {participant.user 
                             ? `${participant.user.first_name} ${participant.user.last_name}`
                             : participant.bot?.name || 'Загрузка...'
                           }
                         </p>
                         {participant.is_admin && (
-                          <span className="text-sm text-blue-600">Администратор</span>
+                          <span className="text-sm text-blue-600 dark:text-blue-400">Администратор</span>
                         )}
                         {participant.user && participant.user.department_id && (
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             {departments[participant.user.department_id] || 'Без отдела'}
                           </p>
                         )}
                         {!participant.user && !participant.bot && (
-                          <p className="text-sm text-gray-400">
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
                             ID: {participant.id}
                           </p>
                         )}
@@ -402,7 +402,7 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                     const selectedIds = selectedOptions.map((option: any) => parseInt(option.value));
                     setSelectedUsers(selectedIds);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px]"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[120px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   {Object.entries(departments).map(([deptId, deptName]) => {
                     const deptUsers = users.filter(user => user.department_id === parseInt(deptId));
@@ -431,17 +431,17 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
                     </optgroup>
                   )}
                 </select>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                   Зажмите Ctrl (Cmd на Mac) для выбора нескольких участников
                 </p>
               </div>
             )}
 
-            <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type={"button" as const}
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
                 disabled={isLoading}
               >
                 Закрыть

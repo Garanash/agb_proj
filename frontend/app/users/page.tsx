@@ -48,9 +48,9 @@ export default function Users() {
   if (user?.role !== 'admin') {
     return (
       <PageLayout title="Доступ запрещен">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-semibold text-red-900 mb-2">Недостаточно прав</h2>
-          <p className="text-red-700">Данная страница доступна только администраторам.</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-6 text-center">
+          <h2 className="text-xl font-semibold text-red-900 dark:text-red-200 mb-2">Недостаточно прав</h2>
+          <p className="text-red-700 dark:text-red-300">Данная страница доступна только администраторам.</p>
         </div>
       </PageLayout>
     )
@@ -282,9 +282,9 @@ export default function Users() {
           )
         }
       >
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           {/* Вкладки */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               <button
                 onClick={() => {
@@ -293,12 +293,12 @@ export default function Users() {
                 }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'active'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 Активные пользователи
-                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                <span className="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-0.5 px-2.5 rounded-full text-xs font-medium">
                   {searchQuery ? getFilteredUsers().length : users.filter(u => u.is_active).length}
                 </span>
               </button>
@@ -309,12 +309,12 @@ export default function Users() {
                 }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'deactivated'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 Деактивированные пользователи
-                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">
+                <span className="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-0.5 px-2.5 rounded-full text-xs font-medium">
                   {searchQuery ? getFilteredUsers().length : deactivatedUsers.filter(u => !u.is_active).length}
                 </span>
               </button>
@@ -322,7 +322,7 @@ export default function Users() {
           </div>
           
           {/* Поле поиска */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
                 <div className="relative">
@@ -334,10 +334,10 @@ export default function Users() {
                       setSearchQuery(e.target.value)
                       resetPagination()
                     }}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -346,7 +346,7 @@ export default function Users() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   Очистить
                 </button>
@@ -396,13 +396,11 @@ export default function Users() {
                 <table className="w-full table-auto">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Пользователь</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900 w-48">Email</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900 w-32">Телефон</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Должность</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Роль</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">Пароль</th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">Пользователь</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-gray-100 w-48">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">Роль</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">Пароль</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-gray-100">
                         {activeTab === 'active' ? 'Действия' : 'Действия'}
                       </th>
                     </tr>
@@ -428,24 +426,22 @@ export default function Users() {
                               )}
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {userItem.full_name || `${userItem.last_name} ${userItem.first_name} ${userItem.middle_name || ''}`.trim()}
                               </div>
-                              <div className="text-sm text-gray-600">@{userItem.username}</div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">@{userItem.username}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-4 text-gray-900 w-48 truncate" title={userItem.email}>{userItem.email}</td>
-                        <td className="py-3 px-4 text-gray-900 w-32">{userItem.phone || '-'}</td>
-                        <td className="py-3 px-4 text-gray-900">{userItem.position || '-'}</td>
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100 w-48 truncate" title={userItem.email}>{userItem.email}</td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            userItem.role === 'admin' ? 'bg-red-100 text-red-800' :
-                            userItem.role === 'manager' ? 'bg-blue-100 text-blue-800' :
-                            userItem.role === 'ved_passport' ? 'bg-purple-100 text-purple-800' :
-                            userItem.role === 'contractor' ? 'bg-green-100 text-green-800' :
-                            userItem.role === 'customer' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
+                            userItem.role === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200' :
+                            userItem.role === 'manager' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' :
+                            userItem.role === 'ved_passport' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200' :
+                            userItem.role === 'contractor' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
+                            userItem.role === 'customer' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                            'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                           }`}>
                             {getRoleName(userItem.role)}
                           </span>
