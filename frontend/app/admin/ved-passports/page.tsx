@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks';
 import { PageLayout } from '@/components/layout';
 import Link from 'next/link';
+import NomenclatureManagement from '@/components/NomenclatureManagement';
 
 interface VedPassport {
   id: number;
@@ -52,7 +53,7 @@ const AdminVEDPassportsPage = () => {
   const [passports, setPassports] = useState<VedPassport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'create' | 'archive'>('archive');
+  const [activeTab, setActiveTab] = useState<'nomenclature' | 'archive'>('archive');
   const [filters, setFilters] = useState({
     search: '',
     product_type: '',
@@ -303,14 +304,14 @@ const AdminVEDPassportsPage = () => {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
-                onClick={() => setActiveTab('create')}
+                onClick={() => setActiveTab('nomenclature')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'create'
+                  activeTab === 'nomenclature'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Создать паспорт
+                Управление номенклатурами
               </button>
               <button
                 onClick={() => setActiveTab('archive')}
@@ -334,16 +335,16 @@ const AdminVEDPassportsPage = () => {
 
         {/* Контент табов */}
 
-        {activeTab === 'create' && (
+        {activeTab === 'nomenclature' && (
           <div>
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">Создание паспорта ВЭД</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Управление номенклатурами</h2>
               <p className="text-gray-600 mb-6">
-                Для создания паспорта ВЭД используйте стандартную форму создания.
+                Управление номенклатурами для создания паспортов ВЭД. Добавляйте, редактируйте и удаляйте номенклатуры.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mb-6">
               <Link
                 href="/ved-passports/create"
                 className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -353,17 +354,9 @@ const AdminVEDPassportsPage = () => {
                 </svg>
                 Создать паспорт
               </Link>
-              
-              <Link
-                href="/ved-passports"
-                className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Управление номенклатурой
-              </Link>
             </div>
+            
+            <NomenclatureManagement />
           </div>
         )}
 

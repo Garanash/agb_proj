@@ -23,6 +23,8 @@ from database import get_db
 from models import User, UserRole, VEDNomenclature, VedPassport
 from ..schemas import (
     VEDNomenclature as VEDNomenclatureSchema,
+    VEDNomenclatureCreate,
+    VEDNomenclatureUpdate,
     VedPassport as VedPassportSchema,
     VedPassportCreate,
     VedPassportUpdate,
@@ -108,6 +110,117 @@ async def get_ved_nomenclature_by_code(
         raise HTTPException(status_code=404, detail="Номенклатура не найдена")
     
     return nomenclature
+
+
+@router.post("/nomenclature/", response_model=VEDNomenclatureSchema)
+async def create_ved_nomenclature(
+    nomenclature_data: VEDNomenclatureCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Создание новой номенклатуры ВЭД"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        # Проверяем, не существует ли уже номенклатура с таким кодом 1С
+        existing = await db.execute(
+            select(VEDNomenclature).where(VEDNomenclature.code_1c == nomenclature_data.code_1c)
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Номенклатура с таким кодом 1С уже существует")
+        
+        # Создаем новую номенклатуру
+        new_nomenclature = VEDNomenclature(
+            code_1c=nomenclature_data.code_1c,
+            name=nomenclature_data.name,
+            article=nomenclature_data.article,
+            matrix=nomenclature_data.matrix,
+            drilling_depth=nomenclature_data.drilling_depth,
+            height=nomenclature_data.height,
+            thread=nomenclature_data.thread,
+            product_type=nomenclature_data.product_type,
+            is_active=nomenclature_data.is_active
+        )
+        
+        db.add(new_nomenclature)
+        await db.commit()
+        await db.refresh(new_nomenclature)
+        
+        return new_nomenclature
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании номенклатуры: {str(e)}")
+
+
+@router.get("/nomenclature/{nomenclature_id}", response_model=VEDNomenclatureSchema)
+async def get_ved_nomenclature_by_id(
+    nomenclature_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение номенклатуры по ID"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    result = await db.execute(
+        select(VEDNomenclature).where(VEDNomenclature.id == nomenclature_id)
+    )
+    nomenclature = result.scalar_one_or_none()
+    
+    if not nomenclature:
+        raise HTTPException(status_code=404, detail="Номенклатура не найдена")
+    
+    return nomenclature
+
+
+@router.put("/nomenclature/{nomenclature_id}", response_model=VEDNomenclatureSchema)
+async def update_ved_nomenclature(
+    nomenclature_id: int,
+    nomenclature_data: VEDNomenclatureUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Обновление номенклатуры ВЭД"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        # Получаем существующую номенклатуру
+        result = await db.execute(
+            select(VEDNomenclature).where(VEDNomenclature.id == nomenclature_id)
+        )
+        nomenclature = result.scalar_one_or_none()
+        
+        if not nomenclature:
+            raise HTTPException(status_code=404, detail="Номенклатура не найдена")
+        
+        # Проверяем уникальность кода 1С, если он изменяется
+        if nomenclature_data.code_1c and nomenclature_data.code_1c != nomenclature.code_1c:
+            existing = await db.execute(
+                select(VEDNomenclature).where(VEDNomenclature.code_1c == nomenclature_data.code_1c)
+            )
+            if existing.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Номенклатура с таким кодом 1С уже существует")
+        
+        # Обновляем поля
+        update_data = nomenclature_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(nomenclature, field, value)
+        
+        await db.commit()
+        await db.refresh(nomenclature)
+        
+        return nomenclature
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении номенклатуры: {str(e)}")
 
 
 @router.get("/", response_model=List[VedPassportSchema])

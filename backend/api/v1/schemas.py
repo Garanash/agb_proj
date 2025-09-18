@@ -508,6 +508,32 @@ class VEDNomenclature(BaseResponseModel):
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
 
+class VEDNomenclatureCreate(BaseModel):
+    """Схема создания номенклатуры ВЭД"""
+    code_1c: str = Field(description="Код 1С", min_length=1)
+    name: str = Field(description="Название", min_length=1)
+    article: str = Field(description="Артикул", min_length=1)
+    matrix: str = Field(description="Матрица", min_length=1)
+    drilling_depth: Optional[str] = Field(None, description="Глубина бурения")
+    height: Optional[str] = Field(None, description="Высота")
+    thread: Optional[str] = Field(None, description="Резьба")
+    product_type: str = Field(description="Тип продукта", min_length=1)
+    is_active: bool = Field(True, description="Активен")
+
+
+class VEDNomenclatureUpdate(BaseModel):
+    """Схема обновления номенклатуры ВЭД"""
+    code_1c: Optional[str] = Field(None, description="Код 1С", min_length=1)
+    name: Optional[str] = Field(None, description="Название", min_length=1)
+    article: Optional[str] = Field(None, description="Артикул", min_length=1)
+    matrix: Optional[str] = Field(None, description="Матрица", min_length=1)
+    drilling_depth: Optional[str] = Field(None, description="Глубина бурения")
+    height: Optional[str] = Field(None, description="Высота")
+    thread: Optional[str] = Field(None, description="Резьба")
+    product_type: Optional[str] = Field(None, description="Тип продукта", min_length=1)
+    is_active: Optional[bool] = Field(None, description="Активен")
+
+
 class VedPassport(BaseResponseModel):
     """Схема ВЭД паспорта"""
     id: int = Field(description="ID паспорта")
