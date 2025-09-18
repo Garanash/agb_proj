@@ -318,6 +318,172 @@ async def send_to_n8n_webhook(webhook_data: N8NWebhookData):
     except Exception as e:
         print(f"Ошибка отправки в n8n: {e}")
 
+@router.get("/executions", response_model=BaseResponseModel)
+async def get_n8n_executions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение списка выполнений n8n"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        n8n_api_key = "your-n8n-api-key"  # TODO: добавить в переменные окружения
+        
+        async with httpx.AsyncClient() as client:
+            headers = {"X-N8N-API-KEY": n8n_api_key}
+            
+            response = await client.get(
+                f"{N8N_BASE_URL}/api/v1/executions",
+                headers=headers,
+                timeout=30.0
+            )
+            
+            if response.status_code >= 400:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Ошибка получения выполнений: {response.text}"
+                )
+            
+            executions = response.json()
+            
+            return BaseResponseModel(
+                success=True,
+                message="Выполнения получены",
+                data={
+                    "executions": executions,
+                    "count": len(executions)
+                }
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Таймаут при получении выполнений")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения выполнений: {str(e)}")
+
+@router.get("/stats", response_model=BaseResponseModel)
+async def get_n8n_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение статистики n8n"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        n8n_api_key = "your-n8n-api-key"  # TODO: добавить в переменные окружения
+        
+        async with httpx.AsyncClient() as client:
+            headers = {"X-N8N-API-KEY": n8n_api_key}
+            
+            # Получаем workflows
+            workflows_response = await client.get(
+                f"{N8N_BASE_URL}/api/v1/workflows",
+                headers=headers,
+                timeout=30.0
+            )
+            
+            # Получаем executions
+            executions_response = await client.get(
+                f"{N8N_BASE_URL}/api/v1/executions",
+                headers=headers,
+                timeout=30.0
+            )
+            
+            if workflows_response.status_code >= 400 or executions_response.status_code >= 400:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Ошибка получения статистики"
+                )
+            
+            workflows = workflows_response.json()
+            executions = executions_response.json()
+            
+            # Подсчитываем статистику
+            total_workflows = len(workflows)
+            active_workflows = len([w for w in workflows if w.get('active', False)])
+            total_executions = len(executions)
+            
+            # Подсчитываем успешные выполнения
+            successful_executions = len([e for e in executions if e.get('finished', False) and e.get('data', {}).get('resultData', {}).get('runData', {}).get('error') is None])
+            success_rate = (successful_executions / total_executions * 100) if total_executions > 0 else 0
+            
+            return BaseResponseModel(
+                success=True,
+                message="Статистика получена",
+                data={
+                    "workflows": total_workflows,
+                    "activeWorkflows": active_workflows,
+                    "executions": total_executions,
+                    "successRate": round(success_rate, 2)
+                }
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Таймаут при получении статистики")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка получения статистики: {str(e)}")
+
+@router.post("/workflows/{workflow_id}/toggle", response_model=BaseResponseModel)
+async def toggle_workflow(
+    workflow_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Переключение статуса workflow"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        n8n_api_key = "your-n8n-api-key"  # TODO: добавить в переменные окружения
+        
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "X-N8N-API-KEY": n8n_api_key,
+                "Content-Type": "application/json"
+            }
+            
+            # Получаем текущий workflow
+            get_response = await client.get(
+                f"{N8N_BASE_URL}/api/v1/workflows/{workflow_id}",
+                headers=headers,
+                timeout=30.0
+            )
+            
+            if get_response.status_code >= 400:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Ошибка получения workflow: {get_response.text}"
+                )
+            
+            workflow_data = get_response.json()
+            current_active = workflow_data.get('active', False)
+            
+            # Обновляем статус
+            update_response = await client.put(
+                f"{N8N_BASE_URL}/api/v1/workflows/{workflow_id}",
+                headers=headers,
+                json={**workflow_data, "active": not current_active},
+                timeout=30.0
+            )
+            
+            if update_response.status_code >= 400:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Ошибка обновления workflow: {update_response.text}"
+                )
+            
+            return BaseResponseModel(
+                success=True,
+                message=f"Workflow {'активирован' if not current_active else 'деактивирован'}",
+                data={"active": not current_active}
+            )
+            
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Таймаут при переключении workflow")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка переключения workflow: {str(e)}")
+
 @router.get("/health", response_model=BaseResponseModel)
 async def check_n8n_health():
     """Проверка доступности n8n"""

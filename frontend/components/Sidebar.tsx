@@ -122,6 +122,12 @@ const navigation: NavigationItem[] = [
     roles: ['admin']
   },
   {
+    name: 'Автоматизация',
+    href: '/admin/automation',
+    icon: Cog6ToothIcon,
+    roles: ['admin']
+  },
+  {
     name: 'Управление ботами',
     href: '/admin/bots',
     icon: ChatBubbleLeftRightIcon,
