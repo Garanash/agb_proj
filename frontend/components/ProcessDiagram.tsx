@@ -120,8 +120,49 @@ export default function ProcessDiagram({
       </div>
 
       <div className="relative overflow-x-auto">
-        {/* Горизонтальная линия процесса */}
-        <div className="absolute top-8 left-0 right-0 h-0.5 bg-gray-200 dark:bg-gray-600"></div>
+        {/* SVG для стрелок между узлами */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          {steps.map((_, index) => {
+            if (index === steps.length - 1) return null
+            
+            const currentX = 64 + (index * 128) // 32 (w-32/2) + 32 (mx-2) + 64 (w-32)
+            const nextX = 64 + ((index + 1) * 128)
+            const y = 32 // top-8 (32px)
+            
+            return (
+              <g key={index}>
+                {/* Плавная стрелка */}
+                <path
+                  d={`M ${currentX + 24} ${y} Q ${(currentX + nextX) / 2} ${y - 10} ${nextX - 24} ${y}`}
+                  stroke="#6B7280"
+                  strokeWidth="2"
+                  fill="none"
+                  markerEnd="url(#arrowhead-diagram)"
+                  className="transition-all duration-200"
+                />
+              </g>
+            )
+          })}
+          
+          {/* Определение стрелки для диаграммы */}
+          <defs>
+            <marker
+              id="arrowhead-diagram"
+              markerWidth="8"
+              markerHeight="6"
+              refX="7"
+              refY="3"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <polygon
+                points="0 0, 8 3, 0 6"
+                fill="#6B7280"
+                className="transition-all duration-200"
+              />
+            </marker>
+          </defs>
+        </svg>
         
         {/* Шаги процесса */}
         <div className="flex items-start relative min-w-max px-4">
@@ -131,7 +172,7 @@ export default function ProcessDiagram({
             const isCompleted = isInteractive ? currentStep > index : step.status === 'completed'
             
             return (
-              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-32 mx-2">
+              <div key={step.id} className="flex flex-col items-center flex-shrink-0 w-32 mx-2 relative z-10">
                 {/* Иконка шага */}
                 <div
                   className={`
@@ -235,23 +276,72 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
               
               if (!fromNode || !toNode) return null
               
+              // Вычисляем контрольные точки для плавных кривых
+              const dx = toNode.x - fromNode.x
+              const dy = toNode.y - fromNode.y
+              const distance = Math.sqrt(dx * dx + dy * dy)
+              
+              // Определяем тип соединения
+              const isHorizontal = Math.abs(dy) < 20
+              const isVertical = Math.abs(dx) < 20
+              
+              let pathData = ''
+              let labelX = (fromNode.x + toNode.x) / 2
+              let labelY = (fromNode.y + toNode.y) / 2
+              
+              if (isHorizontal) {
+                // Горизонтальное соединение с плавной кривой
+                const controlOffset = Math.min(distance * 0.3, 50)
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y} ${toNode.x} ${toNode.y}`
+                labelY = fromNode.y - 15
+              } else if (isVertical) {
+                // Вертикальное соединение с плавной кривой
+                const controlOffset = Math.min(Math.abs(dy) * 0.3, 30)
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
+                labelX = fromNode.x + 20
+              } else {
+                // Диагональное соединение с плавной кривой
+                const controlOffsetX = dx * 0.3
+                const controlOffsetY = dy * 0.3
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY} ${toNode.x} ${toNode.y}`
+                labelY = (fromNode.y + toNode.y) / 2 - 15
+              }
+              
               return (
                 <g key={index}>
-                  <line
-                    x1={fromNode.x}
-                    y1={fromNode.y}
-                    x2={toNode.x}
-                    y2={toNode.y}
+                  {/* Плавная кривая */}
+                  <path
+                    d={pathData}
                     stroke="#6B7280"
                     strokeWidth="2"
+                    fill="none"
                     markerEnd="url(#arrowhead)"
+                    className="transition-all duration-200 hover:stroke-blue-500"
                   />
+                  
+                  {/* Фон для текста */}
+                  {conn.label && (
+                    <rect
+                      x={labelX - 20}
+                      y={labelY - 8}
+                      width="40"
+                      height="16"
+                      fill="white"
+                      fillOpacity="0.9"
+                      stroke="#E5E7EB"
+                      strokeWidth="1"
+                      rx="4"
+                      className="dark:fill-gray-800 dark:stroke-gray-600"
+                    />
+                  )}
+                  
+                  {/* Текст на стрелке */}
                   {conn.label && (
                     <text
-                      x={(fromNode.x + toNode.x) / 2}
-                      y={(fromNode.y + toNode.y) / 2 - 5}
+                      x={labelX}
+                      y={labelY + 2}
                       textAnchor="middle"
-                      className="text-xs fill-gray-600 dark:fill-gray-400"
+                      className="text-xs font-medium fill-gray-700 dark:fill-gray-200 pointer-events-none"
                     >
                       {conn.label}
                     </text>
@@ -269,10 +359,12 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
                 refX="9"
                 refY="3.5"
                 orient="auto"
+                markerUnits="strokeWidth"
               >
                 <polygon
                   points="0 0, 10 3.5, 0 7"
                   fill="#6B7280"
+                  className="transition-all duration-200"
                 />
               </marker>
             </defs>
