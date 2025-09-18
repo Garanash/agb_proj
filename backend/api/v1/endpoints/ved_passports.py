@@ -217,13 +217,52 @@ async def create_ved_passport(
         # Получаем полные данные паспорта с номенклатурой
         result = await db.execute(
             select(VedPassport)
-            .options(joinedload(VedPassport.nomenclature))
+            .options(joinedload(VedPassport.nomenclature), joinedload(VedPassport.creator))
             .where(VedPassport.id == new_passport.id)
         )
         full_passport = result.scalar_one_or_none()
         
         if not full_passport:
             raise HTTPException(status_code=500, detail="Ошибка при получении созданного паспорта")
+        
+        # Отправляем событие в n8n (в фоновом режиме)
+        try:
+            from .n8n_integration import send_to_n8n_webhook, N8NWebhookData
+            from datetime import datetime
+            
+            webhook_data = N8NWebhookData(
+                event_type="passport_created",
+                data={
+                    "id": full_passport.id,
+                    "passport_number": full_passport.passport_number,
+                    "title": full_passport.title,
+                    "order_number": full_passport.order_number,
+                    "quantity": full_passport.quantity,
+                    "status": full_passport.status,
+                    "creator": {
+                        "id": full_passport.creator.id if full_passport.creator else None,
+                        "username": full_passport.creator.username if full_passport.creator else None,
+                        "first_name": full_passport.creator.first_name if full_passport.creator else None,
+                        "last_name": full_passport.creator.last_name if full_passport.creator else None
+                    },
+                    "nomenclature": {
+                        "id": full_passport.nomenclature.id if full_passport.nomenclature else None,
+                        "name": full_passport.nomenclature.name if full_passport.nomenclature else None,
+                        "code_1c": full_passport.nomenclature.code_1c if full_passport.nomenclature else None,
+                        "matrix": full_passport.nomenclature.matrix if full_passport.nomenclature else None
+                    }
+                },
+                timestamp=datetime.now().isoformat(),
+                source="agb_platform"
+            )
+            
+            # Отправляем в фоновом режиме
+            import asyncio
+            asyncio.create_task(send_to_n8n_webhook(webhook_data))
+            
+        except Exception as e:
+            # Логируем ошибку, но не прерываем создание паспорта
+            print(f"Ошибка отправки в n8n: {e}")
         
         return full_passport
         

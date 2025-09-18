@@ -1,0 +1,115 @@
+version: "3.8"
+
+services:
+  # n8n - платформа автоматизации
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: agb_n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # Основные настройки
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      
+      # База данных
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n}
+      - DB_POSTGRESDB_USER=${N8N_DB_USER:-n8n_user}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n_password}
+      
+      # Безопасность
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-admin123}
+      
+      # Настройки выполнения
+      - EXECUTIONS_PROCESS=main
+      - EXECUTIONS_MODE=regular
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=0
+      
+      # Логирование
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-info}
+      - N8N_LOG_OUTPUT=console,file
+      
+      # Дополнительные настройки
+      - N8N_DEFAULT_LOCALE=ru
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=true
+      
+      # Интеграция с платформой
+      - N8N_CUSTOM_EXTENSIONS=/data/custom
+      - N8N_USER_FOLDER=/home/node/.n8n
+      
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - n8n_custom:/data/custom
+      - ./n8n/workflows:/home/node/.n8n/workflows:ro
+      - ./n8n/credentials:/home/node/.n8n/credentials:ro
+    networks:
+      - test-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis для очередей n8n
+  redis:
+    image: redis:7-alpine
+    container_name: agb_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Дополнительная база данных для n8n (если нужна отдельная)
+  postgres_n8n:
+    image: postgres:15-alpine
+    container_name: agb_postgres_n8n
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${N8N_DB_NAME:-n8n}
+      POSTGRES_USER: ${N8N_DB_USER:-n8n_user}
+      POSTGRES_PASSWORD: ${N8N_DB_PASSWORD:-n8n_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_n8n_data:/var/lib/postgresql/data
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${N8N_DB_USER:-n8n_user} -d ${N8N_DB_NAME:-n8n}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  n8n_data:
+  n8n_custom:
+  redis_data:
+  postgres_n8n_data:
+
+networks:
+  test-network:
+    external: true

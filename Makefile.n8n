@@ -1,0 +1,103 @@
+# Makefile для управления n8n интеграцией
+
+.PHONY: help n8n-start n8n-stop n8n-restart n8n-logs n8n-status n8n-clean n8n-setup n8n-test
+
+# Цвета для вывода
+GREEN=\033[0;32m
+YELLOW=\033[1;33m
+RED=\033[0;31m
+NC=\033[0m # No Color
+
+help: ## Показать справку по командам
+	@echo "$(GREEN)AGB Platform - n8n Integration Management$(NC)"
+	@echo ""
+	@echo "$(YELLOW)Доступные команды:$(NC)"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+n8n-setup: ## Настройка n8n (создание директорий и файлов)
+	@echo "$(YELLOW)🔧 Настройка n8n...$(NC)"
+	@mkdir -p config/docker/n8n/workflows
+	@mkdir -p config/docker/n8n/credentials
+	@mkdir -p config/env
+	@if [ ! -f config/env/n8n.env ]; then \
+		echo "$(YELLOW)⚠️  Создайте файл config/env/n8n.env на основе config/env/n8n.env.example$(NC)"; \
+	fi
+	@echo "$(GREEN)✅ Настройка завершена$(NC)"
+
+n8n-start: n8n-setup ## Запуск n8n
+	@echo "$(YELLOW)🚀 Запуск n8n...$(NC)"
+	@./scripts/start-n8n.sh
+	@echo "$(GREEN)✅ n8n запущен$(NC)"
+
+n8n-stop: ## Остановка n8n
+	@echo "$(YELLOW)🛑 Остановка n8n...$(NC)"
+	@docker-compose -f config/docker/docker-compose.n8n.yml down
+	@echo "$(GREEN)✅ n8n остановлен$(NC)"
+
+n8n-restart: n8n-stop n8n-start ## Перезапуск n8n
+
+n8n-logs: ## Просмотр логов n8n
+	@echo "$(YELLOW)📋 Логи n8n:$(NC)"
+	@docker logs agb_n8n -f
+
+n8n-status: ## Статус n8n
+	@echo "$(YELLOW)📊 Статус n8n:$(NC)"
+	@docker ps | grep -E "(n8n|redis)" || echo "$(RED)❌ n8n не запущен$(NC)"
+
+n8n-health: ## Проверка здоровья n8n
+	@echo "$(YELLOW)🏥 Проверка здоровья n8n...$(NC)"
+	@curl -s http://localhost:5678/healthz > /dev/null && echo "$(GREEN)✅ n8n здоров$(NC)" || echo "$(RED)❌ n8n недоступен$(NC)"
+
+n8n-clean: ## Очистка данных n8n (ВНИМАНИЕ: удаляет все данные!)
+	@echo "$(RED)⚠️  ВНИМАНИЕ: Это удалит все данные n8n!$(NC)"
+	@read -p "Вы уверены? (y/N): " confirm && [ "$$confirm" = "y" ]
+	@docker-compose -f config/docker/docker-compose.n8n.yml down -v
+	@docker volume rm agb_proj_n8n_data agb_proj_redis_data 2>/dev/null || true
+	@echo "$(GREEN)✅ Данные n8n очищены$(NC)"
+
+n8n-test: ## Тестирование интеграции
+	@echo "$(YELLOW)🧪 Тестирование интеграции...$(NC)"
+	@curl -X POST http://localhost:8000/api/v1/n8n/events/passport-created \
+		-H "Content-Type: application/json" \
+		-d '{"passport_number": "TEST-001", "order_number": "ORDER-001", "creator": {"first_name": "Test", "last_name": "User"}}' \
+		&& echo "$(GREEN)✅ Тест прошел успешно$(NC)" || echo "$(RED)❌ Тест не прошел$(NC)"
+
+n8n-backup: ## Создание резервной копии n8n
+	@echo "$(YELLOW)💾 Создание резервной копии...$(NC)"
+	@mkdir -p backups/n8n
+	@docker exec agb_n8n tar -czf /tmp/n8n-backup.tar.gz -C /home/node/.n8n .
+	@docker cp agb_n8n:/tmp/n8n-backup.tar.gz backups/n8n/n8n-backup-$(shell date +%Y%m%d-%H%M%S).tar.gz
+	@echo "$(GREEN)✅ Резервная копия создана в backups/n8n/$(NC)"
+
+n8n-restore: ## Восстановление из резервной копии
+	@echo "$(YELLOW)📥 Восстановление из резервной копии...$(NC)"
+	@ls -la backups/n8n/ || echo "$(RED)❌ Нет резервных копий$(NC)"
+	@read -p "Введите имя файла для восстановления: " file && \
+		docker cp backups/n8n/$$file agb_n8n:/tmp/restore.tar.gz && \
+		docker exec agb_n8n tar -xzf /tmp/restore.tar.gz -C /home/node/.n8n
+	@echo "$(GREEN)✅ Восстановление завершено$(NC)"
+
+n8n-update: ## Обновление n8n
+	@echo "$(YELLOW)🔄 Обновление n8n...$(NC)"
+	@docker-compose -f config/docker/docker-compose.n8n.yml pull
+	@docker-compose -f config/docker/docker-compose.n8n.yml up -d
+	@echo "$(GREEN)✅ n8n обновлен$(NC)"
+
+n8n-shell: ## Подключение к контейнеру n8n
+	@echo "$(YELLOW)🐚 Подключение к n8n...$(NC)"
+	@docker exec -it agb_n8n /bin/sh
+
+n8n-db-shell: ## Подключение к базе данных n8n
+	@echo "$(YELLOW)🗄️  Подключение к БД n8n...$(NC)"
+	@docker exec -it test_platform_postgres psql -U n8n_user -d n8n
+
+n8n-workflows: ## Список workflows
+	@echo "$(YELLOW)📋 Workflows n8n:$(NC)"
+	@curl -s http://localhost:5678/api/v1/workflows | jq '.[].name' 2>/dev/null || echo "$(RED)❌ Не удалось получить workflows$(NC)"
+
+n8n-executions: ## Список выполнений
+	@echo "$(YELLOW)📊 Выполнения n8n:$(NC)"
+	@curl -s http://localhost:5678/api/v1/executions | jq '.[0:5] | .[] | {id: .id, status: .status, startedAt: .startedAt}' 2>/dev/null || echo "$(RED)❌ Не удалось получить выполнения$(NC)"
+
+# Интеграция с основным Makefile
+include Makefile

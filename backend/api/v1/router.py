@@ -112,6 +112,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.n8n_integration import router as n8n_router
+    api_router.include_router(n8n_router, prefix="/n8n", tags=["🔄 n8n Интеграция"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""
