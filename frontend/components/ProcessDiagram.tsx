@@ -120,56 +120,78 @@ export default function ProcessDiagram({
       </div>
 
       <div className="relative overflow-x-auto">
-        {/* SVG для прямых стрелок между узлами */}
+        {/* SVG для красивых стрелок между узлами */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            {/* Градиент для стрелок */}
+            <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#3B82F6" stopOpacity="1" />
+              <stop offset="50%" stopColor="#8B5CF6" stopOpacity="1" />
+              <stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
+            </linearGradient>
+            
+            {/* Фильтр для свечения */}
+            <filter id="arrowGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            
+            {/* Красивая стрелка */}
+            <marker
+              id="arrowhead-diagram"
+              markerWidth="16"
+              markerHeight="12"
+              refX="15"
+              refY="6"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path
+                d="M 0 0 L 16 6 L 0 12 L 4 6 Z"
+                fill="url(#arrowGradient)"
+                filter="url(#arrowGlow)"
+              />
+            </marker>
+          </defs>
+          
           {steps.map((_, index) => {
             if (index === steps.length - 1) return null
             
-            const currentX = 64 + (index * 128) // 32 (w-32/2) + 32 (mx-2) + 64 (w-32)
+            const currentX = 64 + (index * 128)
             const nextX = 64 + ((index + 1) * 128)
-            const y = 32 // top-8 (32px)
+            const y = 32
             
             return (
               <g key={index}>
-                {/* Прямая стрелка с градиентом */}
-                <defs>
-                  <linearGradient id={`arrow-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#1D4ED8" stopOpacity="0.8" />
-                  </linearGradient>
-                </defs>
+                {/* Основная стрелка */}
                 <line
-                  x1={currentX + 24}
+                  x1={currentX + 32}
                   y1={y}
-                  x2={nextX - 24}
+                  x2={nextX - 32}
                   y2={y}
-                  stroke={`url(#arrow-gradient-${index})`}
-                  strokeWidth="3"
+                  stroke="url(#arrowGradient)"
+                  strokeWidth="4"
                   markerEnd="url(#arrowhead-diagram)"
-                  className="transition-all duration-200 drop-shadow-sm"
+                  filter="url(#arrowGlow)"
+                  className="transition-all duration-300"
+                />
+                
+                {/* Дополнительная линия для объема */}
+                <line
+                  x1={currentX + 32}
+                  y1={y + 1}
+                  x2={nextX - 32}
+                  y2={y + 1}
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="2"
+                  markerEnd="url(#arrowhead-diagram)"
                 />
               </g>
             )
           })}
-          
-          {/* Определение стрелки для диаграммы */}
-          <defs>
-            <marker
-              id="arrowhead-diagram"
-              markerWidth="8"
-              markerHeight="6"
-              refX="7"
-              refY="3"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <polygon
-                points="0 0, 8 3, 0 6"
-                fill="#6B7280"
-                className="transition-all duration-200"
-              />
-            </marker>
-          </defs>
         </svg>
         
         {/* Шаги процесса */}
@@ -278,108 +300,162 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
         <div className="relative min-w-max" style={{ height: '300px', width: 'max-content', minWidth: '100%' }}>
           {/* Соединения */}
           <svg className="absolute inset-0 w-full h-full">
+            <defs>
+              {/* Красивый градиент для стрелок */}
+              <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#3B82F6" stopOpacity="1" />
+                <stop offset="30%" stopColor="#8B5CF6" stopOpacity="1" />
+                <stop offset="70%" stopColor="#EC4899" stopOpacity="1" />
+                <stop offset="100%" stopColor="#06B6D4" stopOpacity="1" />
+              </linearGradient>
+              
+              {/* Фильтр для свечения */}
+              <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              
+              {/* Фильтр для тени текста */}
+              <filter id="textShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge> 
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+              
+              {/* Красивая стрелка */}
+              <marker
+                id="arrowhead"
+                markerWidth="20"
+                markerHeight="16"
+                refX="19"
+                refY="8"
+                orient="auto"
+                markerUnits="strokeWidth"
+              >
+                <path
+                  d="M 0 0 L 20 8 L 0 16 L 6 8 Z"
+                  fill="url(#connectionGradient)"
+                  filter="url(#connectionGlow)"
+                />
+              </marker>
+            </defs>
+            
             {connections.map((conn, index) => {
               const fromNode = nodes.find(n => n.id === conn.from)
               const toNode = nodes.find(n => n.id === conn.to)
               
               if (!fromNode || !toNode) return null
               
-              // Вычисляем контрольные точки для плавных кривых
+              // Вычисляем красивые кривые Безье
               const dx = toNode.x - fromNode.x
               const dy = toNode.y - fromNode.y
               const distance = Math.sqrt(dx * dx + dy * dy)
               
-              // Определяем тип соединения
-              const isHorizontal = Math.abs(dy) < 20
-              const isVertical = Math.abs(dx) < 20
+              // Определяем тип соединения и создаем красивые кривые
+              const isHorizontal = Math.abs(dy) < 30
+              const isVertical = Math.abs(dx) < 30
               
               let pathData = ''
               let labelX = (fromNode.x + toNode.x) / 2
               let labelY = (fromNode.y + toNode.y) / 2
               
               if (isHorizontal) {
-                // Горизонтальное соединение с плавной кривой
-                const controlOffset = Math.min(distance * 0.4, 60)
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - 20} ${toNode.x} ${toNode.y}`
-                labelY = fromNode.y - 25
+                // Красивая горизонтальная кривая
+                const controlOffset = Math.min(distance * 0.5, 80)
+                const curveHeight = 30
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffset} ${fromNode.y - curveHeight} ${toNode.x} ${toNode.y}`
+                labelY = fromNode.y - curveHeight - 10
               } else if (isVertical) {
-                // Вертикальное соединение с плавной кривой
-                const controlOffset = Math.min(Math.abs(dy) * 0.4, 40)
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + 30} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
-                labelX = fromNode.x + 35
+                // Красивая вертикальная кривая
+                const controlOffset = Math.min(Math.abs(dy) * 0.5, 50)
+                const curveWidth = 40
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + curveWidth} ${fromNode.y + controlOffset} ${toNode.x} ${toNode.y}`
+                labelX = fromNode.x + curveWidth + 10
               } else {
-                // Диагональное соединение с плавной кривой
-                const controlOffsetX = dx * 0.4
-                const controlOffsetY = dy * 0.4
-                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - 15} ${toNode.x} ${toNode.y}`
-                labelY = (fromNode.y + toNode.y) / 2 - 20
+                // Красивая диагональная кривая
+                const controlOffsetX = dx * 0.5
+                const controlOffsetY = dy * 0.5
+                const curveOffset = 25
+                pathData = `M ${fromNode.x} ${fromNode.y} Q ${fromNode.x + controlOffsetX} ${fromNode.y + controlOffsetY - curveOffset} ${toNode.x} ${toNode.y}`
+                labelY = (fromNode.y + toNode.y) / 2 - curveOffset - 10
               }
               
               return (
                 <g key={index}>
-                  {/* Плавная кривая с градиентом */}
-                  <defs>
-                    <linearGradient id={`curve-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.8" />
-                      <stop offset="50%" stopColor="#3B82F6" stopOpacity="0.9" />
-                      <stop offset="100%" stopColor="#06B6D4" stopOpacity="0.8" />
-                    </linearGradient>
-                  </defs>
+                  {/* Основная кривая */}
                   <path
                     d={pathData}
-                    stroke={`url(#curve-gradient-${index})`}
-                    strokeWidth="3"
+                    stroke="url(#connectionGradient)"
+                    strokeWidth="5"
                     fill="none"
                     markerEnd="url(#arrowhead)"
-                    className="transition-all duration-200 hover:stroke-blue-500 drop-shadow-sm"
-                    filter="url(#glow)"
+                    filter="url(#connectionGlow)"
+                    className="transition-all duration-300"
                   />
                   
-                  {/* Фон для текста с градиентом */}
+                  {/* Дополнительная линия для объема */}
+                  <path
+                    d={pathData}
+                    stroke="rgba(255,255,255,0.4)"
+                    strokeWidth="2"
+                    fill="none"
+                    markerEnd="url(#arrowhead)"
+                  />
+                  
+                  {/* Красивый фон для текста */}
                   {conn.label && (
                     <g>
-                      {/* Тень */}
+                      {/* Внешняя тень */}
+                      <rect
+                        x={labelX - 28}
+                        y={labelY - 8}
+                        width="56"
+                        height="24"
+                        fill="rgba(0,0,0,0.2)"
+                        rx="12"
+                        filter="url(#textShadow)"
+                      />
+                      
+                      {/* Основной фон с градиентом */}
+                      <rect
+                        x={labelX - 26}
+                        y={labelY - 6}
+                        width="52"
+                        height="20"
+                        fill="rgba(255,255,255,0.95)"
+                        stroke="rgba(59,130,246,0.3)"
+                        strokeWidth="2"
+                        rx="10"
+                        className="dark:fill-gray-800 dark:stroke-gray-500"
+                      />
+                      
+                      {/* Внутренняя подсветка */}
                       <rect
                         x={labelX - 24}
                         y={labelY - 4}
                         width="48"
-                        height="20"
-                        fill="black"
-                        fillOpacity="0.15"
+                        height="16"
+                        fill="rgba(255,255,255,0.1)"
                         rx="8"
-                        filter="url(#shadow)"
-                      />
-                      {/* Градиентный фон */}
-                      <defs>
-                        <linearGradient id={`label-gradient-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-                          <stop offset="100%" stopColor="#F8FAFC" stopOpacity="0.95" />
-                        </linearGradient>
-                      </defs>
-                      <rect
-                        x={labelX - 22}
-                        y={labelY - 6}
-                        width="44"
-                        height="18"
-                        fill={`url(#label-gradient-${index})`}
-                        stroke="#E2E8F0"
-                        strokeWidth="1.5"
-                        rx="6"
-                        className="dark:fill-gray-800 dark:stroke-gray-600"
                       />
                     </g>
                   )}
                   
-                  {/* Текст на стрелке */}
+                  {/* Красивый текст */}
                   {conn.label && (
                     <text
                       x={labelX}
-                      y={labelY + 3}
+                      y={labelY + 4}
                       textAnchor="middle"
-                      className="text-xs font-bold fill-gray-800 dark:fill-gray-100 pointer-events-none"
+                      className="text-sm font-bold fill-gray-800 dark:fill-gray-100 pointer-events-none"
                       style={{ 
-                        textShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                        letterSpacing: '0.025em'
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        letterSpacing: '0.05em'
                       }}
                     >
                       {conn.label}
@@ -388,39 +464,6 @@ export function ProcessGraph({ nodes, connections, title }: ProcessGraphProps) {
                 </g>
               )
             })}
-            
-            {/* Определение стрелки и эффектов */}
-            <defs>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                <feMerge> 
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-              <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
-                <feMerge> 
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-              <marker
-                id="arrowhead"
-                markerWidth="12"
-                markerHeight="8"
-                refX="11"
-                refY="4"
-                orient="auto"
-                markerUnits="strokeWidth"
-              >
-                <polygon
-                  points="0 0, 12 4, 0 8"
-                  fill="#3B82F6"
-                  className="transition-all duration-200 drop-shadow-sm"
-                />
-              </marker>
-            </defs>
           </svg>
           
           {/* Узлы */}
