@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks';
 import AutomationBuilder from '@/components/AutomationBuilder';
+import WorkflowCanvas from '@/components/WorkflowCanvasSimple';
 import { 
   PlayIcon, 
   PauseIcon, 
@@ -13,7 +14,9 @@ import {
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  Squares2X2Icon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 interface Workflow {
@@ -49,8 +52,11 @@ export default function AutomationPage() {
   const [stats, setStats] = useState<N8NStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'workflows' | 'executions' | 'stats'>('workflows');
+  const [activeTab, setActiveTab] = useState<'workflows' | 'executions' | 'stats' | 'builder'>('workflows');
   const [showBuilder, setShowBuilder] = useState(false);
+  const [showWorkflowCanvas, setShowWorkflowCanvas] = useState(false);
+  const [savedWorkflows, setSavedWorkflows] = useState<any[]>([]);
+  const [currentWorkflow, setCurrentWorkflow] = useState<any>(null);
 
   useEffect(() => {
     if (user?.role === 'admin') {
@@ -80,6 +86,12 @@ export default function AutomationPage() {
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData.data);
+      }
+
+      // Загружаем сохраненные workflows из localStorage
+      const saved = localStorage.getItem('saved-workflows');
+      if (saved) {
+        setSavedWorkflows(JSON.parse(saved));
       }
     } catch (err) {
       setError('Ошибка загрузки данных автоматизации');
@@ -129,6 +141,27 @@ export default function AutomationPage() {
     }
   };
 
+  // Сохранение workflow
+  const handleSaveWorkflow = (workflow: any) => {
+    const newWorkflows = [...savedWorkflows, workflow];
+    setSavedWorkflows(newWorkflows);
+    localStorage.setItem('saved-workflows', JSON.stringify(newWorkflows));
+    console.log('Workflow saved:', workflow);
+  };
+
+  // Загрузка workflow
+  const handleLoadWorkflow = (workflow: any) => {
+    setCurrentWorkflow(workflow);
+    setActiveTab('builder');
+  };
+
+  // Удаление workflow
+  const handleDeleteWorkflow = (workflowId: string) => {
+    const newWorkflows = savedWorkflows.filter(w => w.id !== workflowId);
+    setSavedWorkflows(newWorkflows);
+    localStorage.setItem('saved-workflows', JSON.stringify(newWorkflows));
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -172,14 +205,14 @@ export default function AutomationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Автоматизация</h1>
-              <p className="mt-2 text-gray-600">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Автоматизация</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
                 Управление workflows и автоматизацией процессов
               </p>
             </div>
@@ -197,6 +230,13 @@ export default function AutomationPage() {
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Создать автоматизацию
+              </button>
+              <button
+                onClick={() => setActiveTab('builder')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <Squares2X2Icon className="h-4 w-4 mr-2" />
+                Workflow Builder
               </button>
               <button
                 onClick={() => window.open('http://localhost:5678', '_blank')}
@@ -308,7 +348,8 @@ export default function AutomationPage() {
               {[
                 { id: 'workflows', name: 'Workflows', count: workflows.length },
                 { id: 'executions', name: 'Выполнения', count: executions.length },
-                { id: 'stats', name: 'Статистика', count: null }
+                { id: 'stats', name: 'Статистика', count: null },
+                { id: 'builder', name: 'Workflow Builder', count: null }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -350,76 +391,135 @@ export default function AutomationPage() {
           <>
             {/* Workflows Tab */}
             {activeTab === 'workflows' && (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  {workflows.map((workflow) => (
-                    <li key={workflow.id}>
-                      <div className="px-4 py-4 flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <CogIcon className="h-8 w-8 text-gray-400" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {workflow.name}
+              <div className="space-y-6">
+                {/* n8n Workflows */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    n8n Workflows
+                  </h3>
+                  <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {workflows.map((workflow) => (
+                        <li key={workflow.id}>
+                          <div className="px-4 py-4 flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0">
+                                <CogIcon className="h-8 w-8 text-gray-400" />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {workflow.name}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {workflow.nodes} нод • {workflow.connections} соединений
+                                </div>
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                  Обновлен: {new Date(workflow.updatedAt).toLocaleString('ru-RU')}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {workflow.nodes} нод • {workflow.connections} соединений
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              Обновлен: {new Date(workflow.updatedAt).toLocaleString('ru-RU')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              workflow.active
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}
-                          >
-                            {workflow.active ? 'Активен' : 'Неактивен'}
-                          </span>
-                          <button
-                            onClick={() => executeWorkflow(workflow.id)}
-                            className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            <PlayIcon className="h-4 w-4 mr-1" />
-                            Запустить
-                          </button>
-                          <button
-                            onClick={() => toggleWorkflow(workflow.id, workflow.active)}
-                            className={`inline-flex items-center px-3 py-1 border text-sm leading-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                              workflow.active
-                                ? 'border-red-300 text-red-700 bg-red-50 hover:bg-red-100 focus:ring-red-500'
-                                : 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100 focus:ring-green-500'
-                            }`}
-                          >
-                            {workflow.active ? (
-                              <>
-                                <PauseIcon className="h-4 w-4 mr-1" />
-                                Остановить
-                              </>
-                            ) : (
-                              <>
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  workflow.active
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                                }`}
+                              >
+                                {workflow.active ? 'Активен' : 'Неактивен'}
+                              </span>
+                              <button
+                                onClick={() => executeWorkflow(workflow.id)}
+                                className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              >
                                 <PlayIcon className="h-4 w-4 mr-1" />
-                                Активировать
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => window.open(`http://localhost:5678/workflow/${workflow.id}`, '_blank')}
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                          >
-                            <EyeIcon className="h-4 w-4 mr-1" />
-                            Открыть
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                                Запустить
+                              </button>
+                              <button
+                                onClick={() => toggleWorkflow(workflow.id, workflow.active)}
+                                className={`inline-flex items-center px-3 py-1 border text-sm leading-4 font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                  workflow.active
+                                    ? 'border-red-300 text-red-700 bg-red-50 hover:bg-red-100 focus:ring-red-500 dark:border-red-600 dark:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30'
+                                    : 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100 focus:ring-green-500 dark:border-green-600 dark:text-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30'
+                                }`}
+                              >
+                                {workflow.active ? (
+                                  <>
+                                    <PauseIcon className="h-4 w-4 mr-1" />
+                                    Остановить
+                                  </>
+                                ) : (
+                                  <>
+                                    <PlayIcon className="h-4 w-4 mr-1" />
+                                    Активировать
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => window.open(`http://localhost:5678/workflow/${workflow.id}`, '_blank')}
+                                className="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              >
+                                <EyeIcon className="h-4 w-4 mr-1" />
+                                Открыть
+                              </button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Сохраненные Workflows */}
+                {savedWorkflows.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                      Мои Workflows
+                    </h3>
+                    <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
+                      <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {savedWorkflows.map((workflow) => (
+                          <li key={workflow.id}>
+                            <div className="px-4 py-4 flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0">
+                                  <Squares2X2Icon className="h-8 w-8 text-purple-400" />
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {workflow.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    {workflow.nodes?.length || 0} нод • {workflow.connections?.length || 0} соединений
+                                  </div>
+                                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                                    Создан: {new Date(workflow.createdAt).toLocaleString('ru-RU')}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleLoadWorkflow(workflow)}
+                                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                                >
+                                  <EyeIcon className="h-4 w-4 mr-1" />
+                                  Открыть
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteWorkflow(workflow.id)}
+                                  className="inline-flex items-center px-3 py-1 border border-red-300 dark:border-red-600 text-sm leading-4 font-medium rounded-md text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                >
+                                  <TrashIcon className="h-4 w-4 mr-1" />
+                                  Удалить
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -515,6 +615,21 @@ export default function AutomationPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Workflow Builder Tab */}
+            {activeTab === 'builder' && (
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg h-[600px]">
+                <WorkflowCanvas
+                  initialNodes={currentWorkflow?.nodes || []}
+                  initialConnections={currentWorkflow?.connections || []}
+                  onSave={handleSaveWorkflow}
+                  onExecute={(workflow) => {
+                    console.log('Workflow executed:', workflow);
+                    // Здесь можно добавить логику выполнения workflow
+                  }}
+                />
               </div>
             )}
           </>
