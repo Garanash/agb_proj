@@ -35,6 +35,8 @@ class UserRoles:
     EMPLOYEE = "employee"
     CONTRACTOR = "contractor"
     CUSTOMER = "customer"
+    SECURITY = "security"
+    HR = "hr"
 
 # Статусы заявок
 class RequestStatus:

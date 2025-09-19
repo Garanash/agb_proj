@@ -112,20 +112,20 @@ const navigationConfig: NavigationItem[] = [
     requiredRoles: ['service_engineer']
   },
 
-  // HR менеджеры
+  // Отдел кадров
   {
-    path: '/hr',
-    label: 'Управление персоналом',
+    path: '/dashboard/hr',
+    label: 'Отдел кадров',
     icon: '👔',
-    requiredRoles: ['hr_manager']
+    requiredRoles: ['hr']
   },
 
   // Служба безопасности
   {
-    path: '/security',
-    label: 'Безопасность',
-    icon: '🔒',
-    requiredAnyRole: ['security_officer', 'security_manager']
+    path: '/dashboard/security',
+    label: 'Служба безопасности',
+    icon: '🛡️',
+    requiredRoles: ['security']
   },
 
   // Телефонный справочник (для всех)

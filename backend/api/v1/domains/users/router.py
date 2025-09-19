@@ -28,7 +28,7 @@ async def get_users(
     if search and len(search.strip()) < 2:
         raise ValidationError("Поисковый запрос должен содержать минимум 2 символа")
     
-    if role and role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER]:
+    if role and role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER, UserRoles.SECURITY, UserRoles.HR]:
         raise ValidationError("Некорректная роль пользователя")
     
     # Здесь должна быть логика получения пользователей из базы данных
@@ -212,7 +212,7 @@ async def update_user(
     if phone and not validate_phone(phone):
         raise ValidationError("Некорректный формат номера телефона")
     
-    if role and role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER]:
+    if role and role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER, UserRoles.SECURITY, UserRoles.HR]:
         raise ValidationError("Некорректная роль пользователя")
     
     if username and len(username) < 3:

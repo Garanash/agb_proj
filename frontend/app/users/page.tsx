@@ -173,6 +173,10 @@ export default function Users() {
         return 'Заказчик'
       case 'service_engineer':
         return 'Сервисный инженер'
+      case 'security':
+        return 'Служба безопасности'
+      case 'hr':
+        return 'Отдел кадров'
       default:
         return role
     }
@@ -441,6 +445,8 @@ export default function Users() {
                             userItem.role === 'ved_passport' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200' :
                             userItem.role === 'contractor' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' :
                             userItem.role === 'customer' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200' :
+                            userItem.role === 'security' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200' :
+                            userItem.role === 'hr' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200' :
                             'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
                           }`}>
                             {getRoleName(userItem.role)}

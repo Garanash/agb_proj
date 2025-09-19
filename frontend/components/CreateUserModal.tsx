@@ -17,7 +17,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
     first_name: '',
     last_name: '',
     middle_name: '',
-    role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport',
+    role: 'employee' as 'admin' | 'manager' | 'employee' | 'customer' | 'contractor' | 'service_engineer' | 'ved_passport' | 'security' | 'hr',
     prefix: 'AGB'
   })
   
@@ -251,6 +251,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, onUs
                 <option value="customer">Заказчик</option>
                 <option value="contractor">Исполнитель</option>
                 <option value="service_engineer">Сервисный инженер</option>
+                <option value="security">Сотрудник службы безопасности</option>
+                <option value="hr">Сотрудник отдела кадров</option>
                 <option value="admin">Администратор</option>
               </select>
             </div>

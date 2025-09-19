@@ -19,7 +19,8 @@ import {
   ClipboardDocumentListIcon,
   ArchiveBoxIcon as ArchiveIcon,
   WrenchScrewdriverIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  ShieldCheckIcon as ShieldIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from '@/hooks'
@@ -154,10 +155,22 @@ const navigation: NavigationItem[] = [
     roles: ['service_engineer']
   },
   {
+    name: 'Служба безопасности',
+    href: '/dashboard/security',
+    icon: ShieldIcon,
+    roles: ['security']
+  },
+  {
+    name: 'Отдел кадров',
+    href: '/dashboard/hr',
+    icon: UserGroupIcon,
+    roles: ['hr']
+  },
+  {
     name: 'Настройки',
     href: '/settings',
     icon: Cog6ToothIcon,
-    roles: ['admin', 'manager', 'employee', 'ved_passport', 'customer', 'contractor']
+    roles: ['admin', 'manager', 'employee', 'ved_passport', 'customer', 'contractor', 'security', 'hr']
   },
 ]
 

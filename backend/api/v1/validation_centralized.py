@@ -60,7 +60,7 @@ class BaseValidator:
     @staticmethod
     def validate_role_field(role: str) -> str:
         """Валидирует роль пользователя"""
-        if role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER]:
+        if role not in [UserRoles.ADMIN, UserRoles.MANAGER, UserRoles.EMPLOYEE, UserRoles.CONTRACTOR, UserRoles.CUSTOMER, UserRoles.SECURITY, UserRoles.HR]:
             raise ValidationError("Некорректная роль пользователя")
         return role
     
