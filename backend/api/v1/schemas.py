@@ -577,6 +577,133 @@ class VedPassportUpdate(BaseModel):
 class BulkPassportItem(BaseModel):
     """Схема элемента для массового создания паспортов"""
     code_1c: str = Field(description="Код 1С")
+
+
+# Схемы для системы сопоставления артикулов
+
+class ArticleMapping(BaseResponseModel):
+    """Схема соответствия артикулов"""
+    id: int = Field(description="ID соответствия")
+    contractor_article: str = Field(description="Артикул контрагента")
+    contractor_description: str = Field(description="Описание контрагента")
+    agb_article: str = Field(description="Артикул АГБ")
+    agb_description: str = Field(description="Описание АГБ")
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    bl_description: Optional[str] = Field(None, description="Описание BL")
+    packaging_factor: int = Field(description="Коэффициент фасовки")
+    unit: str = Field(description="Единица измерения")
+    is_active: bool = Field(description="Активен")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+    nomenclature: Optional[VEDNomenclature] = Field(None, description="Номенклатура")
+
+
+class ArticleMappingCreate(BaseModel):
+    """Схема создания соответствия артикулов"""
+    contractor_article: str = Field(description="Артикул контрагента", min_length=1)
+    contractor_description: str = Field(description="Описание контрагента", min_length=1)
+    agb_article: str = Field(description="Артикул АГБ", min_length=1)
+    agb_description: str = Field(description="Описание АГБ", min_length=1)
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    bl_description: Optional[str] = Field(None, description="Описание BL")
+    packaging_factor: int = Field(1, description="Коэффициент фасовки", ge=1)
+    unit: str = Field("шт", description="Единица измерения")
+    nomenclature_id: Optional[int] = Field(None, description="ID номенклатуры")
+
+
+class ContractorRequest(BaseResponseModel):
+    """Схема заявки контрагента"""
+    id: int = Field(description="ID заявки")
+    request_number: str = Field(description="Номер заявки")
+    contractor_name: str = Field(description="Название контрагента")
+    request_date: str = Field(description="Дата заявки")
+    status: str = Field(description="Статус")
+    total_items: int = Field(description="Общее количество позиций")
+    matched_items: int = Field(description="Количество сопоставленных позиций")
+    created_by: int = Field(description="ID создателя")
+    processed_by: Optional[int] = Field(None, description="ID обработчика")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+    processed_at: Optional[str] = Field(None, description="Дата обработки")
+    creator: Optional[UserResponse] = Field(None, description="Создатель")
+    processor: Optional[UserResponse] = Field(None, description="Обработчик")
+    items: Optional[List['ContractorRequestItem']] = Field(None, description="Позиции заявки")
+
+
+class ContractorRequestCreate(BaseModel):
+    """Схема создания заявки контрагента"""
+    request_number: str = Field(description="Номер заявки", min_length=1)
+    contractor_name: str = Field(description="Название контрагента", min_length=1)
+    request_date: str = Field(description="Дата заявки")
+    items: List['ContractorRequestItemCreate'] = Field(description="Позиции заявки")
+
+
+class ContractorRequestItem(BaseResponseModel):
+    """Схема позиции заявки контрагента"""
+    id: int = Field(description="ID позиции")
+    request_id: int = Field(description="ID заявки")
+    line_number: int = Field(description="Номер строки")
+    contractor_article: str = Field(description="Артикул контрагента")
+    description: str = Field(description="Описание товара")
+    unit: str = Field(description="Единица измерения")
+    quantity: int = Field(description="Количество")
+    category: Optional[str] = Field(None, description="Категория")
+    matched_nomenclature_id: Optional[int] = Field(None, description="ID сопоставленной номенклатуры")
+    agb_article: Optional[str] = Field(None, description="Артикул АГБ")
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    packaging_factor: int = Field(description="Коэффициент фасовки")
+    recalculated_quantity: Optional[int] = Field(None, description="Пересчитанное количество")
+    match_confidence: int = Field(description="Уверенность в сопоставлении")
+    match_status: str = Field(description="Статус сопоставления")
+    created_at: str = Field(description="Дата создания")
+    updated_at: Optional[str] = Field(None, description="Дата обновления")
+    matched_nomenclature: Optional[VEDNomenclature] = Field(None, description="Сопоставленная номенклатура")
+
+
+class ContractorRequestItemCreate(BaseModel):
+    """Схема создания позиции заявки контрагента"""
+    line_number: int = Field(description="Номер строки", ge=1)
+    contractor_article: str = Field(description="Артикул контрагента", min_length=1)
+    description: str = Field(description="Описание товара", min_length=1)
+    unit: str = Field("шт", description="Единица измерения")
+    quantity: int = Field(description="Количество", ge=1)
+    category: Optional[str] = Field(None, description="Категория")
+
+
+class ContractorRequestItemUpdate(BaseModel):
+    """Схема обновления позиции заявки контрагента"""
+    matched_nomenclature_id: Optional[int] = Field(None, description="ID сопоставленной номенклатуры")
+    agb_article: Optional[str] = Field(None, description="Артикул АГБ")
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    packaging_factor: Optional[int] = Field(None, description="Коэффициент фасовки", ge=1)
+    recalculated_quantity: Optional[int] = Field(None, description="Пересчитанное количество", ge=0)
+    match_confidence: Optional[int] = Field(None, description="Уверенность в сопоставлении", ge=0, le=100)
+    match_status: Optional[str] = Field(None, description="Статус сопоставления")
+
+
+class MatchingResult(BaseModel):
+    """Результат сопоставления"""
+    item_id: int = Field(description="ID позиции")
+    contractor_article: str = Field(description="Артикул контрагента")
+    description: str = Field(description="Описание")
+    matched: bool = Field(description="Найдено соответствие")
+    agb_article: Optional[str] = Field(None, description="Артикул АГБ")
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    packaging_factor: Optional[int] = Field(None, description="Коэффициент фасовки")
+    recalculated_quantity: Optional[int] = Field(None, description="Пересчитанное количество")
+    match_confidence: Optional[int] = Field(None, description="Уверенность в сопоставлении")
+    nomenclature: Optional[VEDNomenclature] = Field(None, description="Номенклатура")
+
+
+class MatchingSummary(BaseModel):
+    """Сводка по сопоставлению"""
+    total_items: int = Field(description="Общее количество позиций")
+    matched_items: int = Field(description="Сопоставленных позиций")
+    unmatched_items: int = Field(description="Не сопоставленных позиций")
+    high_confidence_items: int = Field(description="Позиций с высокой уверенностью")
+    medium_confidence_items: int = Field(description="Позиций со средней уверенностью")
+    low_confidence_items: int = Field(description="Позиций с низкой уверенностью")
+    results: List[MatchingResult] = Field(description="Результаты сопоставления")
     quantity: int = Field(description="Количество", default=1)
 
 
@@ -1039,3 +1166,16 @@ class FileResponse(BaseResponseModel):
     url: str = Field(description="URL файла")
     created_at: str = Field(description="Дата загрузки")
     uploaded_by: int = Field(description="ID пользователя, загрузившего файл")
+
+
+class TextUploadRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    """Схема загрузки текстовой заявки"""
+    text: str = Field(description="Текст заявки")
+    contractor_name: str = Field(description="Название контрагента")
+
+
+# Разрешаем forward references
+ContractorRequest.model_rebuild()
+ContractorRequestCreate.model_rebuild()

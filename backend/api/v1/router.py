@@ -124,6 +124,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.article_matching import router as article_matching_router
+    api_router.include_router(article_matching_router, prefix="/article-matching", tags=["🔗 Сопоставление артикулов"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

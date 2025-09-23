@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, select, BigInteger
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, select, BigInteger, Float
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -647,3 +647,98 @@ class TelegramNotification(Base):
     # Связи
     telegram_user = relationship("TelegramUser", lazy="selectin")
     repair_request = relationship("RepairRequest", foreign_keys=[repair_request_id], lazy="selectin")
+
+
+# Модели для системы сопоставления артикулов
+
+class ArticleMapping(Base):
+    """Соответствия артикулов контрагентов с нашей базой данных"""
+    __tablename__ = "article_mappings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    contractor_article = Column(String, nullable=False, index=True)  # Артикул контрагента
+    contractor_description = Column(String, nullable=False)  # Описание контрагента
+    agb_article = Column(String, nullable=False)  # Артикул АГБ
+    agb_description = Column(String, nullable=False)  # Описание АГБ
+    bl_article = Column(String, nullable=True)  # Артикул BL (если есть)
+    bl_description = Column(String, nullable=True)  # Описание BL
+    packaging_factor = Column(Integer, default=1)  # Коэффициент фасовки
+    unit = Column(String, nullable=False, default="шт")  # Единица измерения
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
+    nomenclature = relationship("VEDNomenclature", lazy="selectin")
+
+
+class ContractorRequest(Base):
+    """Заявки от контрагентов на сопоставление артикулов"""
+    __tablename__ = "contractor_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_number = Column(String, nullable=False, unique=True, index=True)  # Номер заявки
+    contractor_name = Column(String, nullable=False)  # Название контрагента
+    request_date = Column(DateTime, nullable=False)  # Дата заявки
+    status = Column(String, default="new")  # new, processing, completed, cancelled
+    total_items = Column(Integer, default=0)  # Общее количество позиций
+    matched_items = Column(Integer, default=0)  # Количество сопоставленных позиций
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    processed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    processed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Связи
+    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    processor = relationship("User", foreign_keys=[processed_by], lazy="selectin")
+    items = relationship("ContractorRequestItem", back_populates="request", lazy="selectin")
+
+
+class ContractorRequestItem(Base):
+    """Позиции в заявке контрагента"""
+    __tablename__ = "contractor_request_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("contractor_requests.id"), nullable=False)
+    line_number = Column(Integer, nullable=False)  # Номер строки в заявке
+    contractor_article = Column(String, nullable=False)  # Артикул контрагента
+    description = Column(String, nullable=False)  # Описание товара
+    unit = Column(String, nullable=False, default="шт")  # Единица измерения
+    quantity = Column(Integer, nullable=False)  # Количество
+    category = Column(String, nullable=True)  # Категория (например, "Для бурения")
+    
+    # Результаты сопоставления
+    matched_nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
+    agb_article = Column(String, nullable=True)  # Найденный артикул АГБ
+    bl_article = Column(String, nullable=True)  # Найденный артикул BL
+    packaging_factor = Column(Integer, default=1)  # Коэффициент фасовки
+    recalculated_quantity = Column(Integer, nullable=True)  # Пересчитанное количество
+    match_confidence = Column(Integer, default=0)  # Уверенность в сопоставлении (0-100)
+    match_status = Column(String, default="pending")  # pending, matched, unmatched, manual
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    request = relationship("ContractorRequest", back_populates="items", lazy="selectin")
+    matched_nomenclature = relationship("VEDNomenclature", lazy="selectin")
+
+
+class MatchingNomenclature(Base):
+    """Номенклатура для сопоставления артикулов"""
+    __tablename__ = "matching_nomenclatures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agb_article = Column(String, nullable=False, index=True)  # Артикул АГБ
+    name = Column(String, nullable=False)  # Наименование
+    code_1c = Column(String, nullable=True)  # Код 1С (УТ-код)
+    bl_article = Column(String, nullable=True)  # Артикул BL
+    packaging = Column(Float, nullable=True)  # Фасовка
+    unit = Column(String, nullable=True, default="шт")  # Единица измерения
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
