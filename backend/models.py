@@ -744,3 +744,34 @@ class MatchingNomenclature(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class ApiKey(Base):
+    """Модель для хранения API ключей"""
+    __tablename__ = "api_keys"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)  # Название ключа
+    provider = Column(String, nullable=False)  # openai, polza, custom
+    key = Column(String, nullable=False)  # Зашифрованный ключ
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_used = Column(DateTime(timezone=True), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+
+class AiProcessingLog(Base):
+    """Лог обработки ИИ-запросов"""
+    __tablename__ = "ai_processing_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=True)
+    request_type = Column(String, nullable=False)  # file_upload, text_input
+    file_path = Column(String, nullable=True)  # Путь к обработанному файлу
+    input_text = Column(Text, nullable=True)  # Входной текст
+    ai_response = Column(Text, nullable=True)  # Ответ ИИ
+    processing_time = Column(Float, nullable=True)  # Время обработки в секундах
+    status = Column(String, nullable=False)  # success, error, processing
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+

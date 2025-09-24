@@ -130,6 +130,18 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.settings import router as settings_router
+    api_router.include_router(settings_router, prefix="/settings", tags=["⚙️ Настройки"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.ai_processing import router as ai_processing_router
+    api_router.include_router(ai_processing_router, prefix="/article-matching", tags=["🤖 ИИ обработка"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

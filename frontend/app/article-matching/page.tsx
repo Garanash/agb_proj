@@ -12,8 +12,10 @@ import {
   ExclamationTriangleIcon,
   ArrowDownTrayIcon,
   PlusIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
+import AIMatchingChat from '@/components/AIMatchingChat'
 
 interface ContractorRequest {
   id: number
@@ -87,7 +89,7 @@ export default function ArticleMatchingPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [matching, setMatching] = useState(false)
-  const [activeTab, setActiveTab] = useState<'requests' | 'matching' | 'results' | 'our_database' | 'found_items'>('requests')
+  const [activeTab, setActiveTab] = useState<'requests' | 'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching'>('requests')
   const [textInput, setTextInput] = useState('')
   const [inputMode, setInputMode] = useState<'file' | 'text'>('file')
   const [contractorName, setContractorName] = useState('')
@@ -666,6 +668,16 @@ export default function ArticleMatchingPage() {
               }`}
             >
               Найденные
+            </button>
+            <button
+              onClick={() => setActiveTab('ai_matching')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'ai_matching'
+                  ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              АИ сопоставление
             </button>
           </nav>
         </div>
@@ -1569,6 +1581,29 @@ export default function ArticleMatchingPage() {
                     Сохранить
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* АИ сопоставление */}
+        {activeTab === 'ai_matching' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <ChatBubbleLeftRightIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">ИИ-агент сопоставления артикулов</h2>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Загрузите любой документ и получите автоматическое сопоставление с базой данных АГБ
+                  </p>
+                </div>
+              </div>
+              
+              <div className="h-[600px]">
+                <AIMatchingChat />
               </div>
             </div>
           </div>

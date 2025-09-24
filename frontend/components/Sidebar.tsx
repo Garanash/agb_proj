@@ -144,6 +144,12 @@ const navigation: NavigationItem[] = [
     roles: ['admin']
   },
   {
+    name: 'Настройки системы',
+    href: '/admin/settings',
+    icon: WrenchScrewdriverIcon,
+    roles: ['admin']
+  },
+  {
     name: 'Текущие заявки',
     href: '/dashboard/service-engineer?tab=current',
     icon: ClipboardDocumentListIcon,
