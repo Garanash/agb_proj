@@ -17,9 +17,9 @@ import pytesseract
 import openai
 import requests
 
-from ...dependencies import get_db, get_current_user
-from ....models import ApiKey, AiProcessingLog, User, Nomenclature
-from ....schemas import AIMatchingResponse, MatchingResult
+from ..dependencies import get_db, get_current_user
+from models import ApiKey, AiProcessingLog, User, MatchingNomenclature
+from ..schemas import AIMatchingResponse, MatchingResult
 
 router = APIRouter()
 
@@ -176,14 +176,14 @@ async def match_articles_with_database(articles: List[dict], db: Session) -> Lis
         description = article.get('description', '')
         
         # Поиск в базе данных по артикулу
-        nomenclature = db.query(Nomenclature).filter(
-            Nomenclature.agb_article.ilike(f"%{contractor_article}%")
+        nomenclature = db.query(MatchingNomenclature).filter(
+            MatchingNomenclature.agb_article.ilike(f"%{contractor_article}%")
         ).first()
         
         if not nomenclature:
             # Поиск по описанию
-            nomenclature = db.query(Nomenclature).filter(
-                Nomenclature.name.ilike(f"%{description}%")
+            nomenclature = db.query(MatchingNomenclature).filter(
+                MatchingNomenclature.name.ilike(f"%{description}%")
             ).first()
         
         if nomenclature:

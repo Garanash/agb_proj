@@ -8,9 +8,9 @@ import hashlib
 from cryptography.fernet import Fernet
 import base64
 
-from ...dependencies import get_db, get_current_user
-from ....models import ApiKey, AiProcessingLog, User
-from ....schemas import ApiKeyCreate, ApiKeyUpdate, ApiKeyResponse
+from ..dependencies import get_db, get_current_user
+from models import ApiKey, AiProcessingLog, User
+from ..schemas import ApiKeyCreate, ApiKeyUpdate, ApiKeyResponse
 
 router = APIRouter()
 

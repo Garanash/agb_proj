@@ -1179,3 +1179,65 @@ class TextUploadRequest(BaseModel):
 # Разрешаем forward references
 ContractorRequest.model_rebuild()
 ContractorRequestCreate.model_rebuild()
+
+
+# Схемы для API ключей
+class ApiKeyBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    name: str = Field(description="Название ключа")
+    provider: str = Field(description="Провайдер (openai, polza, custom)")
+    is_active: bool = Field(default=True, description="Активен ли ключ")
+
+class ApiKeyCreate(ApiKeyBase):
+    """Схема создания API ключа"""
+    key: str = Field(description="API ключ")
+
+class ApiKeyUpdate(BaseModel):
+    """Схема обновления API ключа"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    name: Optional[str] = Field(None, description="Название ключа")
+    provider: Optional[str] = Field(None, description="Провайдер")
+    key: Optional[str] = Field(None, description="API ключ")
+    is_active: Optional[bool] = Field(None, description="Активен ли ключ")
+
+class ApiKeyResponse(ApiKeyBase):
+    """Схема ответа API ключа"""
+    id: int = Field(description="ID ключа")
+    created_at: str = Field(description="Дата создания")
+    last_used: Optional[str] = Field(None, description="Дата последнего использования")
+    created_by: int = Field(description="ID создателя")
+
+
+# Схемы для ИИ обработки
+class AIMatchingRequest(BaseModel):
+    """Схема запроса ИИ сопоставления"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    message: str = Field(description="Сообщение пользователя")
+    files: Optional[List[str]] = Field(None, description="Список файлов")
+
+class MatchingResult(BaseModel):
+    """Схема результата сопоставления"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: str = Field(description="ID результата")
+    contractor_article: str = Field(description="Артикул контрагента")
+    description: str = Field(description="Описание")
+    matched: bool = Field(description="Найдено соответствие")
+    agb_article: Optional[str] = Field(None, description="Артикул АГБ")
+    bl_article: Optional[str] = Field(None, description="Артикул BL")
+    match_confidence: Optional[float] = Field(None, description="Уверенность сопоставления")
+    packaging_factor: Optional[float] = Field(None, description="Коэффициент фасовки")
+    recalculated_quantity: Optional[float] = Field(None, description="Пересчитанное количество")
+    nomenclature: Optional[dict] = Field(None, description="Номенклатура")
+
+class AIMatchingResponse(BaseModel):
+    """Схема ответа ИИ сопоставления"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    message: str = Field(description="Сообщение ИИ")
+    matching_results: Optional[List[MatchingResult]] = Field(None, description="Результаты сопоставления")
+    processing_time: Optional[float] = Field(None, description="Время обработки")
+    status: str = Field(description="Статус обработки")
