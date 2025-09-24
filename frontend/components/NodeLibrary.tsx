@@ -8,7 +8,7 @@ import {
   DocumentTextIcon,
   EnvelopeIcon,
   ChatBubbleLeftRightIcon,
-  DatabaseIcon,
+  CircleStackIcon,
   ClockIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
@@ -75,7 +75,7 @@ const nodeTypes: NodeType[] = [
     id: 'database',
     name: 'База данных',
     description: 'Работает с базой данных',
-    icon: DatabaseIcon,
+    icon: CircleStackIcon,
     color: 'bg-orange-500',
     category: 'Действия'
   },

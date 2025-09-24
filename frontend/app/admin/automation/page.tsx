@@ -68,9 +68,9 @@ export default function AutomationPage() {
     try {
       setLoading(true);
       const [workflowsRes, executionsRes, statsRes] = await Promise.all([
-        fetch('/api/v1/n8n/workflows'),
-        fetch('/api/v1/n8n/executions'),
-        fetch('/api/v1/n8n/stats')
+        fetch('http://localhost:8000/api/v1/n8n/workflows'),
+        fetch('http://localhost:8000/api/v1/n8n/executions'),
+        fetch('http://localhost:8000/api/v1/n8n/stats')
       ]);
 
       if (workflowsRes.ok) {
@@ -121,7 +121,7 @@ export default function AutomationPage() {
 
   const executeWorkflow = async (workflowId: string) => {
     try {
-      const response = await fetch('/api/v1/n8n/workflow/execute', {
+      const response = await fetch('http://localhost:8000/api/v1/n8n/workflow/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

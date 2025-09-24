@@ -22,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [hasInitialized, setHasInitialized] = useState(false)
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
@@ -30,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window === 'undefined') {
       console.log('Not on client side, setting isLoading to false')
       setIsLoading(false)
+      setHasInitialized(true)
       return
     }
 
@@ -38,15 +40,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      // Не проверяем токен при загрузке, просто завершаем загрузку
-      console.log('Token found, setting isLoading to false')
-      setIsLoading(false)
+      // Проверяем валидность токена при загрузке
+      console.log('Token found, checking validity')
+      checkTokenValidity()
     } else {
       // Если токена нет, сразу завершаем загрузку
       console.log('No token found, setting isLoading to false')
       setIsLoading(false)
+      setHasInitialized(true)
     }
   }, [])
+
+  // Отдельный useEffect для проверки токена при его изменении
+  useEffect(() => {
+    if (token && !user) {
+      console.log('Token available but no user, checking validity')
+      checkTokenValidity()
+    }
+  }, [token])
+
+  // Таймаут для предотвращения бесконечного ожидания
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!hasInitialized) {
+        console.log('Auth initialization timeout, forcing completion')
+        setIsLoading(false)
+        setHasInitialized(true)
+      }
+    }, 5000) // 5 секунд таймаут
+
+    return () => clearTimeout(timeout)
+  }, [hasInitialized])
 
   const checkTokenValidity = async () => {
     try {
@@ -69,8 +93,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(null)
       delete axios.defaults.headers.common['Authorization']
     } finally {
-      console.log('Setting isLoading to false')
+      console.log('Setting isLoading to false and hasInitialized to true')
       setIsLoading(false)
+      setHasInitialized(true)
     }
   }
 
@@ -132,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     logout,
     refreshUser,
-    isLoading,
+    isLoading: isLoading || !hasInitialized,
     isAuthenticated: !!user
   }
 

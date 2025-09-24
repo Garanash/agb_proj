@@ -662,7 +662,9 @@ class ArticleMapping(Base):
     agb_description = Column(String, nullable=False)  # Описание АГБ
     bl_article = Column(String, nullable=True)  # Артикул BL (если есть)
     bl_description = Column(String, nullable=True)  # Описание BL
+    match_confidence = Column(Integer, default=0)  # Уверенность сопоставления (0-100)
     packaging_factor = Column(Integer, default=1)  # Коэффициент фасовки
+    recalculated_quantity = Column(Integer, default=0)  # Пересчитанное количество
     unit = Column(String, nullable=False, default="шт")  # Единица измерения
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

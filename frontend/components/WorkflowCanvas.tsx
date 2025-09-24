@@ -170,10 +170,7 @@ export default function WorkflowCanvas({
     if (onSave) {
       onSave({ 
         nodes, 
-        connections,
-        name: workflowName,
-        id: `workflow-${Date.now()}`,
-        createdAt: new Date().toISOString()
+        connections
       });
     }
     

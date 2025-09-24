@@ -25,7 +25,7 @@ export default function VideoDemo({
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
 
   const handlePlayPause = () => {
     const video = document.getElementById(`video-${title.replace(/\s+/g, '-')}`) as HTMLVideoElement
@@ -47,7 +47,7 @@ export default function VideoDemo({
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
-    setDuration(video.duration)
+    setVideoDuration(video.duration)
     setIsLoading(false)
   }
 
@@ -61,7 +61,7 @@ export default function VideoDemo({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const progress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden ${className}`}>
@@ -129,7 +129,7 @@ export default function VideoDemo({
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span>{formatTime(duration)}</span>
+            <span>{formatTime(videoDuration)}</span>
           </div>
         </div>
       </div>

@@ -1,31 +1,101 @@
 version: "3.8"
 
 services:
-  # PostgreSQL для разработки
+  # PostgreSQL
   postgres:
     image: postgres:15-alpine
-    container_name: agb_dev_postgres
+    container_name: agb_postgres_dev
+    env_file:
+      - config/local.env
     environment:
-      POSTGRES_DB: test_platform_db
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: ${POSTGRES_DB:-agb_felix_dev}
+      POSTGRES_USER: ${POSTGRES_USER:-felix_dev_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password_123}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - postgres_dev_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "15432:5432"
     networks:
-      - dev-network
+      - agb-dev-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U test_user -d test_platform_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-felix_dev_user} -d ${POSTGRES_DB:-agb_felix_dev}"]
       interval: 30s
       timeout: 10s
       retries: 3
 
+  # Redis для очередей n8n
+  redis:
+    image: redis:7-alpine
+    container_name: agb_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - agb-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # n8n - платформа автоматизации
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: agb_n8n_dev
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n_dev}
+      - DB_POSTGRESDB_USER=${N8N_DB_USER:-n8n_dev_user}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n_dev_password}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-admin123}
+      - EXECUTIONS_PROCESS=main
+      - EXECUTIONS_MODE=regular
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_DB=0
+      - N8N_LOG_LEVEL=${N8N_LOG_LEVEL:-info}
+      - N8N_LOG_OUTPUT=console,file
+      - N8N_DEFAULT_LOCALE=ru
+      - N8N_METRICS=true
+      - N8N_DIAGNOSTICS_ENABLED=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - n8n_custom:/data/custom
+    networks:
+      - agb-dev-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 volumes:
-  postgres_dev_data:
+  postgres_data:
+  n8n_data:
+  n8n_custom:
+  redis_data:
 
 networks:
-  dev-network:
+  agb-dev-network:
     driver: bridge

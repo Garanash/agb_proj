@@ -44,7 +44,7 @@ export const getApiEndpoint = (endpoint: string, version: string = DEFAULT_API_V
     return `${baseUrl}/api${cleanEndpoint}`;
   }
   
-  return `${baseUrl}/api/v1/${version}${cleanEndpoint}`;
+  return `${baseUrl}/api/v1${cleanEndpoint}`;
 };
 
 // Полный URL для WebSocket
@@ -52,7 +52,7 @@ export const getWsEndpoint = (endpoint: string, version: string = DEFAULT_API_VE
   const baseUrl = getWsUrl();
   // Убираем начальный слэш из endpoint если он есть
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${baseUrl}/api/v1/${version}${cleanEndpoint}`;
+  return `${baseUrl}/api/v1${cleanEndpoint}`;
 };
 
 // Утилиты для работы с версиями API

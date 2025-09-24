@@ -18,6 +18,7 @@ import {
   ChevronRightIcon,
   ClipboardDocumentListIcon,
   ArchiveBoxIcon as ArchiveIcon,
+  TableCellsIcon,
   WrenchScrewdriverIcon,
   BookOpenIcon,
   ShieldCheckIcon as ShieldIcon
@@ -53,6 +54,12 @@ const navigation: NavigationItem[] = [
     href: '/wiki', 
     icon: BookOpenIcon, 
     roles: ['admin', 'manager', 'employee', 'ved_passport', 'service_engineer'] 
+  },
+  { 
+    name: 'Сопоставление артикулов', 
+    href: '/article-matching', 
+    icon: TableCellsIcon, 
+    roles: ['ved_passport', 'admin'] 
   },
   {
     name: 'Управление пользователями',

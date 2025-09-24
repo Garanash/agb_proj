@@ -16,6 +16,7 @@ export interface User {
   department_id?: number | null
   phone?: string | null
   position?: string | null
+  is_password_changed?: boolean
 }
 
 export interface AuthContextType {
@@ -26,6 +27,7 @@ export interface AuthContextType {
   refreshUser: () => Promise<void>
   isLoading: boolean
   isAuthenticated: boolean
+  hasInitialized?: boolean
 }
 
 export interface ModalProps {

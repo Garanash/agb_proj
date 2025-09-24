@@ -10,7 +10,7 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentTextIcon,
   ClockIcon,
-  DatabaseIcon,
+  CircleStackIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
@@ -53,7 +53,7 @@ export default function WorkflowNode({
       webhook: DocumentTextIcon,
       email: EnvelopeIcon,
       telegram: ChatBubbleLeftRightIcon,
-      database: DatabaseIcon,
+      database: CircleStackIcon,
       delay: ClockIcon
     };
     const IconComponent = icons[type] || CogIcon;

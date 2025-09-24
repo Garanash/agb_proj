@@ -15,16 +15,21 @@
     "reorganize": "npm run update-imports && npm run lint"
   },
   "dependencies": {
+    "@heroicons/react": "^2.1.1",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "autoprefixer": "^10.4.17",
+    "axios": "^1.6.7",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.0",
+    "lucide-react": "^0.544.0",
+    "moment": "^2.30.1",
     "next": "14.1.0",
+    "postcss": "^8.4.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@heroicons/react": "^2.1.1",
-    "tailwindcss": "^3.4.1",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.35",
-    "clsx": "^2.1.0",
-    "axios": "^1.6.7",
-    "moment": "^2.30.1"
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.19",
