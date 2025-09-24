@@ -16,6 +16,10 @@ from PIL import Image
 import pytesseract
 import openai
 import requests
+import docx
+import pptx
+from docx import Document
+from pptx import Presentation
 
 from ..dependencies import get_db, get_current_user
 from models import ApiKey, AiProcessingLog, User, MatchingNomenclature
@@ -29,8 +33,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {
     'pdf': ['.pdf'],
-    'excel': ['.xlsx', '.xls', '.csv'],
-    'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
+    'excel': ['.xlsx', '.xls', '.csv', '.ods'],
+    'word': ['.doc', '.docx', '.odt', '.rtf'],
+    'powerpoint': ['.ppt', '.pptx', '.odp'],
+    'text': ['.txt', '.rtf'],
+    'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg']
 }
 
 def get_file_extension(filename: str) -> str:
@@ -101,6 +108,55 @@ async def extract_text_from_image(file_path: str) -> str:
     except Exception as e:
         raise Exception(f"Ошибка OCR обработки: {str(e)}")
 
+async def extract_text_from_word(file_path: str) -> str:
+    """Извлечь текст из Word документа"""
+    try:
+        doc = Document(file_path)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из Word: {str(e)}")
+
+async def extract_text_from_powerpoint(file_path: str) -> str:
+    """Извлечь текст из PowerPoint презентации"""
+    try:
+        prs = Presentation(file_path)
+        text = ""
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text"):
+                    text += shape.text + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из PowerPoint: {str(e)}")
+
+async def extract_text_from_text_file(file_path: str) -> str:
+    """Извлечь текст из текстового файла"""
+    try:
+        # Пробуем разные кодировки
+        encodings = ['utf-8', 'cp1251', 'latin-1', 'iso-8859-1']
+        text = ""
+        
+        for encoding in encodings:
+            try:
+                with open(file_path, 'r', encoding=encoding) as file:
+                    text = file.read()
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if not text:
+            # Если все кодировки не сработали, читаем как бинарный файл
+            with open(file_path, 'rb') as file:
+                content = file.read()
+                text = content.decode('utf-8', errors='ignore')
+        
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из текстового файла: {str(e)}")
+
 async def extract_text_from_file(file_path: str, filename: str) -> str:
     """Извлечь текст из файла в зависимости от его типа"""
     ext = get_file_extension(filename)
@@ -109,6 +165,12 @@ async def extract_text_from_file(file_path: str, filename: str) -> str:
         return await extract_text_from_pdf(file_path)
     elif ext in ALLOWED_EXTENSIONS['excel']:
         return await extract_text_from_excel(file_path)
+    elif ext in ALLOWED_EXTENSIONS['word']:
+        return await extract_text_from_word(file_path)
+    elif ext in ALLOWED_EXTENSIONS['powerpoint']:
+        return await extract_text_from_powerpoint(file_path)
+    elif ext in ALLOWED_EXTENSIONS['text']:
+        return await extract_text_from_text_file(file_path)
     elif ext in ALLOWED_EXTENSIONS['images']:
         return await extract_text_from_image(file_path)
     else:

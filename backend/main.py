@@ -6,6 +6,10 @@ from database import engine, Base
 from datetime import datetime
 import os
 import asyncio
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

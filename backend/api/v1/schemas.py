@@ -1205,9 +1205,38 @@ class ApiKeyUpdate(BaseModel):
 class ApiKeyResponse(ApiKeyBase):
     """Схема ответа API ключа"""
     id: int = Field(description="ID ключа")
-    created_at: str = Field(description="Дата создания")
-    last_used: Optional[str] = Field(None, description="Дата последнего использования")
+    created_at: datetime = Field(description="Дата создания")
+    last_used: Optional[datetime] = Field(None, description="Дата последнего использования")
     created_by: int = Field(description="ID создателя")
+
+
+# Схемы для настроек приложения
+class AppSettingsBase(BaseModel):
+    """Базовая схема настроек приложения"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    key: str = Field(description="Ключ настройки")
+    value: str = Field(description="Значение настройки")
+    description: Optional[str] = Field(None, description="Описание настройки")
+    is_encrypted: bool = Field(default=False, description="Зашифровано ли значение")
+
+class AppSettingsCreate(AppSettingsBase):
+    """Схема создания настройки"""
+    pass
+
+class AppSettingsUpdate(BaseModel):
+    """Схема обновления настройки"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    value: Optional[str] = Field(None, description="Значение настройки")
+    description: Optional[str] = Field(None, description="Описание настройки")
+    is_encrypted: Optional[bool] = Field(None, description="Зашифровано ли значение")
+
+class AppSettingsResponse(AppSettingsBase):
+    """Схема ответа настройки"""
+    id: int = Field(description="ID настройки")
+    created_at: datetime = Field(description="Дата создания")
+    updated_at: Optional[datetime] = Field(None, description="Дата обновления")
 
 
 # Схемы для ИИ обработки

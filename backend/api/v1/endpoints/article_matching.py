@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
@@ -10,8 +10,15 @@ import re
 import aiohttp
 import asyncio
 from difflib import SequenceMatcher
+import json
+import time
+import uuid
+from pathlib import Path
 
 from database import get_db
+from models import User, ApiKey, AiProcessingLog
+from ..dependencies import get_current_user
+from ..schemas import AIMatchingResponse, MatchingResult
 
 async def extract_articles_from_text(text: str) -> List[dict]:
     """Извлекает артикулы из текста строки через AI API"""
@@ -112,8 +119,7 @@ from .auth import get_current_user
 
 router = APIRouter()
 
-# API ключ для Polza.ai
-POLZA_API_KEY = "ak_FojEdiuKBZJwcAdyGQiPUIKt2DDFsTlawov98zr6Npg"
+# URL для Polza.ai
 POLZA_API_URL = "https://api.polza.ai/v1/chat/completions"
 
 
@@ -2037,3 +2043,590 @@ async def test_get_requests(db: AsyncSession = Depends(get_db)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при получении заявок: {str(e)}")
+
+
+# ИИ обработка файлов
+UPLOAD_DIR = Path("uploads/ai_processing")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {
+    'pdf': ['.pdf'],
+    'excel': ['.xlsx', '.xls', '.csv', '.ods'],
+    'word': ['.doc', '.docx', '.odt', '.rtf'],
+    'powerpoint': ['.ppt', '.pptx', '.odp'],
+    'text': ['.txt', '.rtf'],
+    'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg']
+}
+
+def get_file_extension(filename: str) -> str:
+    """Получить расширение файла"""
+    return Path(filename).suffix.lower()
+
+def is_allowed_file(filename: str) -> bool:
+    """Проверить, разрешен ли тип файла"""
+    ext = get_file_extension(filename)
+    return any(ext in extensions for extensions in ALLOWED_EXTENSIONS.values())
+
+async def extract_text_from_pdf(file_path: str) -> str:
+    """Извлечь текст из PDF файла"""
+    try:
+        import PyPDF2
+        with open(file_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            text = ""
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из PDF: {str(e)}")
+
+async def extract_text_from_excel(file_path: str) -> str:
+    """Извлечь текст из Excel файла"""
+    try:
+        df = pd.read_excel(file_path)
+        text = ""
+        for index, row in df.iterrows():
+            text += " ".join([str(cell) for cell in row if pd.notna(cell)]) + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из Excel: {str(e)}")
+
+async def extract_text_from_image(file_path: str) -> str:
+    """Извлечь текст из изображения с помощью OCR"""
+    try:
+        from PIL import Image
+        import pytesseract
+        
+        image = Image.open(file_path)
+        text = pytesseract.image_to_string(image, lang='rus+eng')
+        return text.strip()
+    except Exception as e:
+        # Fallback: попробуем без языков
+        try:
+            from PIL import Image
+            import pytesseract
+            image = Image.open(file_path)
+            text = pytesseract.image_to_string(image)
+            return text.strip()
+        except Exception as fallback_error:
+            raise Exception(f"Ошибка OCR обработки: {str(e)}, Fallback: {str(fallback_error)}")
+    except Exception as e:
+        raise Exception(f"Ошибка OCR обработки: {str(e)}")
+
+async def extract_text_from_word(file_path: str) -> str:
+    """Извлечь текст из Word документа"""
+    try:
+        from docx import Document
+        doc = Document(file_path)
+        text = ""
+        for paragraph in doc.paragraphs:
+            text += paragraph.text + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из Word: {str(e)}")
+
+async def extract_text_from_powerpoint(file_path: str) -> str:
+    """Извлечь текст из PowerPoint презентации"""
+    try:
+        from pptx import Presentation
+        prs = Presentation(file_path)
+        text = ""
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, "text"):
+                    text += shape.text + "\n"
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из PowerPoint: {str(e)}")
+
+async def extract_text_from_text_file(file_path: str) -> str:
+    """Извлечь текст из текстового файла"""
+    try:
+        # Пробуем разные кодировки
+        encodings = ['utf-8', 'cp1251', 'latin-1', 'iso-8859-1']
+        text = ""
+        
+        for encoding in encodings:
+            try:
+                with open(file_path, 'r', encoding=encoding) as file:
+                    text = file.read()
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if not text:
+            # Если все кодировки не сработали, читаем как бинарный файл
+            with open(file_path, 'rb') as file:
+                content = file.read()
+                text = content.decode('utf-8', errors='ignore')
+        
+        return text.strip()
+    except Exception as e:
+        raise Exception(f"Ошибка извлечения текста из текстового файла: {str(e)}")
+
+async def extract_text_from_file(file_path: str, filename: str) -> str:
+    """Извлечь текст из файла в зависимости от его типа"""
+    ext = get_file_extension(filename)
+    
+    if ext in ALLOWED_EXTENSIONS['pdf']:
+        return await extract_text_from_pdf(file_path)
+    elif ext in ALLOWED_EXTENSIONS['excel']:
+        return await extract_text_from_excel(file_path)
+    elif ext in ALLOWED_EXTENSIONS['word']:
+        return await extract_text_from_word(file_path)
+    elif ext in ALLOWED_EXTENSIONS['powerpoint']:
+        return await extract_text_from_powerpoint(file_path)
+    elif ext in ALLOWED_EXTENSIONS['text']:
+        return await extract_text_from_text_file(file_path)
+    elif ext in ALLOWED_EXTENSIONS['images']:
+        return await extract_text_from_image(file_path)
+    else:
+        raise Exception(f"Неподдерживаемый тип файла: {ext}")
+
+async def get_ai_response(text: str, api_key: str, provider: str) -> str:
+    """Получить ответ от ИИ"""
+    try:
+        if provider == 'openai':
+            import openai
+            openai.api_key = api_key
+            response = await openai.ChatCompletion.acreate(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """Ты - ИИ-агент для сопоставления артикулов компании АГБ. 
+
+ПРАВИЛА РАБОТЫ:
+1. Если пользователь просит найти артикулы, проанализировать документ или найти товары - найди их и верни в формате JSON
+2. Если это обычный вопрос, приветствие или диалог - отвечай как обычный чат-бот
+
+ЗАДАЧА СОПОСТАВЛЕНИЯ:
+- Найди все артикулы в тексте/документе
+- Ориентируйся на артикулы "бортлангер" 
+- Ищи соответствия в базе данных АГБ
+- Если точного соответствия нет, предложи наиболее подходящее (уверенность ≥80%)
+- Ищи как по артикулам, так и по наименованиям
+
+ФОРМАТ ДЛЯ АРТИКУЛОВ (только когда просят найти артикулы):
+[
+    {
+        "contractor_article": "артикул контрагента",
+        "description": "описание товара", 
+        "quantity": количество,
+        "unit": "единица измерения",
+        "agb_article": "артикул АГБ (если найден)",
+        "bl_article": "артикул BL (если найден)",
+        "match_confidence": "уверенность сопоставления (0-100)",
+        "match_type": "точное/частичное/по_наименованию"
+    }
+]
+
+ПРИМЕРЫ:
+- "найди артикулы" → ищи артикулы и верни JSON
+- "привет" → отвечай как чат-бот
+- "как дела?" → отвечай как чат-бот
+- "расскажи о компании" → отвечай как чат-бот"""
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Проанализируй этот текст и найди артикулы:\n\n{text}"
+                    }
+                ]
+            )
+            return response.choices[0].message.content
+        elif provider == 'polza':
+            # Интеграция с Polza.ai согласно документации
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": """Ты - ИИ-агент для сопоставления артикулов компании АГБ. 
+
+ПРАВИЛА РАБОТЫ:
+1. Если пользователь просит найти артикулы, проанализировать документ или найти товары - найди их и верни в формате JSON
+2. Если это обычный вопрос, приветствие или диалог - отвечай как обычный чат-бот
+
+ЗАДАЧА СОПОСТАВЛЕНИЯ:
+- Найди все артикулы в тексте/документе
+- Ориентируйся на артикулы "бортлангер" 
+- Ищи соответствия в базе данных АГБ
+- Если точного соответствия нет, предложи наиболее подходящее (уверенность ≥80%)
+- Ищи как по артикулам, так и по наименованиям
+
+ФОРМАТ ДЛЯ АРТИКУЛОВ (только когда просят найти артикулы):
+[
+    {
+        "contractor_article": "артикул контрагента",
+        "description": "описание товара", 
+        "quantity": количество,
+        "unit": "единица измерения",
+        "agb_article": "артикул АГБ (если найден)",
+        "bl_article": "артикул BL (если найден)",
+        "match_confidence": "уверенность сопоставления (0-100)",
+        "match_type": "точное/частичное/по_наименованию"
+    }
+]
+
+ПРИМЕРЫ:
+- "найди артикулы" → ищи артикулы и верни JSON
+- "привет" → отвечай как чат-бот
+- "как дела?" → отвечай как чат-бот
+- "расскажи о компании" → отвечай как чат-бот"""
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Проанализируй этот текст и найди артикулы:\n\n{text}"
+                    }
+                ],
+                "temperature": 0.1,
+                "max_tokens": 2000
+            }
+            
+            # Используем URL из документации Polza.ai
+            POLZA_API_URL = "https://api.polza.ai/v1/chat/completions"
+            
+            print(f"DEBUG: Sending request to Polza.ai with key: {api_key[:10]}...")
+            print(f"DEBUG: Request data: {data}")
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(POLZA_API_URL, headers=headers, json=data) as response:
+                    print(f"DEBUG: Polza.ai response status: {response.status}")
+                    if response.status in [200, 201]:
+                        result = await response.json()
+                        print(f"DEBUG: Polza.ai response: {result}")
+                        return result["choices"][0]["message"]["content"]
+                    else:
+                        error_text = await response.text()
+                        print(f"DEBUG: Polza.ai error: {error_text}")
+                        raise Exception(f"Ошибка Polza.ai API {response.status}: {error_text}")
+        else:
+            raise Exception(f"Неподдерживаемый провайдер: {provider}")
+    except Exception as e:
+        raise Exception(f"Ошибка получения ответа от ИИ: {str(e)}")
+
+async def match_articles_with_database(articles: List[dict], db: AsyncSession) -> List[MatchingResult]:
+    """Сопоставить найденные артикулы с базой данных"""
+    results = []
+    
+    for article in articles:
+        contractor_article = article.get('contractor_article', '')
+        description = article.get('description', '')
+        
+        # Ищем точное соответствие по артикулу
+        exact_match = await find_exact_article_match(contractor_article, db)
+        
+        if exact_match:
+            results.append(MatchingResult(
+                id=str(uuid.uuid4()),
+                contractor_article=contractor_article,
+                description=description,
+                matched=True,
+                agb_article=exact_match.get('agb_article', ''),
+                bl_article=exact_match.get('bl_article', ''),
+                match_confidence=100.0,
+                nomenclature={
+                    'id': exact_match.get('id', 0),
+                    'name': exact_match.get('name', ''),
+                    'code_1c': exact_match.get('code_1c', ''),
+                    'article': exact_match.get('agb_article', '')
+                }
+            ))
+        else:
+            # Ищем частичное соответствие по артикулу и наименованию
+            partial_match = await find_partial_article_match(contractor_article, description, db)
+            
+            if partial_match and partial_match.get('confidence', 0) >= 80:
+                results.append(MatchingResult(
+                    id=str(uuid.uuid4()),
+                    contractor_article=contractor_article,
+                    description=description,
+                    matched=True,
+                    agb_article=partial_match.get('agb_article', ''),
+                    bl_article=partial_match.get('bl_article', ''),
+                    match_confidence=partial_match.get('confidence', 0),
+                    nomenclature={
+                        'id': partial_match.get('id', 0),
+                        'name': partial_match.get('name', ''),
+                        'code_1c': partial_match.get('code_1c', ''),
+                        'article': partial_match.get('agb_article', '')
+                    }
+                ))
+            else:
+                # Если соответствие не найдено
+                results.append(MatchingResult(
+                    id=str(uuid.uuid4()),
+                    contractor_article=contractor_article,
+                    description=description,
+                    matched=False,
+                    match_confidence=0.0
+                ))
+    
+    return results
+
+async def find_exact_article_match(contractor_article: str, db: AsyncSession) -> Optional[dict]:
+    """Найти точное соответствие артикула в базе данных"""
+    try:
+        from sqlalchemy.future import select
+        from models import Nomenclature
+        
+        # Ищем точное соответствие по артикулу
+        result = await db.execute(
+            select(Nomenclature).where(
+                Nomenclature.article == contractor_article
+            ).limit(1)
+        )
+        match = result.scalar_one_or_none()
+        
+        if match:
+            return {
+                'id': match.id,
+                'name': match.name,
+                'code_1c': match.code_1c,
+                'agb_article': match.article,
+                'bl_article': match.bl_article,
+                'confidence': 100.0
+            }
+        
+        return None
+    except Exception as e:
+        print(f"Error in find_exact_article_match: {e}")
+        return None
+
+async def find_partial_article_match(contractor_article: str, description: str, db: AsyncSession) -> Optional[dict]:
+    """Найти частичное соответствие артикула в базе данных"""
+    try:
+        from sqlalchemy.future import select
+        from models import Nomenclature
+        import difflib
+        
+        # Получаем все номенклатуры
+        result = await db.execute(select(Nomenclature))
+        nomenclatures = result.scalars().all()
+        
+        best_match = None
+        best_confidence = 0
+        
+        for nom in nomenclatures:
+            # Проверяем соответствие по артикулу
+            article_confidence = 0
+            if contractor_article and nom.article:
+                article_confidence = difflib.SequenceMatcher(
+                    None, contractor_article.lower(), nom.article.lower()
+                ).ratio() * 100
+            
+            # Проверяем соответствие по наименованию
+            name_confidence = 0
+            if description and nom.name:
+                name_confidence = difflib.SequenceMatcher(
+                    None, description.lower(), nom.name.lower()
+                ).ratio() * 100
+            
+            # Берем максимальную уверенность
+            confidence = max(article_confidence, name_confidence)
+            
+            if confidence > best_confidence and confidence >= 80:
+                best_confidence = confidence
+                best_match = {
+                    'id': nom.id,
+                    'name': nom.name,
+                    'code_1c': nom.code_1c,
+                    'agb_article': nom.article,
+                    'bl_article': nom.bl_article,
+                    'confidence': confidence
+                }
+        
+        return best_match
+    except Exception as e:
+        print(f"Error in find_partial_article_match: {e}")
+        return None
+
+@router.post("/ai-process/", response_model=AIMatchingResponse)
+async def process_ai_request(
+    message: str = Form(...),
+    files: List[UploadFile] = File(default=[]),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Обработать запрос к ИИ-агенту"""
+    try:
+        # Получаем API ключ с приоритетом Polza.ai
+        result = await db.execute(select(ApiKey).where(
+            ApiKey.is_active == True,
+            ApiKey.provider == 'polza'
+        ).limit(1))
+        api_key_obj = result.scalar_one_or_none()
+        
+        # Если Polza.ai ключа нет, берем OpenAI
+        if not api_key_obj:
+            result = await db.execute(select(ApiKey).where(
+                ApiKey.is_active == True,
+                ApiKey.provider == 'openai'
+            ).limit(1))
+            api_key_obj = result.scalar_one_or_none()
+        
+        if not api_key_obj:
+            return AIMatchingResponse(
+                message="Нет активного API ключа для ИИ-сервиса. Обратитесь к администратору.",
+                matching_results=[],
+                processing_time=0.1,
+                status="error"
+            )
+        
+        # Обрабатываем файлы
+        extracted_text = message
+        file_paths = []
+        
+        for file in files:
+            if not is_allowed_file(file.filename):
+                return AIMatchingResponse(
+                    message=f"Неподдерживаемый тип файла: {file.filename}",
+                    matching_results=[],
+                    processing_time=0.1,
+                    status="error"
+                )
+            
+            # Сохраняем файл
+            file_id = str(uuid.uuid4())
+            file_path = UPLOAD_DIR / f"{file_id}_{file.filename}"
+            
+            with open(file_path, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
+            
+            file_paths.append(str(file_path))
+            
+            # Извлекаем текст из файла
+            try:
+                file_text = await extract_text_from_file(str(file_path), file.filename)
+                extracted_text += f"\n\n--- Содержимое файла {file.filename} ---\n{file_text}"
+            except Exception as e:
+                print(f"Ошибка обработки файла {file.filename}: {str(e)}")
+                continue
+        
+        # Расшифровываем ключ
+        try:
+            from cryptography.fernet import Fernet
+            # Используем тот же фиксированный ключ, что и в settings.py
+            ENCRYPTION_KEY = b'iF0d2ARGQpaU9GFfQdWNovBL239dqwTp9hDDPrDQQic='
+            cipher_suite = Fernet(ENCRYPTION_KEY)
+            decrypted_key = cipher_suite.decrypt(api_key_obj.key.encode()).decode()
+            print(f"DEBUG: Successfully decrypted key for {api_key_obj.provider}")
+        except Exception as e:
+            print(f"DEBUG: Decryption failed: {str(e)}")
+            print(f"DEBUG: Key length: {len(api_key_obj.key)}")
+            print(f"DEBUG: Key starts with: {api_key_obj.key[:20]}...")
+            # Возможно, ключ не зашифрован, используем напрямую
+            decrypted_key = api_key_obj.key
+            print(f"DEBUG: Using key directly: {decrypted_key[:10]}...")
+        
+        # Убираем пробелы и переносы строк из ключа
+        decrypted_key = decrypted_key.strip()
+        print(f"DEBUG: Final key for {api_key_obj.provider}: {decrypted_key[:20]}...")
+        
+        # Получаем ответ от ИИ
+        try:
+            # Получаем ответ от ИИ
+            ai_response = await get_ai_response(extracted_text, decrypted_key, api_key_obj.provider)
+            
+            # Проверяем, содержит ли ответ JSON с артикулами
+            articles = []
+            matching_results = []
+            
+            # Ищем JSON в ответе
+            try:
+                # Убираем markdown блоки если есть
+                clean_response = ai_response
+                if '```json' in clean_response:
+                    clean_response = clean_response.split('```json')[1].split('```')[0].strip()
+                elif '```' in clean_response:
+                    clean_response = clean_response.split('```')[1].split('```')[0].strip()
+                
+                # Пытаемся найти JSON в ответе
+                if clean_response.strip().startswith('[') and clean_response.strip().endswith(']'):
+                    articles = json.loads(clean_response)
+                    print(f"DEBUG: Found articles in response: {len(articles)}")
+                else:
+                    # Ищем JSON в тексте
+                    import re
+                    json_match = re.search(r'\[.*?\]', clean_response, re.DOTALL)
+                    if json_match:
+                        articles = json.loads(json_match.group())
+                        print(f"DEBUG: Found articles in text: {len(articles)}")
+                    else:
+                        print(f"DEBUG: No JSON found, treating as regular chat response")
+                        
+            except json.JSONDecodeError as e:
+                print(f"DEBUG: JSON parsing error: {e}")
+                print(f"DEBUG: Response: {ai_response}")
+                # Если не удалось распарсить JSON, это обычный чат
+                pass
+            
+            # Если нашли артикулы, создаем результаты сопоставления
+            if articles:
+                for article in articles:
+                    # Сопоставляем с базой данных
+                    matched_result = await match_articles_with_database([article], db)
+                    if matched_result:
+                        matching_results.extend(matched_result)
+                    else:
+                        # Если сопоставление не найдено, создаем базовый результат
+                        matching_results.append(MatchingResult(
+                            id=str(uuid.uuid4()),
+                            contractor_article=article.get('contractor_article', ''),
+                            description=article.get('description', ''),
+                            matched=False,
+                            agb_article=article.get('agb_article'),
+                            bl_article=article.get('bl_article'),
+                            match_confidence=article.get('match_confidence'),
+                            nomenclature=article.get('nomenclature')
+                        ))
+            
+            # Очищаем временные файлы
+            for file_path in file_paths:
+                try:
+                    Path(file_path).unlink()
+                except:
+                    pass
+            
+            # Формируем сообщение ответа
+            if articles:
+                message = f"Найдено {len(articles)} артикулов:\n\n"
+                for i, result in enumerate(matching_results, 1):
+                    if result.matched:
+                        message += f"{i}. ✅ {result.contractor_article} - {result.description}\n"
+                        message += f"   → АГБ: {result.agb_article} | BL: {result.bl_article} | Уверенность: {result.match_confidence:.1f}%\n\n"
+                    else:
+                        message += f"{i}. ❌ {result.contractor_article} - {result.description} (не найдено в БД)\n\n"
+            else:
+                # Обычный ответ чата
+                message = ai_response
+            
+            return AIMatchingResponse(
+                message=message,
+                matching_results=matching_results,
+                processing_time=0.5,
+                status="completed"
+            )
+            
+        except Exception as e:
+            # Очищаем временные файлы
+            for file_path in file_paths:
+                try:
+                    Path(file_path).unlink()
+                except:
+                    pass
+            
+            return AIMatchingResponse(
+                message=f"Ошибка обработки ИИ: {str(e)}",
+                matching_results=[],
+                processing_time=0.1,
+                status="error"
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")

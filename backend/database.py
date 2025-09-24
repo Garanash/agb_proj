@@ -21,10 +21,6 @@ async def get_db():
         finally:
             await session.close()
 
-async def async_session():
+def async_session():
     """Возвращает асинхронную сессию для работы с БД"""
-    session = AsyncSessionLocal()
-    try:
-        yield session
-    finally:
-        await session.close()
+    return AsyncSessionLocal()

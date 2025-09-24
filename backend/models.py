@@ -775,3 +775,16 @@ class AiProcessingLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class AppSettings(Base):
+    """Настройки приложения"""
+    __tablename__ = "app_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, nullable=False, index=True)  # Ключ настройки
+    value = Column(Text, nullable=False)  # Значение настройки
+    description = Column(Text, nullable=True)  # Описание настройки
+    is_encrypted = Column(Boolean, default=False)  # Зашифровано ли значение
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+

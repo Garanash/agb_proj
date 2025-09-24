@@ -15,7 +15,7 @@ from datetime import datetime
 import os
 
 # Настройки JWT
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 ALGORITHM = "HS256"
 security = HTTPBearer()
 

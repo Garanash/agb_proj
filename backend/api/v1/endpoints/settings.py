@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from datetime import datetime
 import os
@@ -9,14 +9,21 @@ from cryptography.fernet import Fernet
 import base64
 
 from ..dependencies import get_db, get_current_user
-from models import ApiKey, AiProcessingLog, User
-from ..schemas import ApiKeyCreate, ApiKeyUpdate, ApiKeyResponse
+from models import ApiKey, AiProcessingLog, User, AppSettings
+from ..schemas import ApiKeyCreate, ApiKeyUpdate, ApiKeyResponse, AppSettingsCreate, AppSettingsUpdate, AppSettingsResponse
 
 router = APIRouter()
 
-# Ключ для шифрования API ключей (в продакшене должен быть в переменных окружения)
-ENCRYPTION_KEY = os.getenv('API_KEY_ENCRYPTION_KEY', Fernet.generate_key())
+# Ключ для шифрования API ключей (фиксированный для простоты)
+ENCRYPTION_KEY = b'iF0d2ARGQpaU9GFfQdWNovBL239dqwTp9hDDPrDQQic='
 cipher_suite = Fernet(ENCRYPTION_KEY)
+
+def get_cipher_suite():
+    """Получить объект для шифрования"""
+    from cryptography.fernet import Fernet
+    import os
+    encryption_key = os.getenv('API_KEY_ENCRYPTION_KEY', Fernet.generate_key())
+    return Fernet(encryption_key)
 
 def encrypt_api_key(key: str) -> str:
     """Шифрование API ключа"""
@@ -28,20 +35,22 @@ def decrypt_api_key(encrypted_key: str) -> str:
 
 @router.get("/api-keys/", response_model=List[ApiKeyResponse])
 async def get_api_keys(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Получить список API ключей"""
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    api_keys = db.query(ApiKey).all()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey))
+    api_keys = result.scalars().all()
     return api_keys
 
 @router.post("/api-keys/", response_model=ApiKeyResponse)
 async def create_api_key(
     api_key_data: ApiKeyCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Создать новый API ключ"""
@@ -49,7 +58,9 @@ async def create_api_key(
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Проверяем, что ключ с таким именем не существует
-    existing_key = db.query(ApiKey).filter(ApiKey.name == api_key_data.name).first()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.name == api_key_data.name))
+    existing_key = result.scalar_one_or_none()
     if existing_key:
         raise HTTPException(status_code=400, detail="API ключ с таким именем уже существует")
     
@@ -66,8 +77,8 @@ async def create_api_key(
     )
     
     db.add(api_key)
-    db.commit()
-    db.refresh(api_key)
+    await db.commit()
+    await db.refresh(api_key)
     
     return api_key
 
@@ -75,14 +86,16 @@ async def create_api_key(
 async def update_api_key(
     key_id: int,
     api_key_data: ApiKeyUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Обновить API ключ"""
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
+    api_key = result.scalar_one_or_none()
     if not api_key:
         raise HTTPException(status_code=404, detail="API ключ не найден")
     
@@ -96,41 +109,45 @@ async def update_api_key(
     if api_key_data.is_active is not None:
         api_key.is_active = api_key_data.is_active
     
-    db.commit()
-    db.refresh(api_key)
+    await db.commit()
+    await db.refresh(api_key)
     
     return api_key
 
 @router.delete("/api-keys/{key_id}/")
 async def delete_api_key(
     key_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Удалить API ключ"""
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
+    api_key = result.scalar_one_or_none()
     if not api_key:
         raise HTTPException(status_code=404, detail="API ключ не найден")
     
-    db.delete(api_key)
-    db.commit()
+    await db.delete(api_key)
+    await db.commit()
     
     return {"message": "API ключ удален"}
 
 @router.get("/api-keys/{key_id}/decrypt/")
 async def get_decrypted_key(
     key_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Получить расшифрованный API ключ (только для админа)"""
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
+    api_key = result.scalar_one_or_none()
     if not api_key:
         raise HTTPException(status_code=404, detail="API ключ не найден")
     
@@ -143,14 +160,16 @@ async def get_decrypted_key(
 @router.post("/api-keys/{key_id}/test/")
 async def test_api_key(
     key_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Тестировать API ключ"""
     if current_user.role != 'admin':
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
-    api_key = db.query(ApiKey).filter(ApiKey.id == key_id).first()
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
+    api_key = result.scalar_one_or_none()
     if not api_key:
         raise HTTPException(status_code=404, detail="API ключ не найден")
     
@@ -159,7 +178,7 @@ async def test_api_key(
         
         # Обновляем время последнего использования
         api_key.last_used = datetime.utcnow()
-        db.commit()
+        await db.commit()
         
         # Здесь можно добавить реальное тестирование API ключа
         # в зависимости от провайдера
@@ -167,3 +186,142 @@ async def test_api_key(
         return {"message": "API ключ работает корректно", "provider": api_key.provider}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка тестирования ключа: {str(e)}")
+
+@router.get("/api-keys/{key_id}/decrypt/")
+async def get_decrypted_api_key(
+    key_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получить расшифрованный API ключ (только для администраторов)"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    from sqlalchemy.future import select
+    result = await db.execute(select(ApiKey).where(ApiKey.id == key_id))
+    api_key = result.scalar_one_or_none()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API ключ не найден")
+    
+    try:
+        # Расшифровываем ключ
+        decrypted_key = decrypt_api_key(api_key.key)
+        return {"key": decrypted_key}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка расшифровки ключа: {str(e)}")
+
+
+# Эндпоинты для настроек приложения
+@router.get("/app-settings/", response_model=List[AppSettingsResponse])
+async def get_app_settings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получить все настройки приложения"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    from sqlalchemy.future import select
+    result = await db.execute(select(AppSettings))
+    settings = result.scalars().all()
+    return settings
+
+@router.post("/app-settings/", response_model=AppSettingsResponse)
+async def create_app_setting(
+    setting_data: AppSettingsCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Создать новую настройку приложения"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    # Проверяем, что настройка с таким ключом не существует
+    from sqlalchemy.future import select
+    result = await db.execute(select(AppSettings).where(AppSettings.key == setting_data.key))
+    existing_setting = result.scalar_one_or_none()
+    if existing_setting:
+        raise HTTPException(status_code=400, detail="Настройка с таким ключом уже существует")
+    
+    # Создаем новую настройку
+    setting = AppSettings(
+        key=setting_data.key,
+        value=setting_data.value,
+        description=setting_data.description,
+        is_encrypted=setting_data.is_encrypted
+    )
+    
+    db.add(setting)
+    await db.commit()
+    await db.refresh(setting)
+    
+    return setting
+
+@router.put("/app-settings/{setting_id}/", response_model=AppSettingsResponse)
+async def update_app_setting(
+    setting_id: int,
+    setting_data: AppSettingsUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Обновить настройку приложения"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    from sqlalchemy.future import select
+    result = await db.execute(select(AppSettings).where(AppSettings.id == setting_id))
+    setting = result.scalar_one_or_none()
+    if not setting:
+        raise HTTPException(status_code=404, detail="Настройка не найдена")
+    
+    # Обновляем поля
+    if setting_data.value is not None:
+        setting.value = setting_data.value
+    if setting_data.description is not None:
+        setting.description = setting_data.description
+    if setting_data.is_encrypted is not None:
+        setting.is_encrypted = setting_data.is_encrypted
+    
+    await db.commit()
+    await db.refresh(setting)
+    
+    return setting
+
+@router.delete("/app-settings/{setting_id}/")
+async def delete_app_setting(
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Удалить настройку приложения"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    from sqlalchemy.future import select
+    result = await db.execute(select(AppSettings).where(AppSettings.id == setting_id))
+    setting = result.scalar_one_or_none()
+    if not setting:
+        raise HTTPException(status_code=404, detail="Настройка не найдена")
+    
+    await db.delete(setting)
+    await db.commit()
+    
+    return {"message": "Настройка удалена"}
+
+@router.get("/app-settings/{key}/", response_model=AppSettingsResponse)
+async def get_app_setting_by_key(
+    key: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Получить настройку по ключу"""
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    from sqlalchemy.future import select
+    result = await db.execute(select(AppSettings).where(AppSettings.key == key))
+    setting = result.scalar_one_or_none()
+    if not setting:
+        raise HTTPException(status_code=404, detail="Настройка не найдена")
+    
+    return setting
