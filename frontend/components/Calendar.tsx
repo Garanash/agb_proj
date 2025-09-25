@@ -275,7 +275,7 @@ const Calendar: React.FC = () => {
                       className={`text-xs p-1 rounded text-white truncate ${
                         event.event_type === 'call' ? 'bg-green-600' :
                         event.event_type === 'briefing' ? 'bg-blue-600' :
-                        event.event_type === 'conference' ? 'bg-purple-600' :
+                        event.event_type === 'conference' ? 'bg-orange-600' :
                         event.event_type === 'other' ? 'bg-gray-600' :
                         'bg-purple-600'
                       } ${event.is_public ? 'ring-2 ring-yellow-300' : ''}`}
@@ -334,7 +334,7 @@ const Calendar: React.FC = () => {
                         className={`p-4 rounded-lg border-l-4 ${
                           event.event_type === 'call' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-400' :
                           event.event_type === 'briefing' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-400' :
-                          event.event_type === 'conference' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 dark:border-purple-400' :
+                          event.event_type === 'conference' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500 dark:border-orange-400' :
                           event.event_type === 'other' ? 'bg-gray-50 dark:bg-gray-700 border-gray-500 dark:border-gray-400' :
                           'bg-purple-50 dark:bg-purple-900/20 border-purple-500 dark:border-purple-400'
                         }`}
@@ -375,7 +375,7 @@ const Calendar: React.FC = () => {
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                               event.event_type === 'call' ? 'bg-green-100 text-green-800' :
                               event.event_type === 'briefing' ? 'bg-blue-100 text-blue-800' :
-                              event.event_type === 'conference' ? 'bg-purple-100 text-purple-800' :
+                              event.event_type === 'conference' ? 'bg-orange-100 text-orange-800' :
                               event.event_type === 'other' ? 'bg-gray-100 text-gray-800' :
                               'bg-purple-100 text-purple-800'
                             }`}>
@@ -442,7 +442,7 @@ const Calendar: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handleAddEvent('conference')}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm"
                     >
                       🏢 Совещание
                     </button>

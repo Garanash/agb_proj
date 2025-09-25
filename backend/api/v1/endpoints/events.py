@@ -76,6 +76,8 @@ async def get_events(
             "description": event.description,
             "start_date": event.start_date.isoformat(),
             "end_date": event.end_date.isoformat(),
+            "event_type": event.event_type,
+            "is_public": event.is_public,
             "location": event.location,
             "max_participants": None,  # Поле не существует в модели
             "current_participants": len(event.participants) if event.participants else 0,
@@ -120,9 +122,9 @@ async def create_event(
         start_date=start_date_naive,
         end_date=end_date_naive,
         location=event_data.location,
-        event_type="meeting",  # По умолчанию тип "встреча"
+        event_type=event_data.event_type,
         organizer_id=current_user.id,
-        is_public=True
+        is_public=event_data.is_public
     )
     
     db.add(db_event)
@@ -135,8 +137,24 @@ async def create_event(
     )
     db.add(creator_participant)
     
-    # Пока что добавляем только создателя события
-    # В будущем можно добавить функционал для добавления других участников
+    # Добавляем остальных участников
+    for user_id in event_data.participants:
+        # Пропускаем создателя, если он уже добавлен
+        if user_id == current_user.id:
+            continue
+            
+        # Проверяем существование пользователя
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            await db.rollback()
+            raise HTTPException(status_code=404, detail=f"Пользователь с ID {user_id} не найден")
+
+        participant = EventParticipant(
+            event_id=db_event.id,
+            user_id=user_id
+        )
+        db.add(participant)
 
     await db.commit()
     
@@ -174,6 +192,8 @@ async def create_event(
         "description": db_event.description,
         "start_date": db_event.start_date.isoformat(),
         "end_date": db_event.end_date.isoformat(),
+        "event_type": db_event.event_type,
+        "is_public": db_event.is_public,
         "location": db_event.location,
         "max_participants": None,  # Поле не существует в модели
         "current_participants": len(db_event.participants) if db_event.participants else 0,
@@ -202,6 +222,23 @@ async def get_event(
     if not event:
         raise HTTPException(status_code=404, detail="Событие не найдено")
     
+    # Формируем список участников
+    participants_list = []
+    if event.participants:
+        for participant in event.participants:
+            participants_list.append({
+                "id": participant.id,
+                "user_id": participant.user_id,
+                "status": participant.status,
+                "created_at": participant.created_at.isoformat(),
+                "user": {
+                    "id": participant.user.id,
+                    "username": participant.user.username,
+                    "role": participant.user.role,
+                    "is_active": participant.user.is_active
+                }
+            })
+    
     # Сериализуем событие в правильный формат
     event_dict = {
         "id": event.id,
@@ -209,9 +246,12 @@ async def get_event(
         "description": event.description,
         "start_date": event.start_date.isoformat(),
         "end_date": event.end_date.isoformat(),
+        "event_type": event.event_type,
+        "is_public": event.is_public,
         "location": event.location,
         "max_participants": None,  # Поле не существует в модели
         "current_participants": len(event.participants) if event.participants else 0,
+        "participants": participants_list,
         "created_at": event.created_at.isoformat(),
         "updated_at": event.updated_at.isoformat() if event.updated_at else None
     }
@@ -316,6 +356,23 @@ async def update_event(
     )
     updated_event = result.scalar_one_or_none()
     
+    # Формируем список участников
+    participants_list = []
+    if updated_event.participants:
+        for participant in updated_event.participants:
+            participants_list.append({
+                "id": participant.id,
+                "user_id": participant.user_id,
+                "status": participant.status,
+                "created_at": participant.created_at.isoformat(),
+                "user": {
+                    "id": participant.user.id,
+                    "username": participant.user.username,
+                    "role": participant.user.role,
+                    "is_active": participant.user.is_active
+                }
+            })
+    
     # Сериализуем событие в правильный формат
     event_dict = {
         "id": updated_event.id,
@@ -323,9 +380,12 @@ async def update_event(
         "description": updated_event.description,
         "start_date": updated_event.start_date.isoformat(),
         "end_date": updated_event.end_date.isoformat(),
+        "event_type": updated_event.event_type,
+        "is_public": updated_event.is_public,
         "location": updated_event.location,
         "max_participants": None,  # Поле не существует в модели
         "current_participants": len(updated_event.participants) if updated_event.participants else 0,
+        "participants": participants_list,
         "created_at": updated_event.created_at.isoformat(),
         "updated_at": updated_event.updated_at.isoformat() if updated_event.updated_at else None
     }

@@ -776,6 +776,8 @@ class EventResponse(BaseResponseModel):
     description: str = Field(description="Описание события")
     start_date: str = Field(description="Дата начала")
     end_date: str = Field(description="Дата окончания")
+    event_type: str = Field(description="Тип события")
+    is_public: bool = Field(description="Публичное событие")
     location: Optional[str] = Field(None, description="Место проведения")
     max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
     current_participants: int = Field(description="Текущее количество участников")
@@ -789,9 +791,12 @@ class EventCreate(BaseModel):
 
     """Схема создания события"""
     title: str = Field(description="Название события")
-    description: str = Field(description="Описание события")
+    description: Optional[str] = Field(None, description="Описание события")
     start_date: str = Field(description="Дата начала")
     end_date: str = Field(description="Дата окончания")
+    event_type: str = Field(default="meeting", description="Тип события")
+    is_public: bool = Field(default=False, description="Публичное событие")
+    participants: List[int] = Field(default=[], description="Список ID участников")
     location: Optional[str] = Field(None, description="Место проведения")
     max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
 
@@ -804,6 +809,9 @@ class EventUpdate(BaseModel):
     description: Optional[str] = Field(None, description="Описание события")
     start_date: Optional[str] = Field(None, description="Дата начала")
     end_date: Optional[str] = Field(None, description="Дата окончания")
+    event_type: Optional[str] = Field(None, description="Тип события")
+    is_public: Optional[bool] = Field(None, description="Публичное событие")
+    participants: Optional[List[int]] = Field(None, description="Список ID участников")
     location: Optional[str] = Field(None, description="Место проведения")
     max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
 
