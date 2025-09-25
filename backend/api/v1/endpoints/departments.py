@@ -6,7 +6,7 @@ from typing import List
 
 from database import get_db
 from models import Department, User, UserRole
-from ..schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreateResponse, DepartmentCreate, DepartmentUpdate
+from ..schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreateResponse, DepartmentCreate, DepartmentUpdate, DepartmentReorderRequest
 from .auth import get_current_user
 
 router = APIRouter()
@@ -29,6 +29,7 @@ async def get_departments(
     result = await db.execute(
         select(Department)
         .where(Department.is_active == True)
+        .order_by(Department.sort_order.asc(), Department.id.asc())
         .options(
             selectinload(Department.head),
             selectinload(Department.employees)
@@ -45,6 +46,7 @@ async def get_departments(
             "name": dept.name,
             "description": dept.description,
             "is_active": dept.is_active,
+            "sort_order": dept.sort_order,
             "created_at": dept.created_at.isoformat(),
             "updated_at": dept.updated_at.isoformat() if dept.updated_at else None,
             "head_id": dept.head_id,
@@ -243,6 +245,48 @@ async def delete_department(
     await db.commit()
     
     return {"message": "Отдел успешно удален"}
+
+
+@router.put("/reorder")
+async def reorder_departments(
+    departments: List[dict],
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Изменение порядка отделов"""
+    print(f"🔍 Получен запрос на переупорядочивание отделов: {departments}")
+    print(f"🔍 Количество отделов: {len(departments)}")
+    
+    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+        raise HTTPException(status_code=403, detail="Недостаточно прав")
+    
+    try:
+        for dept_order in departments:
+            dept_id = dept_order.get("id")
+            sort_order = dept_order.get("sort_order")
+            print(f"🔍 Обновляем отдел {dept_id} с порядком {sort_order}")
+            
+            if dept_id and sort_order is not None:
+                result = await db.execute(
+                    select(Department).where(Department.id == dept_id)
+                )
+                department = result.scalar_one_or_none()
+                
+                if department:
+                    department.sort_order = sort_order
+                    db.add(department)
+                    print(f"✅ Отдел {dept_id} обновлен")
+                else:
+                    print(f"❌ Отдел {dept_id} не найден")
+        
+        await db.commit()
+        print("✅ Все отделы успешно обновлены")
+        return {"message": "Порядок отделов успешно обновлен"}
+    
+    except Exception as e:
+        await db.rollback()
+        print(f"❌ Ошибка при обновлении порядка: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении порядка: {str(e)}")
 
 
 @router.get("/{department_id}/employees", response_model=List[dict])

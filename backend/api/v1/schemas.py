@@ -234,6 +234,7 @@ class Department(BaseResponseModel):
     id: int = Field(description="ID отдела")
     name: str = Field(description="Название отдела")
     description: Optional[str] = Field(None, description="Описание отдела")
+    sort_order: int = Field(description="Порядок сортировки")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -272,6 +273,28 @@ class DepartmentCreateResponse(BaseModel):
     data: Department = Field(description="Данные отдела")
 
 
+class DepartmentReorderItem(BaseModel):
+    """Схема элемента для переупорядочивания отделов"""
+    id: int = Field(description="ID отдела")
+    sort_order: int = Field(description="Новый порядок сортировки")
+
+
+class DepartmentReorderRequest(BaseModel):
+    """Схема запроса переупорядочивания отделов"""
+    departments: List[DepartmentReorderItem] = Field(description="Список отделов с новым порядком")
+
+
+class EmployeeReorderItem(BaseModel):
+    """Схема элемента для переупорядочивания сотрудников"""
+    id: int = Field(description="ID сотрудника")
+    sort_order: int = Field(description="Новый порядок сортировки")
+
+
+class EmployeeReorderRequest(BaseModel):
+    """Схема запроса переупорядочивания сотрудников"""
+    employees: List[EmployeeReorderItem] = Field(description="Список сотрудников с новым порядком")
+
+
 class CompanyEmployee(BaseResponseModel):
     """Схема сотрудника компании"""
     id: int = Field(description="ID сотрудника")
@@ -283,6 +306,7 @@ class CompanyEmployee(BaseResponseModel):
     position: Optional[str] = Field(None, description="Должность")
     department_id: int = Field(description="ID отдела")
     department_name: Optional[str] = Field(None, description="Название отдела")
+    sort_order: int = Field(description="Порядок сортировки")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -304,7 +328,7 @@ class CompanyEmployeeCreate(BaseModel):
     middle_name: Optional[str] = Field(None, description="Отчество")
     email: Optional[str] = Field(None, description="Email")
     phone: Optional[str] = Field(None, description="Телефон")
-    position: Optional[str] = Field(None, description="Должность")
+    position: str = Field(description="Должность")
     department_id: int = Field(description="ID отдела")
     is_active: bool = Field(default=True, description="Активен ли сотрудник")
 

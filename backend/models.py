@@ -88,6 +88,7 @@ class Department(Base):
     description = Column(String, nullable=True)
     head_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -110,6 +111,7 @@ class CompanyEmployee(Base):
     phone = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
