@@ -8,7 +8,7 @@ import {
   KeyIcon, 
   ShieldCheckIcon,
   ServerIcon,
-  DatabaseIcon
+  CircleStackIcon
 } from '@heroicons/react/24/outline'
 import ApiKeysSettings from '@/components/ApiKeysSettings'
 
@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
     { id: 'api-keys', name: 'API ключи', icon: KeyIcon, description: 'Управление ключами для ИИ-сервисов' },
     { id: 'system', name: 'Система', icon: ServerIcon, description: 'Настройки системы' },
     { id: 'security', name: 'Безопасность', icon: ShieldCheckIcon, description: 'Настройки безопасности' },
-    { id: 'database', name: 'База данных', icon: DatabaseIcon, description: 'Управление базой данных' }
+    { id: 'database', name: 'База данных', icon: CircleStackIcon, description: 'Управление базой данных' }
   ]
 
   return (

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { useAuth } from '@/hooks'
 import { 
   PaperAirplaneIcon, 
   DocumentArrowUpIcon, 
@@ -43,18 +44,13 @@ interface AIMatchingChatProps {
 }
 
 export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: 'Привет! Я ИИ-агент для сопоставления артикулов. Загрузите любой документ (PDF, Excel, изображение) или введите текст, и я помогу найти соответствующие позиции в базе данных АГБ.',
-      timestamp: new Date()
-    }
-  ])
+  const { token } = useAuth()
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
-  const [isDragOver, setIsDragOver] = useState(false)
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -66,27 +62,172 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
     scrollToBottom()
   }, [messages])
 
+  // Загружаем историю чата при инициализации
+  useEffect(() => {
+    loadChatHistory()
+  }, [])
+
+  const loadChatHistory = async () => {
+    if (!token) return
+
+    try {
+      setIsLoadingHistory(true)
+      
+      // Получаем последнюю сессию пользователя
+      const sessionsResponse = await fetch('http://localhost:8000/api/v1/chat/sessions/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (sessionsResponse.ok) {
+        const sessions = await sessionsResponse.json()
+        
+        if (sessions.length > 0) {
+          // Загружаем последнюю сессию с сообщениями
+          const lastSession = sessions[0]
+          setCurrentSessionId(lastSession.id)
+          
+          const sessionResponse = await fetch(`http://localhost:8000/api/v1/chat/sessions/${lastSession.id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          })
+
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json()
+            const chatMessages = sessionData.messages?.map((msg: any) => ({
+              id: msg.id.toString(),
+              type: msg.message_type,
+              content: msg.content,
+              timestamp: new Date(msg.created_at),
+              files: msg.files_data ? JSON.parse(msg.files_data) : undefined,
+              matchingResults: msg.matching_results ? JSON.parse(msg.matching_results) : undefined,
+              isProcessing: msg.is_processing
+            })) || []
+            
+            setMessages(chatMessages)
+          }
+        } else {
+          // Создаем новую сессию и добавляем приветственное сообщение
+          await createNewSession()
+          setMessages([{
+            id: '1',
+            type: 'ai',
+            content: 'Привет! Я ИИ-агент для сопоставления артикулов. Загрузите любой документ (PDF, Excel, изображение) или введите текст, и я помогу найти соответствующие позиции в базе данных АГБ.',
+            timestamp: new Date()
+          }])
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки истории чата:', error)
+      // Создаем новую сессию при ошибке
+      await createNewSession()
+      setMessages([{
+        id: '1',
+        type: 'ai',
+        content: 'Привет! Я ИИ-агент для сопоставления артикулов. Загрузите любой документ (PDF, Excel, изображение) или введите текст, и я помогу найти соответствующие позиции в базе данных АГБ.',
+        timestamp: new Date()
+      }])
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
+  const createNewSession = async () => {
+    if (!token) return
+
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/chat/sessions/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: `Чат от ${new Date().toLocaleString('ru-RU')}`
+        })
+      })
+
+      if (response.ok) {
+        const session = await response.json()
+        setCurrentSessionId(session.id)
+      }
+    } catch (error) {
+      console.error('Ошибка создания сессии:', error)
+    }
+  }
+
+  const saveMessage = async (message: ChatMessage) => {
+    if (!token || !currentSessionId) return
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/chat/sessions/${currentSessionId}/messages/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          content: message.content,
+          files_data: message.files ? JSON.stringify(message.files) : null,
+          matching_results: message.matchingResults ? JSON.stringify(message.matchingResults) : null
+        })
+      })
+
+      if (!response.ok) {
+        console.error('Ошибка сохранения сообщения')
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения сообщения:', error)
+    }
+  }
+
   const handleFileSelect = (files: FileList | null) => {
     if (!files) return
 
     const newFiles = Array.from(files)
     const validFiles = newFiles.filter(file => {
-      const maxSize = 50 * 1024 * 1024 // 50MB
+      const maxSize = 100 * 1024 * 1024 // 100MB
       const allowedTypes = [
+        // PDF документы
         'application/pdf',
+        // Excel файлы
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        // Word документы
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        // Текстовые файлы
+        'text/plain',
         'text/csv',
+        'text/rtf',
+        // Изображения
         'image/jpeg',
+        'image/jpg',
         'image/png',
         'image/gif',
         'image/bmp',
         'image/tiff',
-        'image/webp'
+        'image/webp',
+        'image/svg+xml',
+        // PowerPoint
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        // OpenDocument
+        'application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/vnd.oasis.opendocument.presentation',
+        // Другие форматы
+        'application/rtf',
+        'application/x-rtf',
+        'text/richtext'
       ]
       
       if (file.size > maxSize) {
-        alert(`Файл ${file.name} слишком большой. Максимальный размер: 50MB`)
+        alert(`Файл ${file.name} слишком большой. Максимальный размер: 100MB`)
         return false
       }
       
@@ -101,21 +242,6 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
     setSelectedFiles(prev => [...prev, ...validFiles])
   }
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    handleFileSelect(e.dataTransfer.files)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index))
@@ -123,6 +249,11 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
 
   const sendMessage = async () => {
     if (!inputMessage.trim() && selectedFiles.length === 0) return
+
+    // Создаем новую сессию, если её нет
+    if (!currentSessionId) {
+      await createNewSession()
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -133,6 +264,10 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
     }
 
     setMessages(prev => [...prev, userMessage])
+    
+    // Сохраняем сообщение пользователя в БД
+    await saveMessage(userMessage)
+    
     setInputMessage('')
     setSelectedFiles([])
     setIsProcessing(true)
@@ -155,8 +290,14 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
         formData.append(`files`, file)
       })
 
+      const headers: HeadersInit = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch('http://localhost:8000/api/v1/article-matching/ai-process/', {
         method: 'POST',
+        headers,
         body: formData
       })
 
@@ -175,6 +316,9 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
         }
 
         setMessages(prev => [...prev, aiMessage])
+        
+        // Сохраняем ответ ИИ в БД
+        await saveMessage(aiMessage)
       } else {
         const error = await response.json()
         setMessages(prev => prev.filter(msg => !msg.isProcessing))
@@ -187,6 +331,9 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
         }
 
         setMessages(prev => [...prev, errorMessage])
+        
+        // Сохраняем сообщение об ошибке в БД
+        await saveMessage(errorMessage)
       }
     } catch (error) {
       console.error('Ошибка отправки сообщения:', error)
@@ -200,6 +347,9 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
       }
 
       setMessages(prev => [...prev, errorMessage])
+      
+      // Сохраняем сообщение об ошибке в БД
+      await saveMessage(errorMessage)
     } finally {
       setIsProcessing(false)
     }
@@ -227,8 +377,16 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
       return '📄'
     } else if (file.type.includes('excel') || file.type.includes('spreadsheet')) {
       return '📊'
+    } else if (file.type.includes('word') || file.type.includes('document')) {
+      return '📝'
     } else if (file.type.includes('csv')) {
       return '📈'
+    } else if (file.type.includes('powerpoint') || file.type.includes('presentation')) {
+      return '📽️'
+    } else if (file.type.includes('text') || file.type.includes('plain')) {
+      return '📄'
+    } else if (file.type.includes('rtf')) {
+      return '📄'
     }
     return '📎'
   }
@@ -264,7 +422,15 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
 
       {/* Область сообщений */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
+        {isLoadingHistory ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <ArrowPathIcon className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-2" />
+              <p className="text-gray-600 dark:text-gray-400">Загрузка истории чата...</p>
+            </div>
+          </div>
+        ) : (
+          messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -355,7 +521,7 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
               </div>
             </div>
           </div>
-        ))}
+        )))}
         <div ref={messagesEndRef} />
       </div>
 
@@ -363,7 +529,7 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
       <div className="border-t border-gray-200 dark:border-gray-700 p-4">
         {/* Выбранные файлы */}
         {selectedFiles.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-3">
             <div className="flex flex-wrap gap-2">
               {selectedFiles.map((file, index) => (
                 <div
@@ -385,53 +551,26 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
           </div>
         )}
 
-        {/* Область загрузки файлов */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-4 mb-4 transition-colors ${
-            isDragOver
-              ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-              : 'border-gray-300 dark:border-gray-600'
-          }`}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-        >
-          <div className="text-center">
-            <DocumentArrowUpIcon className="mx-auto h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Перетащите файлы сюда или{' '}
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-purple-600 dark:text-purple-400 hover:underline"
-              >
-                выберите файлы
-              </button>
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-              Поддерживаются: PDF, Excel, CSV, изображения (до 50MB)
-            </p>
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp"
-            onChange={(e) => handleFileSelect(e.target.files)}
-            className="hidden"
-          />
-        </div>
-
-        {/* Поле ввода */}
+        {/* Поле ввода с кнопкой добавления файлов */}
         <div className="flex space-x-2">
-          <textarea
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Введите сообщение или опишите, что нужно найти в документе..."
-            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
-            rows={2}
-            disabled={isProcessing}
-          />
+          <div className="flex-1 relative">
+            <textarea
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Введите сообщение или опишите, что нужно найти в документе..."
+              className="w-full px-3 py-2 pr-12 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+              rows={2}
+              disabled={isProcessing}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute right-2 top-2 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              title="Добавить файлы"
+            >
+              <DocumentArrowUpIcon className="h-5 w-5" />
+            </button>
+          </div>
           <button
             onClick={sendMessage}
             disabled={(!inputMessage.trim() && selectedFiles.length === 0) || isProcessing}
@@ -441,6 +580,21 @@ export default function AIMatchingChat({ onClose }: AIMatchingChatProps) {
             <span>Отправить</span>
           </button>
         </div>
+
+        {/* Скрытый input для файлов */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.rtf,.ppt,.pptx,.odt,.ods,.odp,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.svg"
+          onChange={(e) => handleFileSelect(e.target.files)}
+          className="hidden"
+        />
+
+        {/* Подсказка о поддерживаемых форматах */}
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+          Поддерживаются: PDF, Word, Excel, PowerPoint, изображения, текстовые файлы (до 100MB)
+        </p>
       </div>
     </div>
   )

@@ -121,6 +121,18 @@ export default function ArticleMatchingPage() {
     packaging_factor: 0,
     recalculated_quantity: 0
   })
+  const [showCreateMappingModal, setShowCreateMappingModal] = useState(false)
+  const [createMappingForm, setCreateMappingForm] = useState({
+    contractor_article: '',
+    contractor_description: '',
+    agb_article: '',
+    agb_description: '',
+    bl_article: '',
+    bl_description: '',
+    packaging_factor: 1,
+    unit: 'шт',
+    nomenclature_id: null
+  })
 
   useEffect(() => {
     console.log('=== useEffect вызван ===')
@@ -589,6 +601,65 @@ export default function ArticleMatchingPage() {
       }
     } catch (error) {
       console.error('Ошибка при сохранении найденного элемента:', error)
+    }
+  }
+
+  const openCreateMappingModal = () => {
+    setCreateMappingForm({
+      contractor_article: '',
+      contractor_description: '',
+      agb_article: '',
+      agb_description: '',
+      bl_article: '',
+      bl_description: '',
+      packaging_factor: 1,
+      unit: 'шт',
+      nomenclature_id: null
+    })
+    setShowCreateMappingModal(true)
+  }
+
+  const closeCreateMappingModal = () => {
+    setShowCreateMappingModal(false)
+    setCreateMappingForm({
+      contractor_article: '',
+      contractor_description: '',
+      agb_article: '',
+      agb_description: '',
+      bl_article: '',
+      bl_description: '',
+      packaging_factor: 1,
+      unit: 'шт',
+      nomenclature_id: null
+    })
+  }
+
+  const saveCreateMapping = async () => {
+    if (!token) return
+
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/mappings/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createMappingForm)
+      })
+
+      if (response.ok) {
+        const newMapping = await response.json()
+        // Обновляем список найденных элементов
+        await loadFoundItems()
+        closeCreateMappingModal()
+        alert('Сопоставление успешно создано!')
+      } else {
+        const errorData = await response.json()
+        alert(`Ошибка при создании сопоставления: ${errorData.detail || 'Неизвестная ошибка'}`)
+      }
+    } catch (error) {
+      console.error('Ошибка при создании сопоставления:', error)
+      alert('Ошибка при создании сопоставления')
     }
   }
 
@@ -1186,15 +1257,24 @@ export default function ArticleMatchingPage() {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Найденные элементы</h2>
-                <button
-                  onClick={loadFoundItems}
-                  className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 flex items-center space-x-2"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Обновить</span>
-                </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={openCreateMappingModal}
+                    className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 flex items-center space-x-2"
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                    <span>Добавить сопоставление</span>
+                  </button>
+                  <button
+                    onClick={loadFoundItems}
+                    className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 flex items-center space-x-2"
+                  >
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Обновить</span>
+                  </button>
+                </div>
               </div>
               {foundItems.length === 0 ? (
                 <div className="text-center py-8">
@@ -1590,20 +1670,184 @@ export default function ArticleMatchingPage() {
         {activeTab === 'ai_matching' && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                  <ChatBubbleLeftRightIcon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">ИИ-агент сопоставления артикулов</h2>
-                  <p className="text-gray-600 dark:text-gray-300">
-                    Загрузите любой документ и получите автоматическое сопоставление с базой данных АГБ
-                  </p>
-                </div>
-              </div>
-              
               <div className="h-[600px]">
                 <AIMatchingChat />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно для создания сопоставления */}
+        {showCreateMappingModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Создание нового сопоставления
+                  </h3>
+                  <button
+                    onClick={closeCreateMappingModal}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Левая колонка - данные контрагента */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+                      Данные контрагента
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Артикул контрагента *
+                      </label>
+                      <input
+                        type="text"
+                        value={createMappingForm.contractor_article}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, contractor_article: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Введите артикул контрагента"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Описание контрагента *
+                      </label>
+                      <textarea
+                        value={createMappingForm.contractor_description}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, contractor_description: e.target.value }))}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Введите описание товара контрагента"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Правая колонка - данные АГБ */}
+                  <div className="space-y-4">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+                      Данные АГБ
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Артикул АГБ *
+                      </label>
+                      <input
+                        type="text"
+                        value={createMappingForm.agb_article}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, agb_article: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Введите артикул АГБ"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Описание АГБ *
+                      </label>
+                      <textarea
+                        value={createMappingForm.agb_description}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, agb_description: e.target.value }))}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Введите описание товара АГБ"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Дополнительные поля */}
+                <div className="mt-6 space-y-4">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+                    Дополнительные параметры
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Артикул BL
+                      </label>
+                      <input
+                        type="text"
+                        value={createMappingForm.bl_article}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, bl_article: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Артикул BL (необязательно)"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Описание BL
+                      </label>
+                      <input
+                        type="text"
+                        value={createMappingForm.bl_description}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, bl_description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Описание BL (необязательно)"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Коэффициент фасовки
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value={createMappingForm.packaging_factor}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, packaging_factor: parseFloat(e.target.value) || 1 }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Единица измерения
+                      </label>
+                      <select
+                        value={createMappingForm.unit}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, unit: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="шт">шт</option>
+                        <option value="кг">кг</option>
+                        <option value="л">л</option>
+                        <option value="м">м</option>
+                        <option value="м²">м²</option>
+                        <option value="м³">м³</option>
+                        <option value="упак">упак</option>
+                        <option value="компл">компл</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    onClick={closeCreateMappingModal}
+                    className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={saveCreateMapping}
+                    disabled={!createMappingForm.contractor_article || !createMappingForm.contractor_description || !createMappingForm.agb_article || !createMappingForm.agb_description}
+                    className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Создать сопоставление
+                  </button>
+                </div>
               </div>
             </div>
           </div>

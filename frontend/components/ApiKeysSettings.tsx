@@ -1,10 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks'
 import { 
   KeyIcon, 
-  EyeIcon, 
-  EyeSlashIcon, 
   PlusIcon, 
   TrashIcon,
   CheckCircleIcon,
@@ -26,6 +25,7 @@ interface ApiKeysSettingsProps {
 }
 
 export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
+  const { token } = useAuth()
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingKey, setEditingKey] = useState<ApiKey | null>(null)
@@ -35,28 +35,39 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
     key: '',
     is_active: true
   })
-  const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({})
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
   useEffect(() => {
-    loadApiKeys()
-  }, [])
+    if (token) {
+      loadApiKeys()
+    }
+  }, [token])
 
   const loadApiKeys = async () => {
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch('http://localhost:8000/api/v1/settings/api-keys/', {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers
       })
 
       if (response.ok) {
         const data = await response.json()
         setApiKeys(data)
+      } else {
+        console.error('Ошибка загрузки API ключей:', response.status, response.statusText)
+        setMessage({ type: 'error', text: 'Ошибка загрузки API ключей' })
       }
     } catch (error) {
       console.error('Ошибка загрузки API ключей:', error)
+      setMessage({ type: 'error', text: 'Ошибка соединения с сервером' })
     }
   }
 
@@ -72,12 +83,23 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
       
       const method = editingKey ? 'PUT' : 'POST'
 
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
+      // При редактировании не отправляем пустой ключ
+      const requestData = editingKey && !formData.key.trim() 
+        ? { name: formData.name, provider: formData.provider, is_active: formData.is_active }
+        : formData
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        headers,
+        body: JSON.stringify(requestData)
       })
 
       if (response.ok) {
@@ -102,8 +124,15 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
     if (!confirm('Вы уверены, что хотите удалить этот API ключ?')) return
 
     try {
+      const headers: HeadersInit = {}
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+
       const response = await fetch(`http://localhost:8000/api/v1/settings/api-keys/${id}/`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       })
 
       if (response.ok) {
@@ -123,20 +152,12 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
     setFormData({
       name: key.name,
       provider: key.provider,
-      key: key.key,
+      key: '', // Не показываем существующий ключ
       is_active: key.is_active
     })
     setShowAddForm(true)
   }
 
-  const toggleKeyVisibility = (id: string) => {
-    setShowKeys(prev => ({ ...prev, [id]: !prev[id] }))
-  }
-
-  const maskKey = (key: string) => {
-    if (key.length <= 8) return '•'.repeat(key.length)
-    return key.substring(0, 4) + '•'.repeat(key.length - 8) + key.substring(key.length - 4)
-  }
 
   const getProviderInfo = (provider: string) => {
     switch (provider) {
@@ -162,17 +183,19 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
             <p className="text-gray-600 dark:text-gray-300">Управление ключами для ИИ-сервисов</p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setShowAddForm(true)
-            setEditingKey(null)
-            setFormData({ name: '', provider: 'openai', key: '', is_active: true })
-          }}
-          className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 flex items-center space-x-2"
-        >
-          <PlusIcon className="h-5 w-5" />
-          <span>Добавить ключ</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => {
+              setShowAddForm(true)
+              setEditingKey(null)
+              setFormData({ name: '', provider: 'openai', key: '', is_active: true })
+            }}
+            className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 flex items-center space-x-2"
+          >
+            <PlusIcon className="h-5 w-5" />
+            <span>Добавить ключ</span>
+          </button>
+        </div>
       </div>
 
       {/* Сообщения */}
@@ -230,15 +253,15 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                API ключ
+                API ключ {editingKey ? '(оставьте пустым, чтобы не изменять)' : '*'}
               </label>
               <input
                 type="text"
                 value={formData.key}
                 onChange={(e) => setFormData(prev => ({ ...prev, key: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
-                placeholder="Введите API ключ"
-                required
+                placeholder={editingKey ? "Введите новый ключ или оставьте пустым" : "Введите API ключ"}
+                required={!editingKey}
               />
             </div>
 
@@ -315,19 +338,12 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
                       
                       <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                         <span>Ключ:</span>
-                        <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs">
-                          {showKeys[key.id] ? key.key : maskKey(key.key)}
+                        <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                          ••••••••••••
                         </code>
-                        <button
-                          onClick={() => toggleKeyVisibility(key.id)}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        >
-                          {showKeys[key.id] ? (
-                            <EyeSlashIcon className="h-4 w-4" />
-                          ) : (
-                            <EyeIcon className="h-4 w-4" />
-                          )}
-                        </button>
+                        <span className="text-xs text-gray-500 dark:text-gray-500">
+                          (скрыт для безопасности)
+                        </span>
                       </div>
                       
                       <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">

@@ -1,9 +1,9 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { getApiUrl, getApiEndpoint } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import ForcePasswordChangeModal from './ForcePasswordChangeModal'
+import ForcePasswordChangeModal from '@/components/ForcePasswordChangeModal'
 
 interface User {
   id: number
@@ -60,11 +60,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return
     }
 
-    // Сначала завершаем инициализацию
-    console.log('Completing initialization')
-    setIsLoading(false)
-    setHasInitialized(true)
-
     const storedToken = localStorage.getItem('access_token')
     console.log('Stored token found:', !!storedToken)
     if (storedToken) {
@@ -73,6 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Проверяем валидность токена в фоне
       console.log('Token found, checking validity in background')
       checkTokenValidity()
+    } else {
+      // Если токена нет, завершаем инициализацию
+      console.log('No token found, completing initialization')
+      setIsLoading(false)
+      setHasInitialized(true)
     }
   }, [])
 
@@ -232,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshUser,
     isLoading: isLoading || !hasInitialized,
-    isAuthenticated: !!user
+    isAuthenticated: !!user || !!token
   }
 
   console.log('AuthContext value:', { 
