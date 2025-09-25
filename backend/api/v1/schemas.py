@@ -1261,6 +1261,9 @@ class MatchingResult(BaseModel):
     packaging_factor: Optional[float] = Field(None, description="Коэффициент фасовки")
     recalculated_quantity: Optional[float] = Field(None, description="Пересчитанное количество")
     nomenclature: Optional[dict] = Field(None, description="Номенклатура")
+    search_type: Optional[str] = Field(None, description="Тип поиска (existing_mapping, ai_search, etc.)")
+    is_existing_mapping: Optional[bool] = Field(None, description="Является ли найденное сопоставление уже существующим")
+    mapping_id: Optional[int] = Field(None, description="ID существующего сопоставления")
 
 class AIMatchingResponse(BaseModel):
     """Схема ответа ИИ сопоставления"""
@@ -1270,3 +1273,64 @@ class AIMatchingResponse(BaseModel):
     matching_results: Optional[List[MatchingResult]] = Field(None, description="Результаты сопоставления")
     processing_time: Optional[float] = Field(None, description="Время обработки")
     status: str = Field(description="Статус обработки")
+
+
+# Схемы для чата с ИИ
+class ChatMessageCreate(BaseModel):
+    """Схема создания сообщения чата"""
+    content: str = Field(description="Текст сообщения", min_length=1)
+    files_data: Optional[dict] = Field(None, description="Данные о файлах")
+    matching_results: Optional[dict] = Field(None, description="Результаты сопоставления")
+
+
+class ChatMessageResponse(BaseModel):
+    """Схема ответа сообщения чата"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int = Field(description="ID сообщения")
+    message_type: str = Field(description="Тип сообщения")
+    content: str = Field(description="Текст сообщения")
+    files_data: Optional[dict] = Field(None, description="Данные о файлах")
+    matching_results: Optional[dict] = Field(None, description="Результаты сопоставления")
+    is_processing: bool = Field(description="Обрабатывается ли сообщение")
+    created_at: datetime = Field(description="Дата создания")
+
+
+class ChatSessionCreate(BaseModel):
+    """Схема создания сессии чата"""
+    title: Optional[str] = Field(None, description="Название сессии")
+
+
+class ChatSessionResponse(BaseModel):
+    """Схема ответа сессии чата"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int = Field(description="ID сессии")
+    title: Optional[str] = Field(None, description="Название сессии")
+    created_at: datetime = Field(description="Дата создания")
+    updated_at: Optional[datetime] = Field(None, description="Дата обновления")
+    messages: Optional[List[ChatMessageResponse]] = Field(None, description="Сообщения сессии")
+    
+    @classmethod
+    def from_orm(cls, obj):
+        """Создает объект из ORM без загрузки связанных объектов"""
+        return cls(
+            id=obj.id,
+            title=obj.title,
+            created_at=obj.created_at,
+            updated_at=obj.updated_at,
+            messages=None  # Не загружаем сообщения автоматически
+        )
+    
+    @classmethod
+    def model_validate(cls, obj):
+        """Альтернативный метод для Pydantic v2"""
+        if hasattr(obj, '__dict__'):
+            return cls(
+                id=obj.id,
+                title=obj.title,
+                created_at=obj.created_at,
+                updated_at=obj.updated_at,
+                messages=None
+            )
+        return super().model_validate(obj)

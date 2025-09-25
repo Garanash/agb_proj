@@ -207,3 +207,7 @@ async def debug_routes():
                 "name": route.name if hasattr(route, 'name') else "Unknown"
             })
     return {"routes": routes, "total": len(routes)}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

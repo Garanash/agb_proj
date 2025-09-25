@@ -788,3 +788,35 @@ class AppSettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class AIChatSession(Base):
+    """Сессия чата с ИИ"""
+    __tablename__ = "ai_chat_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=True)  # Название сессии (автогенерируемое)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Связи
+    user = relationship("User", lazy="selectin")
+    messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+
+class AIChatMessage(Base):
+    """Сообщение в чате с ИИ"""
+    __tablename__ = "ai_chat_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("ai_chat_sessions.id"), nullable=False)
+    message_type = Column(String, nullable=False)  # 'user', 'ai', 'system'
+    content = Column(Text, nullable=False)  # Текст сообщения
+    files_data = Column(JSON, nullable=True)  # Данные о прикрепленных файлах
+    matching_results = Column(JSON, nullable=True)  # Результаты сопоставления
+    is_processing = Column(Boolean, default=False)  # Обрабатывается ли сообщение
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Связи
+    session = relationship("AIChatSession", back_populates="messages")
+
+
