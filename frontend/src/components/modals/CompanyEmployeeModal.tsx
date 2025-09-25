@@ -75,7 +75,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
           last_name: '',
           middle_name: '',
           position: '',
-          department_id: 0,
+          department_id: departments.length > 0 ? departments[0].id : 0,
           email: '',
           phone: '',
           is_active: true
@@ -103,10 +103,12 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
   const fetchDepartments = async () => {
     try {
+      console.log('🔄 Загружаем отделы...')
       const response = await axios.get(`${getApiUrl()}/api/v1/departments/list`)
+      console.log('✅ Отделы загружены:', response.data)
       setDepartments(response.data.departments || [])
     } catch (error) {
-      console.error('Ошибка загрузки отделов:', error)
+      console.error('❌ Ошибка загрузки отделов:', error)
     }
   }
 
@@ -114,7 +116,8 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     const { name, value, type } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+               name === 'department_id' ? parseInt(value) || 0 : value
     }))
   }
 
@@ -123,21 +126,55 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
     setIsLoading(true)
     setError('')
 
+    // Валидация
+    if (!formData.department_id || formData.department_id === 0) {
+      setError('Пожалуйста, выберите отдел')
+      setIsLoading(false)
+      return
+    }
+
+    // Проверяем авторизацию
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      setError('Ошибка авторизации. Пожалуйста, войдите в систему заново.')
+      setIsLoading(false)
+      return
+    }
+
     try {
       if (employee) {
         // Обновление
+        console.log('🔄 Обновляем сотрудника:', employee.id, formData)
         await axios.put(`${getApiUrl()}/api/v1/company-employees/${employee.id}`, formData)
+        console.log('✅ Сотрудник обновлен успешно')
         onEmployeeUpdated()
         onClose()
       } else {
         // Создание
+        console.log('🚀 Отправляем данные для создания сотрудника:', formData)
+        console.log('🔍 Тип department_id:', typeof formData.department_id, 'Значение:', formData.department_id)
+        console.log('🔑 Токен авторизации:', token ? 'присутствует' : 'отсутствует')
+        console.log('🌐 API URL:', getApiUrl())
+        
         const response = await axios.post(`${getApiUrl()}/api/v1/company-employees/`, formData)
-        console.log('Сотрудник создан успешно:', response.data)
+        console.log('✅ Сотрудник создан успешно:', response.data)
+        console.log('🔄 Вызываем onEmployeeCreated...')
         onEmployeeCreated()
+        console.log('🔄 Закрываем модальное окно...')
         onClose()
       }
     } catch (error: any) {
-      console.error('Ошибка при создании/обновлении сотрудника:', error)
+      console.error('❌ Ошибка при создании/обновлении сотрудника:', error)
+      console.error('❌ Детали ошибки:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      })
       setError(formatApiError(error, employee ? 'Произошла ошибка при обновлении сотрудника' : 'Произошла ошибка при создании сотрудника'))
     } finally {
       setIsLoading(false)
@@ -148,16 +185,16 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg w-full max-w-md mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md mx-4 my-8 max-h-[90vh] overflow-hidden flex flex-col shadow-xl">
         {/* Заголовок */}
-        <div className="border-b border-gray-200 p-6 flex-shrink-0">
+        <div className="border-b border-gray-200 dark:border-gray-700 p-6 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               {employee ? 'Редактировать сотрудника' : 'Добавить сотрудника'}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
               aria-label="Закрыть"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +216,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Фамилия *
               </label>
               <input
@@ -188,13 +225,13 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 value={formData.last_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите фамилию"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Имя *
               </label>
               <input
@@ -203,13 +240,13 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 value={formData.first_name}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите имя"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Отчество
               </label>
               <input
@@ -217,13 +254,13 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 name="middle_name"
                 value={formData.middle_name}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите отчество"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Должность *
               </label>
               <input
@@ -232,13 +269,13 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 value={formData.position}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите должность"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Отдел *
               </label>
               <select
@@ -246,9 +283,9 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 value={formData.department_id}
                 onChange={handleInputChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
-                <option value={0}>Выберите отдел</option>
+                <option value={0} disabled>Выберите отдел</option>
                 {departments && Array.isArray(departments) ? departments.map(dept => (
                   <option key={dept.id} value={dept.id}>
                     {dept.name}
@@ -258,7 +295,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email
               </label>
               <input
@@ -266,13 +303,13 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Телефон
               </label>
               <input
@@ -280,7 +317,7 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 placeholder="Введите телефон"
               />
             </div>
@@ -291,19 +328,19 @@ const CompanyEmployeeModal: React.FC<CompanyEmployeeModalProps> = ({
                 name="is_active"
                 checked={formData.is_active}
                 onChange={handleInputChange}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700"
               />
-              <label className="ml-2 text-sm text-gray-700">
+              <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                 Активный сотрудник
               </label>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               disabled={isLoading}
             >
               Отменить

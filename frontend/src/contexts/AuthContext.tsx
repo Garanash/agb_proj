@@ -75,15 +75,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkTokenValidity = async () => {
     try {
       const apiUrl = getApiUrl()
-      console.log('API URL for token validation:', apiUrl)
-      console.log('Making request to:', `${apiUrl}/api/v1/auth/me`)
+      console.log('🔍 API URL for token validation:', apiUrl)
+      console.log('🔍 Making request to:', `${apiUrl}/api/v1/auth/me`)
+      console.log('🔍 Current axios headers:', axios.defaults.headers.common)
       const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
-      console.log('Response received:', response.status, response.data)
+      console.log('✅ Response received:', response.status, response.data)
       setUser(response.data)
-      console.log('User loaded:', response.data)
+      console.log('✅ User loaded:', response.data)
     } catch (error: any) {
-      console.error('Token validation error:', error)
-      console.error('Error details:', {
+      console.error('❌ Token validation error:', error)
+      console.error('❌ Error details:', {
         message: error.message,
         status: error.response?.status,
         data: error.response?.data
@@ -93,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(null)
       delete axios.defaults.headers.common['Authorization']
     } finally {
-      console.log('Setting isLoading to false and hasInitialized to true')
+      console.log('🏁 Setting isLoading to false and hasInitialized to true')
       setIsLoading(false)
       setHasInitialized(true)
     }

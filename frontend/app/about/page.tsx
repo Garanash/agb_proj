@@ -9,6 +9,7 @@ import { useAuth } from '../../src/hooks/useAuth'
 import axios from 'axios'
 import CreateDepartmentModal from '../../src/components/modals/CreateDepartmentModal'
 import EditDepartmentModal from '../../src/components/modals/EditDepartmentModal'
+import SortableDepartmentList from '../../src/components/drag-drop/SortableDepartmentList'
 import CompanyEmployeeModal from '../../src/components/modals/CompanyEmployeeModal'
 
 export default function About() {
@@ -81,11 +82,14 @@ export default function About() {
     // Добавляем небольшую задержку, чтобы backend успел обработать запрос
     setTimeout(async () => {
       try {
+        console.log('🔄 Обновляем список сотрудников после создания...')
         const response = await axios.get(`${getApiUrl()}/api/v1/company-employees/`)
-        console.log('Обновляем список сотрудников:', response.data)
+        console.log('✅ Получен ответ от API:', response.data)
+        console.log('📊 Количество сотрудников:', response.data.employees?.length || 0)
         setCompanyEmployees(response.data.employees || [])
+        console.log('✅ Список сотрудников обновлен в состоянии')
       } catch (error) {
-        console.error('Ошибка при загрузке сотрудников:', error)
+        console.error('❌ Ошибка при загрузке сотрудников:', error)
       }
     }, 500)
   }
@@ -231,89 +235,24 @@ export default function About() {
               )}
             </div>
             <div className="space-y-4">
-              {departments && departments.length > 0 ? departments.map((department) => (
-                <div key={department.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => toggleDepartment(department.name)}
-                      className="flex-1 px-6 py-4 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-between"
-                    >
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{department.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{department.description}</p>
-                      </div>
-                      <ChevronDownIcon 
-                        className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
-                          openDepartment === department.name ? 'rotate-180' : ''
-                        }`}
-                      />
-                    </button>
-                    {isAdmin && (
-                      <div className="flex items-center space-x-2 px-4">
-                        <button
-                          onClick={() => setEditingDepartment(department)}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteDepartment(department.id)}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {openDepartment === department.name && (
-                    <div className="px-6 py-4 bg-white dark:bg-gray-800">
-                      <div className="space-y-4">
-                        {/* Сотрудники отдела */}
-                        <div>
-                          <div className="space-y-2">
-                            {companyEmployees && Array.isArray(companyEmployees) && companyEmployees.length > 0 ? companyEmployees
-                              .filter(emp => emp.department_id === department.id && emp.is_active)
-                              .map(employee => (
-                                <div key={employee.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                  <div>
-                                    <div className="font-medium text-gray-900 dark:text-gray-100">
-                                      {employee.last_name} {employee.first_name} {employee.middle_name}
-                                    </div>
-                                    <div className="text-sm text-gray-600 dark:text-gray-400">{employee.position}</div>
-                                    {employee.email && (
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">{employee.email}</div>
-                                    )}
-                                  </div>
-                                  {isAdmin && (
-                                    <div className="flex items-center space-x-2">
-                                      <button
-                                        onClick={() => setEditingEmployee(employee)}
-                                        className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                      >
-                                        <PencilIcon className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteEmployee(employee.id)}
-                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                      >
-                                        <TrashIcon className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )) : null}
-                            {(!companyEmployees || !Array.isArray(companyEmployees) || companyEmployees.length === 0 || 
-                              companyEmployees.filter(emp => emp.department_id === department.id && emp.is_active).length === 0) && (
-                              <div className="text-sm text-gray-500 dark:text-gray-400 italic">В отделе пока нет сотрудников</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )) : (
+              {departments && departments.length > 0 ? (
+                <SortableDepartmentList
+                  departments={departments}
+                  onDepartmentsChange={setDepartments}
+                  onEditDepartment={setEditingDepartment}
+                  onDeleteDepartment={handleDeleteDepartment}
+                  isAdmin={isAdmin}
+                  openDepartment={openDepartment}
+                  onToggleDepartment={toggleDepartment}
+                  companyEmployees={companyEmployees}
+                  onEmployeesChange={(updatedEmployees) => {
+                    console.log('🔄 About page: обновляем список сотрудников:', updatedEmployees.map(emp => ({ id: emp.id, name: `${emp.last_name} ${emp.first_name}`, sort_order: emp.sort_order })))
+                    setCompanyEmployees([...updatedEmployees]) // Создаем новый массив для принудительного обновления
+                  }}
+                  onEditEmployee={setEditingEmployee}
+                  onDeleteEmployee={handleDeleteEmployee}
+                />
+              ) : (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   {isLoading ? 'Загрузка отделов...' : 'Отделы не найдены'}
                 </div>
