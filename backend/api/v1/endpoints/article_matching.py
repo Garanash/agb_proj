@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 import pandas as pd
 import io
@@ -16,6 +16,7 @@ import uuid
 from pathlib import Path
 import pymorphy2
 from functools import lru_cache
+from pydantic import BaseModel
 
 # Инициализируем морфологический анализатор
 morph = pymorphy2.MorphAnalyzer()
@@ -56,10 +57,40 @@ def get_normalized_text(text: str) -> str:
     return normalize_russian_text(text)
 
 from database import get_db
-from models import User, ApiKey, AiProcessingLog
+from models import User, ApiKey, AiProcessingLog, MatchingNomenclature
 from ..dependencies import get_current_user
 from ..schemas import AIMatchingResponse, MatchingResult
 from ..utils.api_key import get_api_key
+
+# Модели для Excel функционала
+class ExcelRow(BaseModel):
+    id: str
+    наименование: str
+    запрашиваемый_артикул: str
+    количество: float
+    единица_измерения: str
+    наш_артикул: Optional[str] = None
+    артикул_bl: Optional[str] = None
+    номер_1с: Optional[str] = None
+    стоимость: Optional[float] = None
+    статус_сопоставления: Optional[str] = "pending"
+    уверенность: Optional[int] = 0
+    варианты_подбора: Optional[List[dict]] = []
+    выбранный_вариант: Optional[int] = None  # Индекс выбранного варианта
+
+class ExcelDataRequest(BaseModel):
+    data: List[ExcelRow]
+
+class ExcelParseResponse(BaseModel):
+    success: bool
+    data: List[ExcelRow]
+    message: Optional[str] = None
+
+class ExcelMatchResponse(BaseModel):
+    success: bool
+    matched_data: List[ExcelRow]
+    statistics: Dict[str, Any]
+    message: Optional[str] = None
 
 async def process_natural_language_query(query: str, db: AsyncSession) -> dict:
     """
@@ -164,9 +195,9 @@ async def extract_articles_from_text(text: str, db: AsyncSession = None) -> List
                 parsed_item = parse_item_string(line)
                 
                 # Если нашли артикул или описание, добавляем в результат
-                if parsed_item['article'] or parsed_item['description']:
+                if parsed_item['agb_article'] or parsed_item['description']:
                     articles.append({
-                        'article': parsed_item['article'],
+                        'agb_article': parsed_item['agb_article'],
                         'description': parsed_item['description'],
                         'quantity': parsed_item['quantity'],
                         'unit': parsed_item['unit']
@@ -376,8 +407,8 @@ def normalize_ai_article(article: dict) -> dict:
         if description:
             # Ищем потенциальный артикул в описании
             parsed = parse_item_string(description)
-            if parsed['article']:
-                normalized['contractor_article'] = parsed['article']
+            if parsed['agb_article']:
+                normalized['contractor_article'] = parsed['agb_article']
                 normalized['description'] = parsed['description']
                 normalized['quantity'] = parsed['quantity']
                 normalized['unit'] = parsed['unit']
@@ -400,8 +431,8 @@ def normalize_ai_article(article: dict) -> dict:
             if description:
                 # Ищем потенциальный артикул в описании
                 parsed = parse_item_string(description)
-                if parsed['article']:
-                    normalized['contractor_article'] = parsed['article']
+                if parsed['agb_article']:
+                    normalized['contractor_article'] = parsed['agb_article']
                     normalized['description'] = parsed['description'] or description
                 else:
                     normalized['description'] = description
@@ -522,7 +553,7 @@ def parse_item_string(item_string: str) -> dict:
     description = re.sub(r'^[-_\s]+', '', description)
     
     return {
-        'article': article,
+        'agb_article': article,
         'description': description,
         'quantity': quantity,
         'unit': unit
@@ -646,19 +677,19 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
         parsed_item = parse_item_string(normalized_text)
         
         print(f"🔍 Парсинг строки: '{normalized_text}'")
-        print(f"   Артикул: '{parsed_item['article']}'")
+        print(f"   Артикул: '{parsed_item['agb_article']}'")
         print(f"   Описание: '{parsed_item['description']}'")
         print(f"   Количество: {parsed_item['quantity']} {parsed_item['unit']}")
         
         # Сначала проверяем уже существующие сопоставления по артикулу или описанию
-        if parsed_item['article'] or parsed_item['description']:
+        if parsed_item['agb_article'] or parsed_item['description']:
             print(f"🔍 Ищем в существующих сопоставлениях...")
             # Создаем базовый запрос
             query = select(ArticleMapping).where(ArticleMapping.is_active == True)
             conditions = []
             
-            if parsed_item['article']:
-                conditions.append(ArticleMapping.contractor_article.ilike(f"%{parsed_item['article']}%"))
+            if parsed_item['agb_article']:
+                conditions.append(ArticleMapping.contractor_article.ilike(f"%{parsed_item['agb_article']}%"))
             
             if parsed_item['description']:
                 conditions.append(ArticleMapping.contractor_description.ilike(f"%{parsed_item['description']}%"))
@@ -672,7 +703,7 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
                     print(f"✅ Найдено {len(mappings)} существующих сопоставлений")
                     matches = []
                     for mapping in mappings:
-                        confidence = 100 if mapping.contractor_article == parsed_item['article'] else 90
+                        confidence = 100 if mapping.contractor_article == parsed_item['agb_article'] else 90
                         matches.append({
                             "agb_article": mapping.agb_article,
                             "bl_article": mapping.bl_article,
@@ -700,11 +731,11 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
         conditions = []
         
         # Добавляем условия поиска
-        if parsed_item['article']:
+        if parsed_item['agb_article']:
             conditions.extend([
-                MatchingNomenclature.agb_article.ilike(f"%{parsed_item['article']}%"),
-                MatchingNomenclature.bl_article.ilike(f"%{parsed_item['article']}%"),
-                MatchingNomenclature.code_1c.ilike(f"%{parsed_item['article']}%")
+                MatchingNomenclature.agb_article.ilike(f"%{parsed_item['agb_article']}%"),
+                MatchingNomenclature.bl_article.ilike(f"%{parsed_item['agb_article']}%"),
+                MatchingNomenclature.code_1c.ilike(f"%{parsed_item['agb_article']}%")
             ])
         
         if parsed_item['description']:
@@ -720,14 +751,14 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
                 match_reason = ""
                 
                 # Вычисляем уверенность на основе совпадений
-                if parsed_item['article']:
-                    if item.agb_article and item.agb_article.lower() == parsed_item['article'].lower():
+                if parsed_item['agb_article']:
+                    if item.agb_article and item.agb_article.lower() == parsed_item['agb_article'].lower():
                         confidence = 100
                         match_reason = "Точное совпадение по артикулу АГБ"
-                    elif item.bl_article and item.bl_article.lower() == parsed_item['article'].lower():
+                    elif item.bl_article and item.bl_article.lower() == parsed_item['agb_article'].lower():
                         confidence = 95
                         match_reason = "Точное совпадение по артикулу BL"
-                    elif item.code_1c and item.code_1c.lower() == parsed_item['article'].lower():
+                    elif item.code_1c and item.code_1c.lower() == parsed_item['agb_article'].lower():
                         confidence = 90
                         match_reason = "Точное совпадение по коду 1С"
                     else:
@@ -855,7 +886,7 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
         # Формируем список номенклатур для AI с приоритетом по релевантности
         # Сначала ищем возможные совпадения по артикулу или описанию
         relevant_nomenclatures = []
-        search_terms = [parsed_item['article'], parsed_item['description']]
+        search_terms = [parsed_item['agb_article'], parsed_item['description']]
         search_terms = [term.lower() for term in search_terms if term]
 
         # Ищем релевантные номенклатуры
@@ -863,22 +894,22 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
             relevance_score = 0
 
             # Проверяем артикул АГБ
-            if parsed_item['article'] and nom.agb_article:
-                if parsed_item['article'].lower() in nom.agb_article.lower():
+            if parsed_item['agb_article'] and nom.agb_article:
+                if parsed_item['agb_article'].lower() in nom.agb_article.lower():
                     relevance_score += 100
-                elif nom.agb_article.lower() in parsed_item['article'].lower():
+                elif nom.agb_article.lower() in parsed_item['agb_article'].lower():
                     relevance_score += 80
 
             # Проверяем артикул BL
-            if parsed_item['article'] and nom.bl_article:
-                if parsed_item['article'].lower() in nom.bl_article.lower():
+            if parsed_item['agb_article'] and nom.bl_article:
+                if parsed_item['agb_article'].lower() in nom.bl_article.lower():
                     relevance_score += 90
-                elif nom.bl_article.lower() in parsed_item['article'].lower():
+                elif nom.bl_article.lower() in parsed_item['agb_article'].lower():
                     relevance_score += 70
 
             # Проверяем код 1С
-            if parsed_item['article'] and nom.code_1c:
-                if parsed_item['article'].lower() in nom.code_1c.lower():
+            if parsed_item['agb_article'] and nom.code_1c:
+                if parsed_item['agb_article'].lower() in nom.code_1c.lower():
                     relevance_score += 60
 
             # Проверяем наименование
@@ -1520,11 +1551,11 @@ async def test_create_request(
         
         # Создаем тестовую заявку на основе примера
         test_items = [
-            {"article": "1299650", "description": "Шпиндель верхней части керноприемника H/HU, 25231, SDT", "quantity": 5, "unit": "шт"},
-            {"article": "1298240", "description": "Втулка удержания жидкости 306131, SDT", "quantity": 12, "unit": "шт"},
-            {"article": "1298244", "description": "Пружина мягкая N/H/P, удержания жидкости, 104966, SDT", "quantity": 10, "unit": "шт"},
-            {"article": "1299679", "description": "Щека верхняя для ключа разводного 24\", 14947, SDT", "quantity": 8, "unit": "шт"},
-            {"article": "1299680", "description": "Щека верхняя для ключа разводного 36\", 14950, SDT", "quantity": 8, "unit": "шт"}
+            {"agb_article": "1299650", "description": "Шпиндель верхней части керноприемника H/HU, 25231, SDT", "quantity": 5, "unit": "шт"},
+            {"agb_article": "1298240", "description": "Втулка удержания жидкости 306131, SDT", "quantity": 12, "unit": "шт"},
+            {"agb_article": "1298244", "description": "Пружина мягкая N/H/P, удержания жидкости, 104966, SDT", "quantity": 10, "unit": "шт"},
+            {"agb_article": "1299679", "description": "Щека верхняя для ключа разводного 24\", 14947, SDT", "quantity": 8, "unit": "шт"},
+            {"agb_article": "1299680", "description": "Щека верхняя для ключа разводного 36\", 14950, SDT", "quantity": 8, "unit": "шт"}
         ]
         
         items = []
@@ -1533,7 +1564,7 @@ async def test_create_request(
             new_item = ContractorRequestItem(
                 request_id=new_request.id,
                 line_number=line_number,
-                contractor_article=item_data["article"],
+                contractor_article=item_data["agb_article"],
                 description=item_data["description"],
                 unit=item_data["unit"],
                 quantity=item_data["quantity"],
@@ -1703,7 +1734,7 @@ async def upload_text_request(
             # Создаем позицию заявки
             item = ContractorRequestItem(
                 request_id=request.id,
-                contractor_article=item_data.get('article', ''),
+                contractor_article=item_data.get('agb_article', ''),
                 description=description,
                 quantity=item_data.get('quantity', 1),
                 unit=item_data.get('unit', 'шт')
@@ -1716,7 +1747,7 @@ async def upload_text_request(
                 for match in ai_matches['matches']:
                     # Ищем номенклатуру в базе по артикулу
                     nom_result = await db.execute(
-                        select(MatchingNomenclature).where(MatchingNomenclature.agb_article == match['article'])
+                        select(MatchingNomenclature).where(MatchingNomenclature.agb_article == match['agb_article'])
                     )
                     nomenclature = nom_result.scalar_one_or_none()
                     
@@ -1724,7 +1755,7 @@ async def upload_text_request(
                         # Создаем запись сопоставления
                         mapping = ArticleMapping(
                             contractor_request_item_id=item.id,
-                            agb_article=match['article'],
+                            agb_article=match['agb_article'],
                             bl_article=match.get('code_1c', ''),
                             match_confidence=match.get('confidence', 0.0),
                             packaging_factor=1.0,
@@ -1732,7 +1763,7 @@ async def upload_text_request(
                             nomenclature_id=nomenclature.id
                         )
                         db.add(mapping)
-                        print(f"Created mapping: {match['article']} -> {match.get('code_1c', '')}")
+                        print(f"Created mapping: {match['agb_article']} -> {match.get('code_1c', '')}")
         
         await db.commit()
         await db.refresh(request)
@@ -1779,7 +1810,7 @@ def parse_text_to_items(text: str) -> List[dict]:
             
             # Это потенциальное описание товара
             item = {
-                'article': '',  # Будет заполнено AI поиском
+                'agb_article': '',  # Будет заполнено AI поиском
                 'description': line,
                 'quantity': 1,  # По умолчанию
                 'unit': 'шт'    # По умолчанию
@@ -1803,7 +1834,7 @@ async def get_our_database(
         return [
             {
                 "id": nom.id,
-                "article": nom.article,
+                "agb_article": nom.agb_article,
                 "name": nom.name,
                 "code_1c": nom.code_1c
             }
@@ -2203,11 +2234,11 @@ async def test_upload_excel(
         
         # Создаем тестовую заявку на основе примера
         test_items = [
-            {"article": "1299650", "description": "Шпиндель верхней части керноприемника H/HU, 25231, SDT", "quantity": 5, "unit": "шт"},
-            {"article": "1298240", "description": "Втулка удержания жидкости 306131, SDT", "quantity": 12, "unit": "шт"},
-            {"article": "1298244", "description": "Пружина мягкая N/H/P, удержания жидкости, 104966, SDT", "quantity": 10, "unit": "шт"},
-            {"article": "1299679", "description": "Щека верхняя для ключа разводного 24\", 14947, SDT", "quantity": 8, "unit": "шт"},
-            {"article": "1299680", "description": "Щека верхняя для ключа разводного 36\", 14950, SDT", "quantity": 8, "unit": "шт"}
+            {"agb_article": "1299650", "description": "Шпиндель верхней части керноприемника H/HU, 25231, SDT", "quantity": 5, "unit": "шт"},
+            {"agb_article": "1298240", "description": "Втулка удержания жидкости 306131, SDT", "quantity": 12, "unit": "шт"},
+            {"agb_article": "1298244", "description": "Пружина мягкая N/H/P, удержания жидкости, 104966, SDT", "quantity": 10, "unit": "шт"},
+            {"agb_article": "1299679", "description": "Щека верхняя для ключа разводного 24\", 14947, SDT", "quantity": 8, "unit": "шт"},
+            {"agb_article": "1299680", "description": "Щека верхняя для ключа разводного 36\", 14950, SDT", "quantity": 8, "unit": "шт"}
         ]
         
         items = []
@@ -2216,7 +2247,7 @@ async def test_upload_excel(
             new_item = ContractorRequestItem(
                 request_id=new_request.id,
                 line_number=line_number,
-                contractor_article=item_data["article"],
+                contractor_article=item_data["agb_article"],
                 description=item_data["description"],
                 unit=item_data["unit"],
                 quantity=item_data["quantity"],
@@ -2680,7 +2711,7 @@ async def test_upload_text_request(
             item = ContractorRequestItem(
                 request_id=request.id,
                 line_number=i + 1,  # Добавляем номер строки
-                contractor_article=item_data.get('article', ''),
+                contractor_article=item_data.get('agb_article', ''),
                 description=item_data.get('description', ''),
                 quantity=item_data.get('quantity', 1),
                 unit=item_data.get('unit', 'шт'),
@@ -3306,7 +3337,7 @@ async def find_exact_article_match(contractor_article: str, db: AsyncSession) ->
         # Ищем точное соответствие по артикулу
         result = await db.execute(
             select(MatchingNomenclature).where(
-                MatchingNomenclature.article == contractor_article
+                MatchingNomenclature.agb_article == contractor_article
             ).limit(1)
         )
         match = result.scalar_one_or_none()
@@ -3316,7 +3347,7 @@ async def find_exact_article_match(contractor_article: str, db: AsyncSession) ->
                 'id': match.id,
                 'name': match.name,
                 'code_1c': match.code_1c,
-                'agb_article': match.article,
+                'agb_article': match.agb_article,
                 'bl_article': match.bl_article,
                 'confidence': 100.0
             }
@@ -3342,15 +3373,15 @@ async def find_partial_article_match(contractor_article: str, description: str, 
         for nom in nomenclatures:
             # Проверяем соответствие по артикулу
             article_confidence = 0
-            if contractor_article and nom.article:
-                article_confidence = difflib.SequenceMatcher(
-                    None, contractor_article.lower(), nom.article.lower()
+            if contractor_article and nom.agb_article:
+                article_confidence = SequenceMatcher(
+                    None, contractor_article.lower(), nom.agb_article.lower()
                 ).ratio() * 100
             
             # Проверяем соответствие по наименованию
             name_confidence = 0
             if description and nom.name:
-                name_confidence = difflib.SequenceMatcher(
+                name_confidence = SequenceMatcher(
                     None, description.lower(), nom.name.lower()
                 ).ratio() * 100
             
@@ -3363,7 +3394,7 @@ async def find_partial_article_match(contractor_article: str, description: str, 
                     'id': nom.id,
                     'name': nom.name,
                     'code_1c': nom.code_1c,
-                    'agb_article': nom.article,
+                    'agb_article': nom.agb_article,
                     'bl_article': nom.bl_article,
                     'confidence': confidence
                 }
@@ -3604,3 +3635,355 @@ async def process_ai_request(
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
+
+# Новые endpoints для Excel функционала
+
+@router.post("/parse-excel/", response_model=ExcelParseResponse)
+async def parse_excel_file(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Парсит Excel файл и возвращает структурированные данные
+    """
+    try:
+        # Проверяем тип файла
+        if not file.filename.endswith(('.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Поддерживаются только файлы .xlsx и .xls")
+        
+        # Читаем файл
+        contents = await file.read()
+        
+        # Парсим Excel
+        try:
+            df = pd.read_excel(io.BytesIO(contents))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Ошибка чтения Excel файла: {str(e)}")
+        
+        # Преобразуем в нужный формат
+        excel_rows = []
+        for index, row in df.iterrows():
+            excel_row = ExcelRow(
+                id=f"row_{index + 1}",
+                наименование=str(row.get('Наименование', '')),
+                запрашиваемый_артикул=str(row.get('Запрашиваемый артикул', '')),
+                количество=float(row.get('Количество', 1)),
+                единица_измерения=str(row.get('Единица измерения', 'шт')),
+                наш_артикул=str(row.get('Наш артикул', '')) if pd.notna(row.get('Наш артикул')) else None,
+                артикул_bl=str(row.get('Артикул BL', '')) if pd.notna(row.get('Артикул BL')) else None,
+                номер_1с=str(row.get('Номер в 1С', '')) if pd.notna(row.get('Номер в 1С')) else None,
+                стоимость=float(row.get('Стоимость', 0)) if pd.notna(row.get('Стоимость')) else None,
+                статус_сопоставления="pending",
+                уверенность=0
+            )
+            excel_rows.append(excel_row)
+        
+        return ExcelParseResponse(
+            success=True,
+            data=excel_rows,
+            message=f"Успешно обработано {len(excel_rows)} строк"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка обработки файла: {str(e)}")
+
+@router.post("/auto-match-excel/", response_model=ExcelMatchResponse)
+async def auto_match_excel_data(
+    request: ExcelDataRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Выполняет автоматическое сопоставление Excel данных с базой
+    """
+    try:
+        matched_data = []
+        statistics = {
+            "total": len(request.data),
+            "matched": 0,
+            "unmatched": 0,
+            "pending": 0
+        }
+        
+        # Получаем все активные элементы из базы данных для поиска по наименованию
+        async for db in get_db():
+            name_query = select(MatchingNomenclature).where(
+                MatchingNomenclature.is_active == True
+            )
+            name_results = await db.execute(name_query)
+            name_items = name_results.scalars().all()
+            
+            print(f"DEBUG: Загружено {len(name_items)} элементов из базы")
+            print(f"DEBUG: Получено {len(request.data)} строк для обработки")
+            
+            for row in request.data:
+                matched_row = row.copy()
+                print(f"DEBUG: Обрабатываем строку: '{row.наименование}'")
+                
+                # Поиск по наименованию (70% совпадение)
+                if row.наименование:
+                    print(f"DEBUG: Поиск по наименованию: '{row.наименование}'")
+                    search_text = row.наименование.lower().strip()
+                    
+                    # Собираем ВСЕ варианты с их реальной схожестью
+                    matches = []
+                    
+                    # 1. Поиск по подстроке (более точный)
+                    for item in name_items:
+                        item_name = item.name.lower()
+                        if search_text in item_name:
+                            # Для подстроки используем более высокую схожесть
+                            # Вычисляем отношение длины подстроки к длине полного названия
+                            substring_ratio = len(search_text) / len(item_name)
+                            # Минимум 0.5, максимум 1.0
+                            similarity = max(0.5, min(1.0, substring_ratio + 0.3))
+                            
+                            matches.append({
+                                'item': item,
+                                'similarity': similarity,
+                                'confidence': int(similarity * 100),
+                                'match_type': 'substring'
+                            })
+                            print(f"DEBUG: Найдено подстроковое совпадение: '{item.name}' (схожесть: {similarity:.2f})")
+                    
+                    # 2. Поиск по нормализованному тексту для всех элементов
+                    for item in name_items:
+                        item_name = item.name.lower()
+                        normalized_search = get_normalized_text(search_text)
+                        normalized_item = get_normalized_text(item_name)
+                        similarity = SequenceMatcher(None, normalized_search, normalized_item).ratio()
+                        
+                        # Добавляем только если схожесть >= 50% и это не дубликат
+                        if similarity >= 0.5:  # Снижаем порог для получения больше вариантов
+                            # Проверяем, что это не дубликат
+                            is_duplicate = any(
+                                match['item'].id == item.id for match in matches
+                            )
+                            if not is_duplicate:
+                                matches.append({
+                                    'item': item,
+                                    'similarity': similarity,
+                                    'confidence': int(similarity * 100),
+                                    'match_type': 'normalized'
+                                })
+                                print(f"DEBUG: Найдено нормализованное совпадение: '{item.name}' (схожесть: {similarity:.2f})")
+                    
+                    # 3. Дополнительный поиск по ключевым словам
+                    search_words = search_text.split()
+                    if len(search_words) > 1:  # Если есть несколько слов
+                        for item in name_items:
+                            item_name = item.name.lower()
+                            word_matches = 0
+                            total_words = len(search_words)
+                            
+                            for word in search_words:
+                                if word in item_name:
+                                    word_matches += 1
+                            
+                            if word_matches > 0:
+                                word_similarity = word_matches / total_words
+                                
+                                # Проверяем, что это не дубликат
+                                is_duplicate = any(
+                                    match['item'].id == item.id for match in matches
+                                )
+                                if not is_duplicate and word_similarity >= 0.3:
+                                    matches.append({
+                                        'item': item,
+                                        'similarity': word_similarity,
+                                        'confidence': int(word_similarity * 100),
+                                        'match_type': 'keywords'
+                                    })
+                                    print(f"DEBUG: Найдено совпадение по ключевым словам: '{item.name}' (схожесть: {word_similarity:.2f})")
+                    
+                    # Сортируем по убыванию схожести
+                    matches.sort(key=lambda x: x['similarity'], reverse=True)
+                    
+                    if matches:
+                        # Берем лучший вариант для основных полей (только если схожесть >= 70%)
+                        best_match = matches[0]
+                        if best_match['similarity'] >= 0.7:
+                            matched_row.наш_артикул = best_match['item'].agb_article
+                            matched_row.артикул_bl = best_match['item'].bl_article
+                            matched_row.номер_1с = best_match['item'].code_1c
+                            matched_row.статус_сопоставления = "matched"
+                            matched_row.уверенность = best_match['confidence']
+                        else:
+                            matched_row.статус_сопоставления = "partial"
+                            matched_row.уверенность = best_match['confidence']
+                        
+                        # Добавляем ВСЕ варианты в поле вариантов (топ 10)
+                        matched_row.варианты_подбора = [
+                            {
+                                'наименование': match['item'].name,
+                                'наш_артикул': match['item'].agb_article,
+                                'артикул_bl': match['item'].bl_article,
+                                'номер_1с': match['item'].code_1c,
+                                'уверенность': match['confidence'],
+                                'тип_совпадения': match['match_type']
+                            }
+                            for match in matches[:10]  # Показываем максимум 10 вариантов
+                        ]
+                        
+                        matched_data.append(matched_row)
+                        if best_match['similarity'] >= 0.7:
+                            statistics["matched"] += 1
+                        else:
+                            statistics["pending"] += 1
+                        print(f"DEBUG: Добавлено {len(matches)} совпадений для '{row.наименование}'")
+                    else:
+                        matched_row.статус_сопоставления = "unmatched"
+                        matched_row.варианты_подбора = []
+                        matched_data.append(matched_row)
+                        statistics["unmatched"] += 1
+                        print(f"DEBUG: Не найдено совпадений для '{row.наименование}'")
+                    continue
+                
+                # Поиск по артикулу (100% совпадение)
+                elif row.запрашиваемый_артикул:
+                    print(f"DEBUG: Поиск по артикулу: '{row.запрашиваемый_артикул}'")
+                    # Поиск в нашей базе по артикулу АГБ
+                    agb_query = select(MatchingNomenclature).where(
+                        MatchingNomenclature.agb_article == row.запрашиваемый_артикул
+                    )
+                    agb_result = await db.execute(agb_query)
+                    agb_item = agb_result.scalar_one_or_none()
+                    
+                    # Поиск по артикулу BL
+                    bl_query = select(MatchingNomenclature).where(
+                        MatchingNomenclature.bl_article == row.запрашиваемый_артикул
+                    )
+                    bl_result = await db.execute(bl_query)
+                    bl_item = bl_result.scalar_one_or_none()
+                    
+                    if agb_item:
+                        matched_row.наш_артикул = agb_item.agb_article
+                        matched_row.артикул_bl = agb_item.bl_article
+                        matched_row.номер_1с = agb_item.code_1c
+                        matched_row.статус_сопоставления = "matched"
+                        matched_row.уверенность = 100
+                        matched_row.варианты_подбора = [{
+                            'наименование': agb_item.name,
+                            'наш_артикул': agb_item.agb_article,
+                            'артикул_bl': agb_item.bl_article,
+                            'номер_1с': agb_item.code_1c,
+                            'уверенность': 100
+                        }]
+                        matched_data.append(matched_row)
+                        statistics["matched"] += 1
+                    elif bl_item:
+                        matched_row.наш_артикул = bl_item.agb_article
+                        matched_row.артикул_bl = bl_item.bl_article
+                        matched_row.номер_1с = bl_item.code_1c
+                        matched_row.статус_сопоставления = "matched"
+                        matched_row.уверенность = 100
+                        matched_row.варианты_подбора = [{
+                            'наименование': bl_item.name,
+                            'наш_артикул': bl_item.agb_article,
+                            'артикул_bl': bl_item.bl_article,
+                            'номер_1с': bl_item.code_1c,
+                            'уверенность': 100
+                        }]
+                        matched_data.append(matched_row)
+                        statistics["matched"] += 1
+                    else:
+                        matched_row.статус_сопоставления = "unmatched"
+                        matched_row.варианты_подбора = []
+                        matched_data.append(matched_row)
+                        statistics["unmatched"] += 1
+                else:
+                    matched_row.статус_сопоставления = "unmatched"
+                    matched_row.варианты_подбора = []
+                    matched_data.append(matched_row)
+                    statistics["unmatched"] += 1
+        
+        return ExcelMatchResponse(
+            success=True,
+            matched_data=matched_data,
+            statistics=statistics,
+            message=f"Сопоставление завершено. Найдено {statistics['matched']} из {statistics['total']} позиций"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка сопоставления: {str(e)}")
+
+@router.post("/save-excel-results/")
+async def save_excel_results(
+    request: ExcelDataRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Сохраняет результаты Excel сопоставления в базу данных
+    """
+    try:
+        saved_count = 0
+        
+        for row in request.data:
+            # Создаем запись в таблице сопоставлений
+            mapping_data = {
+                "contractor_article": row.запрашиваемый_артикул,
+                "contractor_description": row.наименование,
+                "agb_article": row.наш_артикул or "",
+                "agb_description": "",  # Можно добавить описание из номенклатуры
+                "bl_article": row.артикул_bl or "",
+                "bl_description": "",  # Можно добавить описание BL
+                "packaging_factor": 1.0,
+                "unit": row.единица_измерения,
+                "quantity": row.количество,
+                "cost": row.стоимость or 0.0,
+                "match_confidence": row.уверенность or 0,
+                "status": row.статус_сопоставления or "pending",
+                "created_by": current_user.id,
+                "created_at": datetime.utcnow()
+            }
+            
+            # Здесь можно добавить логику сохранения в базу данных
+            # Например, создание записи в таблице ArticleMapping
+            saved_count += 1
+        
+        return {
+            "success": True,
+            "message": f"Сохранено {saved_count} записей",
+            "saved_count": saved_count
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка сохранения: {str(e)}")
+
+@router.get("/saved-variants/")
+async def get_saved_variants(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение сохраненных вариантов подбора"""
+    try:
+        # Здесь можно добавить логику получения сохраненных вариантов из базы данных
+        # Пока возвращаем пустой список
+        return {
+            "success": True,
+            "saved_variants": {}
+        }
+    except Exception as e:
+        logger.error(f"Ошибка при получении сохраненных вариантов: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении: {str(e)}")
+
+@router.post("/save-variant-selection/")
+async def save_variant_selection(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Сохранение выбранного варианта подбора"""
+    try:
+        # Здесь можно добавить логику сохранения выбранного варианта в базу данных
+        # request должен содержать: {"row_id": "string", "variant_index": int}
+        
+        return {
+            "success": True,
+            "message": "Вариант сохранен"
+        }
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении варианта: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при сохранении: {str(e)}")

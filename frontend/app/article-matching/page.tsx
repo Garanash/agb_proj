@@ -16,6 +16,7 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import AIMatchingChat from '@/components/AIMatchingChat'
+import ExcelDataTable from '@/components/ExcelDataTable'
 
 interface ContractorRequest {
   id: number
@@ -92,6 +93,27 @@ interface SearchResult {
   bl_description?: string
 }
 
+interface ExcelRow {
+  id: string
+  наименование: string
+  запрашиваемый_артикул: string
+  количество: number
+  единица_измерения: string
+  наш_артикул?: string
+  артикул_bl?: string
+  номер_1с?: string
+  стоимость?: number
+  статус_сопоставления?: 'matched' | 'unmatched' | 'pending'
+  уверенность?: number
+  варианты_подбора?: Array<{
+    наименование: string
+    наш_артикул: string
+    артикул_bl?: string
+    номер_1с?: string
+    уверенность: number
+  }>
+}
+
 export default function ArticleMatchingPage() {
   const { user, token, isAuthenticated } = useAuth()
   const router = useRouter()
@@ -101,7 +123,7 @@ export default function ArticleMatchingPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [matching, setMatching] = useState(false)
-  const [activeTab, setActiveTab] = useState<'requests' | 'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching'>('requests')
+  const [activeTab, setActiveTab] = useState<'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching' | 'excel_matching'>('excel_matching')
   const [textInput, setTextInput] = useState('')
   const [inputMode, setInputMode] = useState<'file' | 'text'>('file')
   const [contractorName, setContractorName] = useState('')
@@ -153,6 +175,79 @@ export default function ArticleMatchingPage() {
     search_query: '',
     search_type: 'article' // article, name, code
   })
+  
+  // Новое состояние для Excel данных - пустые строки для заполнения
+  const [excelData, setExcelData] = useState<ExcelRow[]>([
+    {
+      id: 'empty_1',
+      наименование: '',
+      запрашиваемый_артикул: '',
+      количество: 1,
+      единица_измерения: 'шт',
+      наш_артикул: '',
+      артикул_bl: '',
+      номер_1с: '',
+      стоимость: 0,
+      статус_сопоставления: 'pending',
+      уверенность: 0
+    },
+    {
+      id: 'empty_2',
+      наименование: '',
+      запрашиваемый_артикул: '',
+      количество: 1,
+      единица_измерения: 'шт',
+      наш_артикул: '',
+      артикул_bl: '',
+      номер_1с: '',
+      стоимость: 0,
+      статус_сопоставления: 'pending',
+      уверенность: 0
+    },
+    {
+      id: 'empty_3',
+      наименование: '',
+      запрашиваемый_артикул: '',
+      количество: 1,
+      единица_измерения: 'шт',
+      наш_артикул: '',
+      артикул_bl: '',
+      номер_1с: '',
+      стоимость: 0,
+      статус_сопоставления: 'pending',
+      уверенность: 0
+    },
+    {
+      id: 'empty_4',
+      наименование: '',
+      запрашиваемый_артикул: '',
+      количество: 1,
+      единица_измерения: 'шт',
+      наш_артикул: '',
+      артикул_bl: '',
+      номер_1с: '',
+      стоимость: 0,
+      статус_сопоставления: 'pending',
+      уверенность: 0
+    },
+    {
+      id: 'empty_5',
+      наименование: '',
+      запрашиваемый_артикул: '',
+      количество: 1,
+      единица_измерения: 'шт',
+      наш_артикул: '',
+      артикул_bl: '',
+      номер_1с: '',
+      стоимость: 0,
+      статус_сопоставления: 'pending',
+      уверенность: 0
+    }
+  ])
+  const [isProcessingExcel, setIsProcessingExcel] = useState(false)
+  const [isAutoMatching, setIsAutoMatching] = useState(false)
+  const [isSavingExcel, setIsSavingExcel] = useState(false)
+  const [savedVariants, setSavedVariants] = useState<{[key: string]: number}>({})
 
   useEffect(() => {
     console.log('=== useEffect вызван ===')
@@ -176,6 +271,7 @@ export default function ArticleMatchingPage() {
     loadRequests()
     loadOurDatabase()
     loadFoundItems()
+    loadSavedVariants()
   }, [isAuthenticated, user, router])
 
   const loadRequests = async () => {
@@ -805,6 +901,122 @@ export default function ArticleMatchingPage() {
     }
   }
 
+  // Функции для работы с Excel данными
+  const handleExcelDataChange = (data: ExcelRow[]) => {
+    setExcelData(data)
+  }
+
+  const handleAutoMatch = async () => {
+    if (excelData.length === 0) {
+      alert('Нет данных для сопоставления')
+      return
+    }
+
+    setIsAutoMatching(true)
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/auto-match-excel/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ data: excelData })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setExcelData(result.matched_data || excelData)
+        
+        const matchedCount = result.matched_data?.filter((row: ExcelRow) => row.статус_сопоставления === 'matched').length || 0
+        alert(`Сопоставление завершено! Сопоставлено ${matchedCount} из ${excelData.length} позиций.`)
+      } else {
+        const error = await response.json()
+        alert(`Ошибка сопоставления: ${error.detail || 'Неизвестная ошибка'}`)
+      }
+    } catch (error) {
+      console.error('Ошибка сопоставления:', error)
+      alert('Ошибка сопоставления')
+    } finally {
+      setIsAutoMatching(false)
+    }
+  }
+
+  const handleSaveExcelResults = async () => {
+    if (excelData.length === 0) {
+      alert('Нет данных для сохранения')
+      return
+    }
+
+    if (!token) {
+      alert('Необходима авторизация для сохранения')
+      return
+    }
+
+    setIsSavingExcel(true)
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-excel-results/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ data: excelData })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        alert(`Результаты успешно сохранены! Сохранено ${result.saved_count} записей.`)
+      } else {
+        const error = await response.json()
+        alert(`Ошибка сохранения: ${error.detail || 'Неизвестная ошибка'}`)
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения:', error)
+      alert('Ошибка сохранения результатов')
+    } finally {
+      setIsSavingExcel(false)
+    }
+  }
+
+  const loadSavedVariants = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setSavedVariants(result.saved_variants || {})
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке сохраненных вариантов:', error)
+    }
+  }
+
+  const saveVariantSelection = async (rowId: string, variantIndex: number) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-variant-selection/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ row_id: rowId, variant_index: variantIndex })
+      })
+
+      if (response.ok) {
+        setSavedVariants(prev => ({
+          ...prev,
+          [rowId]: variantIndex
+        }))
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении выбранного варианта:', error)
+    }
+  }
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -839,39 +1051,25 @@ export default function ArticleMatchingPage() {
         <div className="mb-6">
           <nav className="flex space-x-8">
             <button
-              onClick={() => setActiveTab('requests')}
+              onClick={() => setActiveTab('excel_matching')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'requests'
+                activeTab === 'excel_matching'
                   ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
-              Заявки контрагентов
+              Excel сопоставление
             </button>
-            {selectedRequest && (
-              <>
-                <button
-                  onClick={() => setActiveTab('matching')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === 'matching'
-                      ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  Сопоставление и результаты
-                </button>
-              </>
-            )}
-                <button
+            <button
               onClick={() => setActiveTab('our_database')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'our_database'
                   ? 'border-purple-500 text-purple-600 dark:text-purple-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
               Наша база
-                </button>
+            </button>
             <button
               onClick={() => setActiveTab('found_items')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -895,243 +1093,6 @@ export default function ArticleMatchingPage() {
           </nav>
         </div>
 
-        {/* Заявки контрагентов */}
-        {activeTab === 'requests' && (
-          <div className="space-y-6">
-            {/* Загрузка заявки */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Загрузка заявки контрагента</h2>
-              
-              {/* Поле для названия контрагента */}
-              <div className="mb-6">
-                <label htmlFor="contractor-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Название контрагента *
-                </label>
-                <input
-                  id="contractor-name"
-                  type="text"
-                  value={contractorName}
-                  onChange={(e) => setContractorName(e.target.value)}
-                  placeholder="Введите название контрагента"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
-                  required
-                />
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Это название будет использовано для создания номера заявки
-                </p>
-              </div>
-              
-              {/* Переключатель режима ввода */}
-              <div className="mb-6">
-                <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg w-fit">
-                  <button
-                    onClick={() => setInputMode('file')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      inputMode === 'file'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    Excel файл
-                  </button>
-                  <button
-                    onClick={() => setInputMode('text')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      inputMode === 'text'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    Текстовый ввод
-                  </button>
-                </div>
-              </div>
-
-              {/* Режим загрузки файла */}
-              {inputMode === 'file' && (
-                <div className="space-y-4">
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center transition-colors hover:border-gray-400 dark:hover:border-gray-500">
-                    <DocumentArrowUpIcon className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-500 mb-4" />
-                    
-                    {!contractorName.trim() ? (
-                      <div className="space-y-2">
-                        <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
-                          Сначала введите название контрагента
-                        </p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500">
-                          Название контрагента необходимо для создания номера заявки
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                            {selectedFile ? 'Файл выбран' : 'Готово к загрузке файла'}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Контрагент: <span className="font-medium text-gray-700 dark:text-gray-300">{contractorName}</span>
-                          </p>
-                          {selectedFile && (
-                            <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                              <p className="text-sm text-green-800 dark:text-green-300">
-                                <span className="font-medium">Выбран файл:</span> {selectedFile.name}
-                              </p>
-                              <p className="text-xs text-green-600 dark:text-green-400">
-                                Размер: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <label 
-                          htmlFor="file-upload" 
-                          className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white transition-colors ${
-                            uploading 
-                              ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' 
-                              : 'bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-600 cursor-pointer shadow-sm hover:shadow-md'
-                          }`}
-                        >
-                          <DocumentArrowUpIcon className="h-5 w-5 mr-2" />
-                          {uploading ? 'Загрузка...' : selectedFile ? 'Выбрать другой файл' : 'Выберите Excel файл'}
-                        </label>
-                        
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Поддерживаются файлы .xlsx, .xls (максимум 10MB)
-                        </p>
-                      </div>
-                    )}
-                    
-                    <input
-                      id="file-upload"
-                      type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileUpload}
-                      disabled={uploading || !contractorName.trim()}
-                      className="sr-only"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Режим текстового ввода */}
-              {inputMode === 'text' && (
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="text-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Введите текст заявки
-                    </label>
-                    <textarea
-                      id="text-input"
-                      rows={8}
-                      value={textInput}
-                      onChange={(e) => setTextInput(e.target.value)}
-                      placeholder="Вставьте текст заявки из письма или документа..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      Вставьте текст заявки из письма или документа. Система автоматически извлечет артикулы и описания.
-                    </p>
-              </div>
-                  <button
-                    onClick={handleTextSubmit}
-                    disabled={!textInput.trim() || uploading}
-                    className="w-full bg-purple-600 dark:bg-purple-700 text-white py-2 px-4 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {uploading ? 'Обработка...' : 'Обработать текст'}
-                  </button>
-                </div>
-              )}
-
-              {uploading && (
-                <div className="mt-4 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600 dark:border-purple-400 mx-auto"></div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Обработка...</p>
-                </div>
-              )}
-            </div>
-
-            {/* Список заявок */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Заявки контрагентов</h2>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Номер заявки
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Контрагент
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Статус
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Позиций
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Сопоставлено
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Дата создания
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {requests.map((request) => (
-                      <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          {request.request_number}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {request.contractor_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                            {request.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {request.total_items || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {request.matched_items || 0} / {request.total_items || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(request.created_at).toLocaleDateString('ru-RU')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                          <button
-                            onClick={() => {
-                              setSelectedRequest(request)
-                              setActiveTab('matching')
-                            }}
-                            className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300"
-                          >
-                            Открыть
-                          </button>
-                          {request.status === 'completed' && (
-                            <button
-                              onClick={() => handleExportResults(request.id)}
-                              className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300"
-                            >
-                              Экспорт
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Сопоставление и результаты */}
         {activeTab === 'matching' && selectedRequest && (
@@ -1825,6 +1786,24 @@ export default function ArticleMatchingPage() {
                 <AIMatchingChat />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Excel сопоставление */}
+        {activeTab === 'excel_matching' && (
+          <div className="space-y-6">
+            {/* Таблица с данными */}
+              <ExcelDataTable
+                data={excelData}
+                onDataChange={handleExcelDataChange}
+                onAutoMatch={handleAutoMatch}
+                onSave={handleSaveExcelResults}
+                isMatching={isAutoMatching}
+                isSaving={isSavingExcel}
+                savedVariants={savedVariants}
+                onSaveVariant={saveVariantSelection}
+              />
+
           </div>
         )}
 
