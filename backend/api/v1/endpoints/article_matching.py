@@ -3692,6 +3692,7 @@ async def parse_excel_file(
 @router.post("/auto-match-excel/", response_model=ExcelMatchResponse)
 async def auto_match_excel_data(
     request: ExcelDataRequest,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -3872,6 +3873,32 @@ async def auto_match_excel_data(
                         }]
                         matched_data.append(matched_row)
                         statistics["matched"] += 1
+                        
+                        # Сохраняем 100% совпадение автоматически
+                        try:
+                            from models import FoundMatch
+                            from datetime import datetime
+                            
+                            found_match = FoundMatch(
+                                user_id=current_user.id,
+                                search_name=row.наименование or "",
+                                search_article=row.запрашиваемый_артикул,
+                                quantity=row.количество,
+                                unit=row.единица_измерения,
+                                matched_name=agb_item.name,
+                                matched_article=agb_item.agb_article,
+                                bl_article=agb_item.bl_article,
+                                article_1c=agb_item.code_1c,
+                                cost=None,  # Пока не заполняем
+                                confidence=100.0,
+                                match_type="exact_article",
+                                is_auto_confirmed=True,
+                                is_user_confirmed=False,
+                                confirmed_at=datetime.now()
+                            )
+                            db.add(found_match)
+                        except Exception as e:
+                            print(f"Ошибка при сохранении 100% совпадения: {e}")
                     elif bl_item:
                         matched_row.наш_артикул = bl_item.agb_article
                         matched_row.артикул_bl = bl_item.bl_article
@@ -3887,6 +3914,32 @@ async def auto_match_excel_data(
                         }]
                         matched_data.append(matched_row)
                         statistics["matched"] += 1
+                        
+                        # Сохраняем 100% совпадение автоматически
+                        try:
+                            from models import FoundMatch
+                            from datetime import datetime
+                            
+                            found_match = FoundMatch(
+                                user_id=current_user.id,
+                                search_name=row.наименование or "",
+                                search_article=row.запрашиваемый_артикул,
+                                quantity=row.количество,
+                                unit=row.единица_измерения,
+                                matched_name=bl_item.name,
+                                matched_article=bl_item.agb_article,
+                                bl_article=bl_item.bl_article,
+                                article_1c=bl_item.code_1c,
+                                cost=None,  # Пока не заполняем
+                                confidence=100.0,
+                                match_type="exact_bl_article",
+                                is_auto_confirmed=True,
+                                is_user_confirmed=False,
+                                confirmed_at=datetime.now()
+                            )
+                            db.add(found_match)
+                        except Exception as e:
+                            print(f"Ошибка при сохранении 100% совпадения: {e}")
                     else:
                         matched_row.статус_сопоставления = "unmatched"
                         matched_row.варианты_подбора = []
@@ -3897,6 +3950,12 @@ async def auto_match_excel_data(
                     matched_row.варианты_подбора = []
                     matched_data.append(matched_row)
                     statistics["unmatched"] += 1
+        
+        # Сохраняем все изменения в базе данных
+        try:
+            await db.commit()
+        except Exception as e:
+            print(f"Ошибка при сохранении в базу данных: {e}")
         
         return ExcelMatchResponse(
             success=True,
@@ -3987,3 +4046,129 @@ async def save_variant_selection(
     except Exception as e:
         logger.error(f"Ошибка при сохранении варианта: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка при сохранении: {str(e)}")
+
+
+@router.get("/found-matches/")
+async def get_found_matches(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Получение всех найденных сопоставлений пользователя"""
+    try:
+        from models import FoundMatch
+        
+        # Получаем все найденные сопоставления пользователя
+        result = await db.execute(
+            select(FoundMatch)
+            .where(FoundMatch.user_id == current_user.id)
+            .order_by(FoundMatch.created_at.desc())
+        )
+        matches = result.scalars().all()
+        
+        return {
+            "success": True,
+            "matches": [
+                {
+                    "id": match.id,
+                    "search_name": match.search_name,
+                    "search_article": match.search_article,
+                    "quantity": match.quantity,
+                    "unit": match.unit,
+                    "matched_name": match.matched_name,
+                    "matched_article": match.matched_article,
+                    "bl_article": match.bl_article,
+                    "article_1c": match.article_1c,
+                    "cost": match.cost,
+                    "confidence": match.confidence,
+                    "match_type": match.match_type,
+                    "is_auto_confirmed": match.is_auto_confirmed,
+                    "is_user_confirmed": match.is_user_confirmed,
+                    "created_at": match.created_at.isoformat() if match.created_at else None,
+                    "confirmed_at": match.confirmed_at.isoformat() if match.confirmed_at else None
+                }
+                for match in matches
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Ошибка при получении найденных сопоставлений: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при получении: {str(e)}")
+
+
+@router.post("/save-found-match/")
+async def save_found_match(
+    request: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Сохранение найденного сопоставления"""
+    try:
+        from models import FoundMatch
+        from datetime import datetime
+        
+        # Создаем новую запись о найденном сопоставлении
+        found_match = FoundMatch(
+            user_id=current_user.id,
+            search_name=request.get("search_name", ""),
+            search_article=request.get("search_article"),
+            quantity=request.get("quantity", 1.0),
+            unit=request.get("unit", "шт"),
+            matched_name=request.get("matched_name", ""),
+            matched_article=request.get("matched_article"),
+            bl_article=request.get("bl_article"),
+            article_1c=request.get("article_1c"),
+            cost=request.get("cost"),
+            confidence=request.get("confidence", 0.0),
+            match_type=request.get("match_type", "unknown"),
+            is_auto_confirmed=request.get("is_auto_confirmed", False),
+            is_user_confirmed=request.get("is_user_confirmed", False),
+            confirmed_at=datetime.now() if request.get("is_auto_confirmed") or request.get("is_user_confirmed") else None
+        )
+        
+        db.add(found_match)
+        await db.commit()
+        await db.refresh(found_match)
+        
+        return {
+            "success": True,
+            "message": "Сопоставление сохранено",
+            "match_id": found_match.id
+        }
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении найденного сопоставления: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при сохранении: {str(e)}")
+
+
+@router.delete("/found-matches/{match_id}")
+async def delete_found_match(
+    match_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удаление найденного сопоставления"""
+    try:
+        from models import FoundMatch
+        
+        # Находим сопоставление
+        result = await db.execute(
+            select(FoundMatch)
+            .where(FoundMatch.id == match_id)
+            .where(FoundMatch.user_id == current_user.id)
+        )
+        match = result.scalar_one_or_none()
+        
+        if not match:
+            raise HTTPException(status_code=404, detail="Сопоставление не найдено")
+        
+        # Удаляем сопоставление
+        await db.delete(match)
+        await db.commit()
+        
+        return {
+            "success": True,
+            "message": "Сопоставление удалено"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Ошибка при удалении найденного сопоставления: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении: {str(e)}")

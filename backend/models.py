@@ -825,3 +825,37 @@ class AIChatMessage(Base):
     session = relationship("AIChatSession", back_populates="messages")
 
 
+class FoundMatch(Base):
+    """Найденные и подтвержденные сопоставления"""
+    __tablename__ = "found_matches"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Исходные данные
+    search_name = Column(String, nullable=False)  # Наименование для поиска
+    search_article = Column(String, nullable=True)  # Запрашиваемый артикул
+    quantity = Column(Float, default=1.0)  # Количество
+    unit = Column(String, default="шт")  # Единица измерения
+    
+    # Найденное соответствие
+    matched_name = Column(String, nullable=False)  # Наименование из базы
+    matched_article = Column(String, nullable=True)  # Наш артикул
+    bl_article = Column(String, nullable=True)  # Артикул BL
+    article_1c = Column(String, nullable=True)  # Номер в 1С
+    cost = Column(Float, nullable=True)  # Стоимость
+    
+    # Метаданные сопоставления
+    confidence = Column(Float, nullable=False)  # Уверенность (0-100)
+    match_type = Column(String, nullable=False)  # exact, substring, normalized, keyword
+    is_auto_confirmed = Column(Boolean, default=False)  # Автоматически подтверждено (100% совпадение)
+    is_user_confirmed = Column(Boolean, default=False)  # Подтверждено пользователем
+    
+    # Временные метки
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Связи
+    user = relationship("User")
+
+
