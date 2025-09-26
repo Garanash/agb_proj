@@ -80,6 +80,18 @@ interface MatchingResult {
   }
 }
 
+interface SearchResult {
+  id: number
+  name: string
+  agb_article: string
+  bl_article?: string
+  code_1c?: string
+  match_confidence?: number
+  packaging?: number
+  unit?: string
+  bl_description?: string
+}
+
 export default function ArticleMatchingPage() {
   const { user, token, isAuthenticated } = useAuth()
   const router = useRouter()
@@ -122,6 +134,12 @@ export default function ArticleMatchingPage() {
     recalculated_quantity: 0
   })
   const [showCreateMappingModal, setShowCreateMappingModal] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<any>(null)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [createMappingForm, setCreateMappingForm] = useState({
     contractor_article: '',
     contractor_description: '',
@@ -131,7 +149,9 @@ export default function ArticleMatchingPage() {
     bl_description: '',
     packaging_factor: 1,
     unit: 'шт',
-    nomenclature_id: null
+    nomenclature_id: null as number | null,
+    search_query: '',
+    search_type: 'article' // article, name, code
   })
 
   useEffect(() => {
@@ -169,9 +189,10 @@ export default function ArticleMatchingPage() {
 
       if (response.ok) {
         const data = await response.json()
+        console.log('Загружены заявки:', data)
         setRequests(data.data || [])
       } else {
-        console.error('Ошибка загрузки заявок')
+        console.error('Ошибка загрузки заявок:', response.status, response.statusText)
         setRequests([]) // Устанавливаем пустой массив если нет данных
       }
     } catch (error) {
@@ -184,12 +205,7 @@ export default function ArticleMatchingPage() {
 
   const loadOurDatabase = async () => {
     console.log('=== loadOurDatabase вызвана ===')
-    console.log('Токен:', token ? 'есть' : 'нет')
-    console.log('isAuthenticated:', isAuthenticated)
-    console.log('user:', user)
     
-    // Временно используем тестовый endpoint без аутентификации
-    console.log('Загружаем нашу базу данных (тестовый endpoint)...')
     try {
       const url = 'http://localhost:8000/api/v1/article-matching/test-our-database/'
       console.log('URL:', url)
@@ -206,8 +222,7 @@ export default function ArticleMatchingPage() {
         const data = await response.json()
         console.log('Получены данные нашей базы:', data.count, 'элементов')
         console.log('Первые 3 элемента:', data.data.slice(0, 3))
-        // Преобразуем данные в нужный формат
-        setOurDatabase(data.data)
+        setOurDatabase(data.data || [])
       } else {
         const errorData = await response.json()
         console.error('Ошибка загрузки нашей базы:', errorData)
@@ -222,8 +237,6 @@ export default function ArticleMatchingPage() {
   const loadFoundItems = async () => {
     console.log('=== loadFoundItems вызвана ===')
     
-    // Временно используем тестовый endpoint без аутентификации
-    console.log('Загружаем найденные элементы (тестовый endpoint)...')
     try {
       const url = 'http://localhost:8000/api/v1/article-matching/test-found-items/'
       console.log('URL:', url)
@@ -240,7 +253,7 @@ export default function ArticleMatchingPage() {
         const data = await response.json()
         console.log('Получены найденные элементы:', data.count, 'элементов')
         console.log('Первые 3 элемента:', data.data.slice(0, 3))
-        setFoundItems(data.data)
+        setFoundItems(data.data || [])
       } else {
         const errorData = await response.json()
         console.error('Ошибка загрузки найденных элементов:', errorData)
@@ -488,6 +501,87 @@ export default function ArticleMatchingPage() {
     setSelectedItem(null)
   }
 
+  const handleDeleteItem = (item: any) => {
+    if (!item.mapping_id) {
+      setSuccessMessage('Нельзя удалить элемент без ID сопоставления')
+      setShowSuccessModal(true)
+      return
+    }
+
+    if (!token) {
+      setSuccessMessage('Ошибка: Необходима авторизация для удаления сопоставлений')
+      setShowSuccessModal(true)
+      return
+    }
+
+    setItemToDelete(item)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
+
+    // Проверяем наличие токена
+    if (!token) {
+      setSuccessMessage('Ошибка: Необходима авторизация для удаления сопоставлений')
+      setShowSuccessModal(true)
+      setShowDeleteModal(false)
+      setItemToDelete(null)
+      return
+    }
+
+    try {
+      console.log('Удаляем сопоставление с ID:', itemToDelete.mapping_id)
+      console.log('Используем токен:', token ? 'есть' : 'нет')
+      
+      const response = await fetch(`http://localhost:8000/api/v1/article-matching/mappings/${itemToDelete.mapping_id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      console.log('Ответ сервера:', response.status, response.statusText)
+
+      if (response.ok) {
+        // Удаляем элемент из локального состояния по ID элемента
+        console.log('Удаляем элемент с ID:', itemToDelete.id, 'из локального состояния')
+        setFoundItems(prev => {
+          const filtered = prev.filter(foundItem => foundItem.id !== itemToDelete.id)
+          console.log('Было элементов:', prev.length, 'Стало элементов:', filtered.length)
+          return filtered
+        })
+        setSuccessMessage('Сопоставление успешно удалено')
+        setShowSuccessModal(true)
+      } else {
+        let errorMessage = 'Неизвестная ошибка'
+        try {
+          const error = await response.json()
+          errorMessage = error.detail || error.message || errorMessage
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        }
+        
+        console.error('Ошибка удаления:', errorMessage)
+        setSuccessMessage(`Ошибка при удалении: ${errorMessage}`)
+        setShowSuccessModal(true)
+      }
+    } catch (error) {
+      console.error('Ошибка при удалении сопоставления:', error)
+      setSuccessMessage(`Ошибка при удалении сопоставления: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      setShowSuccessModal(true)
+    } finally {
+      setShowDeleteModal(false)
+      setItemToDelete(null)
+    }
+  }
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setItemToDelete(null)
+  }
+
   const startEdit = (item: any) => {
     setEditingItem(item)
     setEditForm({
@@ -614,7 +708,9 @@ export default function ArticleMatchingPage() {
       bl_description: '',
       packaging_factor: 1,
       unit: 'шт',
-      nomenclature_id: null
+      nomenclature_id: null,
+      search_query: '',
+      search_type: 'article'
     })
     setShowCreateMappingModal(true)
   }
@@ -630,9 +726,55 @@ export default function ArticleMatchingPage() {
       bl_description: '',
       packaging_factor: 1,
       unit: 'шт',
-      nomenclature_id: null
+      nomenclature_id: null,
+      search_query: '',
+      search_type: 'article'
     })
   }
+
+  const handleSearch = async () => {
+    if (!createMappingForm.search_query.trim()) return;
+
+    setIsSearching(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/search/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: createMappingForm.search_query,
+          search_type: createMappingForm.search_type
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.matches || []);
+      } else {
+        const error = await response.json();
+        alert(`Ошибка поиска: ${error.detail || 'Неизвестная ошибка'}`);
+      }
+    } catch (error) {
+      console.error('Ошибка поиска:', error);
+      alert('Ошибка при выполнении поиска');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const selectSearchResult = (result: SearchResult) => {
+    setCreateMappingForm(prev => ({
+      ...prev,
+      agb_article: result.agb_article || '',
+      agb_description: result.name || '',
+      bl_article: result.bl_article || '',
+      bl_description: result.bl_description || '',
+      packaging_factor: result.packaging || 1,
+      unit: result.unit || 'шт',
+      nomenclature_id: result.id || null
+    }));
+  };
 
   const saveCreateMapping = async () => {
     if (!token) return
@@ -681,7 +823,7 @@ export default function ArticleMatchingPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Сопоставление артикулов</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Загрузка и сопоставление заявок контрагентов с базой данных АГБ</p>
+            <p className="text-gray-600 dark:text-gray-300 mt-1">Интеллектуальное сопоставление артикулов контрагентов с базой данных АГБ</p>
           </div>
           <button
             onClick={() => router.back()}
@@ -748,7 +890,7 @@ export default function ArticleMatchingPage() {
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
             >
-              АИ сопоставление
+              ИИ сопоставление
             </button>
           </nav>
         </div>
@@ -1031,7 +1173,7 @@ export default function ArticleMatchingPage() {
               {matching && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 dark:border-purple-400 mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">Выполняется сопоставление артикулов...</p>
+                  <p className="text-gray-600 dark:text-gray-400">Выполняется ИИ сопоставление...</p>
                 </div>
               )}
             </div>
@@ -1167,8 +1309,7 @@ export default function ArticleMatchingPage() {
               </div>
               {ourDatabase.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">Загрузка данных...</p>
+                  <p className="text-gray-600 dark:text-gray-400">Нет данных для отображения</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1278,8 +1419,7 @@ export default function ArticleMatchingPage() {
               </div>
               {foundItems.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 dark:border-green-400 mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">Загрузка данных...</p>
+                  <p className="text-gray-600 dark:text-gray-400">Нет данных для отображения</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -1338,6 +1478,17 @@ export default function ArticleMatchingPage() {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
                               </button>
+                              {item.mapping_id && (
+                                <button
+                                  onClick={() => handleDeleteItem(item)}
+                                  className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Удалить сопоставление"
+                                >
+                                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1696,6 +1847,53 @@ export default function ArticleMatchingPage() {
                   </button>
                 </div>
 
+                {/* Поисковая форма */}
+                <div className="mb-6 space-y-4">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+                    Поиск номенклатуры
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Поисковый запрос
+                      </label>
+                      <input
+                        type="text"
+                        value={createMappingForm.search_query}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, search_query: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                        placeholder="Введите артикул, наименование или код для поиска"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Тип поиска
+                      </label>
+                      <select
+                        value={createMappingForm.search_type}
+                        onChange={(e) => setCreateMappingForm(prev => ({ ...prev, search_type: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="article">По артикулу</option>
+                        <option value="name">По наименованию</option>
+                        <option value="code">По коду 1С</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleSearch()}
+                      className="bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center space-x-2"
+                    >
+                      <MagnifyingGlassIcon className="h-5 w-5" />
+                      <span>Найти</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Левая колонка - данные контрагента */}
                   <div className="space-y-4">
@@ -1763,6 +1961,56 @@ export default function ArticleMatchingPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Индикатор загрузки */}
+                {isSearching && (
+                  <div className="mt-6 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+                    <p className="text-gray-600 dark:text-gray-400">Выполняется поиск...</p>
+                  </div>
+                )}
+
+                {/* Результаты поиска */}
+                {!isSearching && searchResults && searchResults.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 pb-2">
+                      Результаты поиска
+                    </h4>
+                    <div className="mt-4 space-y-4">
+                      {searchResults.map((result, index) => (
+                        <div
+                          key={index}
+                          className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                          onClick={() => selectSearchResult(result)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{result.name}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Артикул АГБ: {result.agb_article}</p>
+                              {result.bl_article && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Артикул BL: {result.bl_article}</p>
+                              )}
+                              {result.code_1c && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Код 1С: {result.code_1c}</p>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {result.match_confidence && (
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  result.match_confidence >= 90 ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' :
+                                  result.match_confidence >= 70 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400' :
+                                  'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                }`}>
+                                  {result.match_confidence}% совпадение
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Дополнительные поля */}
                 <div className="mt-6 space-y-4">
@@ -1846,6 +2094,96 @@ export default function ArticleMatchingPage() {
                     className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Создать сопоставление
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно подтверждения удаления */}
+        {showDeleteModal && itemToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Подтверждение удаления
+                  </h3>
+                  <button
+                    onClick={cancelDelete}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Вы уверены, что хотите удалить это сопоставление?
+                  </p>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="font-medium mb-2">Детали сопоставления:</div>
+                      <div>Артикул BL: <span className="font-medium">{itemToDelete.bl_article || '-'}</span></div>
+                      <div>Артикул поиска: <span className="font-medium">{itemToDelete.search_article || '-'}</span></div>
+                      <div>Наш артикул: <span className="font-medium">{itemToDelete.our_article || '-'}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={cancelDelete}
+                    className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="bg-red-600 dark:bg-red-700 text-white px-4 py-2 rounded-md hover:bg-red-700 dark:hover:bg-red-600"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно успешного выполнения */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Уведомление
+                  </h3>
+                  <button
+                    onClick={() => setShowSuccessModal(false)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="mb-6">
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {successMessage}
+                  </p>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowSuccessModal(false)}
+                    className="bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600"
+                  >
+                    ОК
                   </button>
                 </div>
               </div>

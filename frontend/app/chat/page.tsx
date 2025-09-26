@@ -646,7 +646,7 @@ const ChatPage = () => {
       return (
         <img
           src={`${getApiUrl()}/uploads/${user.avatar_url}`}
-          alt={`${user.first_name} ${user.last_name}`}
+          alt={`${user.first_name || ''} ${user.last_name || ''}`}
           className={`${size} rounded-full object-cover`}
           onError={(e) => {
             console.log('Avatar load error:', user.avatar_url);
@@ -655,11 +655,12 @@ const ChatPage = () => {
         />
       );
     } else {
+      const firstInitial = user.first_name ? user.first_name[0] : 'U'
+      const lastInitial = user.last_name ? user.last_name[0] : 'S'
       return (
         <div className={`${size} rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center`}>
           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            {user.first_name[0]}
-            {user.last_name[0]}
+            {firstInitial}{lastInitial}
           </span>
         </div>
       );

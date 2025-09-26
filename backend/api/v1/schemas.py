@@ -708,8 +708,8 @@ class ContractorRequestItemUpdate(BaseModel):
 class MatchingResult(BaseModel):
     """Результат сопоставления"""
     item_id: int = Field(description="ID позиции")
-    contractor_article: str = Field(description="Артикул контрагента")
-    description: str = Field(description="Описание")
+    contractor_article: Optional[str] = Field(None, description="Артикул контрагента")
+    description: Optional[str] = Field(None, description="Описание")
     matched: bool = Field(description="Найдено соответствие")
     agb_article: Optional[str] = Field(None, description="Артикул АГБ")
     bl_article: Optional[str] = Field(None, description="Артикул BL")
@@ -1284,8 +1284,8 @@ class MatchingResult(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
     id: str = Field(description="ID результата")
-    contractor_article: str = Field(description="Артикул контрагента")
-    description: str = Field(description="Описание")
+    contractor_article: Optional[str] = Field(None, description="Артикул контрагента")
+    description: Optional[str] = Field(None, description="Описание")
     matched: bool = Field(description="Найдено соответствие")
     agb_article: Optional[str] = Field(None, description="Артикул АГБ")
     bl_article: Optional[str] = Field(None, description="Артикул BL")
@@ -1311,8 +1311,10 @@ class AIMatchingResponse(BaseModel):
 class ChatMessageCreate(BaseModel):
     """Схема создания сообщения чата"""
     content: str = Field(description="Текст сообщения", min_length=1)
-    files_data: Optional[dict] = Field(None, description="Данные о файлах")
-    matching_results: Optional[dict] = Field(None, description="Результаты сопоставления")
+    files_data: Optional[dict] = Field(default=None, description="Данные о файлах")
+    matching_results: Optional[dict] = Field(default=None, description="Результаты сопоставления")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ChatMessageResponse(BaseModel):
@@ -1320,12 +1322,19 @@ class ChatMessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     
     id: int = Field(description="ID сообщения")
-    message_type: str = Field(description="Тип сообщения")
+    message_type: str = Field(default="user", description="Тип сообщения")
     content: str = Field(description="Текст сообщения")
-    files_data: Optional[dict] = Field(None, description="Данные о файлах")
-    matching_results: Optional[dict] = Field(None, description="Результаты сопоставления")
-    is_processing: bool = Field(description="Обрабатывается ли сообщение")
-    created_at: datetime = Field(description="Дата создания")
+    files_data: Optional[dict] = Field(default=None, description="Данные о файлах")
+    matching_results: Optional[dict] = Field(default=None, description="Результаты сопоставления")
+    is_processing: bool = Field(default=False, description="Обрабатывается ли сообщение")
+    created_at: datetime = Field(default_factory=datetime.now, description="Дата создания")
+    
+    @field_validator('created_at', mode='before')
+    @classmethod
+    def convert_datetime(cls, v):
+        if isinstance(v, str):
+            return datetime.fromisoformat(v)
+        return v
 
 
 class ChatSessionCreate(BaseModel):
@@ -1341,28 +1350,18 @@ class ChatSessionResponse(BaseModel):
     title: Optional[str] = Field(None, description="Название сессии")
     created_at: datetime = Field(description="Дата создания")
     updated_at: Optional[datetime] = Field(None, description="Дата обновления")
-    messages: Optional[List[ChatMessageResponse]] = Field(None, description="Сообщения сессии")
+    messages: Optional[List[ChatMessageResponse]] = Field(default=None, description="Сообщения сессии")
     
+    @field_validator('created_at', 'updated_at', mode='before')
     @classmethod
-    def from_orm(cls, obj):
-        """Создает объект из ORM без загрузки связанных объектов"""
-        return cls(
-            id=obj.id,
-            title=obj.title,
-            created_at=obj.created_at,
-            updated_at=obj.updated_at,
-            messages=None  # Не загружаем сообщения автоматически
-        )
+    def convert_datetime(cls, v):
+        if isinstance(v, str):
+            return datetime.fromisoformat(v)
+        return v
     
+    @field_validator('messages', mode='before')
     @classmethod
-    def model_validate(cls, obj):
-        """Альтернативный метод для Pydantic v2"""
-        if hasattr(obj, '__dict__'):
-            return cls(
-                id=obj.id,
-                title=obj.title,
-                created_at=obj.created_at,
-                updated_at=obj.updated_at,
-                messages=None
-            )
-        return super().model_validate(obj)
+    def validate_messages(cls, v):
+        if v is None:
+            return []
+        return v

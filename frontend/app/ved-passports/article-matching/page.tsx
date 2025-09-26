@@ -103,25 +103,25 @@ export default function ArticleMatchingPage() {
   }, [isAuthenticated, user, router])
 
   const loadRequests = async () => {
-    if (!token) return
-
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/requests/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests/', {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
 
       if (response.ok) {
         const data = await response.json()
-        setRequests(data)
+        console.log('Загружены заявки:', data)
+        setRequests(data.data || [])
       } else {
-        console.error('Ошибка загрузки заявок')
+        console.error('Ошибка загрузки заявок:', response.status, response.statusText)
+        setRequests([])
       }
     } catch (error) {
       console.error('Ошибка загрузки заявок:', error)
+      setRequests([])
     } finally {
       setLoading(false)
     }
@@ -129,7 +129,7 @@ export default function ArticleMatchingPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
-    if (!file || !token) return
+    if (!file) return
 
     setUploading(true)
     try {
@@ -137,20 +137,34 @@ export default function ArticleMatchingPage() {
       formData.append('file', file)
       formData.append('contractor_name', 'Контрагент')
 
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/upload-excel/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/step-upload/', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
         body: formData
       })
 
       if (response.ok) {
-        const newRequest = await response.json()
-        setRequests(prev => [newRequest, ...prev])
-        setSelectedRequest(newRequest)
-        setActiveTab('matching')
-        alert('Файл успешно загружен!')
+        const result = await response.json()
+        console.log('Результат загрузки:', result)
+        
+        if (result.success) {
+          const newRequest = {
+            id: result.request_id,
+            request_number: result.request_number,
+            contractor_name: result.contractor_name,
+            total_items: result.total_items || 0,
+            matched_items: 0,
+            status: result.status,
+            request_date: new Date().toISOString(),
+            created_at: new Date().toISOString()
+          }
+          
+          setRequests(prev => [newRequest, ...prev])
+          setSelectedRequest(newRequest)
+          setActiveTab('matching')
+          alert('Файл успешно загружен!')
+        } else {
+          alert(`Ошибка загрузки: ${result.detail || 'Неизвестная ошибка'}`)
+        }
       } else {
         const error = await response.json()
         alert(`Ошибка загрузки: ${error.detail}`)
@@ -164,20 +178,18 @@ export default function ArticleMatchingPage() {
   }
 
   const handleMatchArticles = async (requestId: number) => {
-    if (!token) return
-
     setMatching(true)
     try {
-      const response = await fetch(`/api/v1/article-matching/requests/${requestId}/match`, {
+      const response = await fetch(`http://localhost:8000/api/v1/article-matching/test-match/${requestId}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })
 
       if (response.ok) {
         const summary = await response.json()
+        console.log('Результат сопоставления:', summary)
         setMatchingSummary(summary)
         setActiveTab('results')
         loadRequests() // Обновляем список заявок
@@ -194,12 +206,10 @@ export default function ArticleMatchingPage() {
   }
 
   const handleExportResults = async (requestId: number) => {
-    if (!token) return
-
     try {
-      const response = await fetch(`/api/v1/article-matching/requests/${requestId}/export/excel`, {
+      const response = await fetch(`http://localhost:8000/api/v1/article-matching/requests/${requestId}/export/excel`, {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       })
 
@@ -475,7 +485,7 @@ export default function ArticleMatchingPage() {
               {matching && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Выполняется сопоставление артикулов...</p>
+                  <p className="text-gray-600">Выполняется ИИ сопоставление...</p>
                 </div>
               )}
             </div>

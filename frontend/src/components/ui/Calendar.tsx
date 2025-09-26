@@ -363,7 +363,7 @@ const Calendar: React.FC = () => {
                                       key={participant.id}
                                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                                     >
-                                      {participant.user.first_name} {participant.user.last_name}
+                                      {participant.user?.first_name || ''} {participant.user?.last_name || ''}
                                     </span>
                                   )) : null}
                                 </div>

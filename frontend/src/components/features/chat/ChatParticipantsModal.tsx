@@ -288,11 +288,12 @@ const ChatParticipantsModal: React.FC<ChatParticipantsModalProps> = ({
         />
       );
     } else {
+      const firstInitial = user.first_name ? user.first_name[0] : 'U'
+      const lastInitial = user.last_name ? user.last_name[0] : 'S'
       return (
         <div className={`${size} rounded-full bg-gray-300 flex items-center justify-center`}>
           <span className="text-sm font-medium text-gray-600">
-            {user.first_name[0]}
-            {user.last_name[0]}
+            {firstInitial}{lastInitial}
           </span>
         </div>
       );

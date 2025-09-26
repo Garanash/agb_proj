@@ -274,13 +274,13 @@ export default function CreateChatRoomModal({
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
                               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                {user.first_name[0]}
-                                {user.last_name[0]}
+                                {user.first_name ? user.first_name[0] : 'U'}
+                                {user.last_name ? user.last_name[0] : 'S'}
                               </span>
                             </div>
                           )}
                           <span className="text-gray-900 dark:text-gray-100">
-                            {user.first_name} {user.last_name}
+                            {user.first_name || ''} {user.last_name || ''}
                           </span>
                         </label>
                       </div>
@@ -318,13 +318,13 @@ export default function CreateChatRoomModal({
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
                             <span className="text-sm font-medium text-gray-600">
-                              {user.first_name[0]}
-                              {user.last_name[0]}
+                              {user.first_name ? user.first_name[0] : 'U'}
+                              {user.last_name ? user.last_name[0] : 'S'}
                             </span>
                           </div>
                         )}
                         <span>
-                          {user.first_name} {user.last_name}
+                          {user.first_name || ''} {user.last_name || ''}
                         </span>
                       </label>
                     </div>

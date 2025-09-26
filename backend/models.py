@@ -70,6 +70,7 @@ class User(Base):
     department = relationship("Department", foreign_keys=[department_id], back_populates="employees", lazy="selectin")
     customer_profile = relationship("CustomerProfile", back_populates="user", lazy="selectin", uselist=False)
     contractor_profile = relationship("ContractorProfile", back_populates="user", lazy="selectin", uselist=False)
+    chat_sessions = relationship("AIChatSession", back_populates="user", lazy="selectin")
     
     @property
     def full_name(self) -> str:
@@ -799,10 +800,10 @@ class AIChatSession(Base):
     title = Column(String, nullable=True)  # Название сессии (автогенерируемое)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Связи
-    user = relationship("User", lazy="selectin")
-    messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan")
+    user = relationship("User", back_populates="chat_sessions", lazy="selectin")
+    messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan", lazy="selectin")
 
 
 class AIChatMessage(Base):
@@ -815,6 +816,8 @@ class AIChatMessage(Base):
     content = Column(Text, nullable=False)  # Текст сообщения
     files_data = Column(JSON, nullable=True)  # Данные о прикрепленных файлах
     matching_results = Column(JSON, nullable=True)  # Результаты сопоставления
+    search_query = Column(String, nullable=True)  # Поисковый запрос
+    search_type = Column(String, nullable=True)  # Тип поиска (артикул, наименование, код)
     is_processing = Column(Boolean, default=False)  # Обрабатывается ли сообщение
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     

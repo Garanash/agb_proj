@@ -70,13 +70,25 @@ app.add_middleware(
 # Добавляем middleware для логирования CORS ошибок
 @app.middleware("http")
 async def cors_logging_middleware(request, call_next):
+    # Логируем детали запроса
+    origin = request.headers.get("origin")
+    method = request.method
+    path = request.url.path
+    print(f"🔍 Request: {method} {path}")
+    print(f"🌐 Origin: {origin}")
+    print(f"📨 Headers: {dict(request.headers)}")
+    
     response = await call_next(request)
     
-    # Логируем CORS заголовки
-    origin = request.headers.get("origin")
-    if origin:
-        print(f"🌐 CORS request from origin: {origin}")
-        print(f"🔧 CORS headers: {response.headers.get('access-control-allow-origin', 'Not set')}")
+    # Логируем заголовки ответа
+    print(f"📝 Response status: {response.status_code}")
+    print(f"🔧 Response headers: {dict(response.headers)}")
+    
+    # Добавляем CORS заголовки если их нет
+    if origin and "access-control-allow-origin" not in response.headers:
+        response.headers["access-control-allow-origin"] = origin
+        response.headers["access-control-allow-credentials"] = "true"
+        print("⚠️ Added missing CORS headers")
     
     return response
 

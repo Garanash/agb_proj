@@ -36,7 +36,26 @@ async def get_chat_sessions(
             .options(selectinload(AIChatSession.messages))
         )
         sessions = result.scalars().all()
-        return sessions
+        # Преобразуем каждую сессию в объект ответа
+        return [
+            ChatSessionResponse(
+                id=session.id,
+                title=session.title,
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                messages=[
+                    ChatMessageResponse(
+                        id=msg.id,
+                        message_type=msg.message_type,
+                        content=msg.content,
+                        files_data=msg.files_data,
+                        matching_results=msg.matching_results,
+                        is_processing=msg.is_processing,
+                        created_at=msg.created_at
+                    ) for msg in session.messages
+                ] if session.messages else []
+            ) for session in sessions
+        ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка получения сессий: {str(e)}")
 
@@ -70,8 +89,14 @@ async def create_chat_session(
         
         logger.info(f"✅ Сессия создана с ID: {new_session.id}")
         
-        # Возвращаем сессию напрямую
-        return new_session
+        # Создаем объект ответа вручную
+        return ChatSessionResponse(
+            id=new_session.id,
+            title=new_session.title,
+            created_at=new_session.created_at,
+            updated_at=new_session.updated_at,
+            messages=[]  # Новая сессия без сообщений
+        )
     except Exception as e:
         logger.error(f"❌ Ошибка создания сессии: {e}")
         import traceback
@@ -100,7 +125,24 @@ async def get_chat_session(
         if not session:
             raise HTTPException(status_code=404, detail="Сессия не найдена")
         
-        return session
+        # Преобразуем сессию в объект ответа
+        return ChatSessionResponse(
+            id=session.id,
+            title=session.title,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            messages=[
+                ChatMessageResponse(
+                    id=msg.id,
+                    message_type=msg.message_type,
+                    content=msg.content,
+                    files_data=msg.files_data,
+                    matching_results=msg.matching_results,
+                    is_processing=msg.is_processing,
+                    created_at=msg.created_at
+                ) for msg in session.messages
+            ] if session.messages else []
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -127,19 +169,66 @@ async def create_chat_message(
         if not session:
             raise HTTPException(status_code=404, detail="Сессия не найдена")
         
-        new_message = AIChatMessage(
+        # Создаем сообщение пользователя
+        user_message = AIChatMessage(
             session_id=session_id,
             message_type="user",
             content=message_data.content,
             files_data=message_data.files_data,
-            matching_results=message_data.matching_results
+            matching_results=message_data.matching_results,
+            is_processing=False
         )
         
-        db.add(new_message)
+        db.add(user_message)
         await db.commit()
-        await db.refresh(new_message)
+        await db.refresh(user_message)
         
-        return new_message
+        # Создаем сообщение ИИ
+        ai_message = AIChatMessage(
+            session_id=session_id,
+            message_type="ai",
+            content="",
+            is_processing=True
+        )
+        
+        db.add(ai_message)
+        await db.commit()
+        await db.refresh(ai_message)
+        
+        # Асинхронно обрабатываем запрос к ИИ
+        try:
+            from .article_matching import process_natural_language_query
+            
+            # Получаем ответ от ИИ
+            ai_response = await process_natural_language_query(message_data.content, db)
+            
+            # Обновляем сообщение ИИ
+            ai_message.content = ai_response.get("message", "")
+            ai_message.matching_results = {
+                "search_results": ai_response.get("search_results", []),
+                "success": ai_response.get("success", False)
+            }
+            ai_message.is_processing = False
+            
+            await db.commit()
+            await db.refresh(ai_message)
+            
+        except Exception as e:
+            print(f"Ошибка при обработке ИИ: {e}")
+            ai_message.content = "Извините, произошла ошибка при обработке запроса. Попробуйте переформулировать."
+            ai_message.is_processing = False
+            await db.commit()
+        
+        # Возвращаем сообщение пользователя
+        return ChatMessageResponse(
+            id=user_message.id,
+            message_type=user_message.message_type,
+            content=user_message.content,
+            files_data=user_message.files_data,
+            matching_results=user_message.matching_results,
+            is_processing=user_message.is_processing,
+            created_at=user_message.created_at
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -177,7 +266,16 @@ async def update_chat_message(
         await db.commit()
         await db.refresh(message)
         
-        return message
+        # Преобразуем сообщение в объект ответа
+        return ChatMessageResponse(
+            id=message.id,
+            message_type=message.message_type,
+            content=message.content,
+            files_data=message.files_data,
+            matching_results=message.matching_results,
+            is_processing=message.is_processing,
+            created_at=message.created_at
+        )
     except HTTPException:
         raise
     except Exception as e:

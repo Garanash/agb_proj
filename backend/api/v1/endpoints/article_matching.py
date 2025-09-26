@@ -14,11 +14,142 @@ import json
 import time
 import uuid
 from pathlib import Path
+import pymorphy2
+from functools import lru_cache
+
+# Инициализируем морфологический анализатор
+morph = pymorphy2.MorphAnalyzer()
+
+def normalize_russian_text(text: str) -> str:
+    """
+    Приводит русский текст к нормальной форме (именительный падеж, единственное число).
+    Также извлекает числа и специальные символы.
+    """
+    if not text:
+        return ""
+    
+    # Сохраняем числа и специальные символы
+    numbers_and_special = re.findall(r'\d+|[^\w\s]', text)
+    
+    # Разбиваем текст на слова
+    words = re.findall(r'\b[а-яА-Я]+\b', text)
+    
+    # Нормализуем каждое слово
+    normalized_words = []
+    for word in words:
+        # Получаем все возможные разборы слова
+        parsed = morph.parse(word)
+        if parsed:
+            # Берем наиболее вероятный разбор
+            normal_form = parsed[0].normal_form
+            normalized_words.append(normal_form)
+    
+    # Собираем текст обратно, включая числа и специальные символы
+    result = ' '.join(normalized_words + numbers_and_special)
+    return result.strip()
+
+@lru_cache(maxsize=1000)
+def get_normalized_text(text: str) -> str:
+    """
+    Кэширующая обертка для normalize_russian_text
+    """
+    return normalize_russian_text(text)
 
 from database import get_db
 from models import User, ApiKey, AiProcessingLog
 from ..dependencies import get_current_user
 from ..schemas import AIMatchingResponse, MatchingResult
+from ..utils.api_key import get_api_key
+
+async def process_natural_language_query(query: str, db: AsyncSession) -> dict:
+    """
+    Обрабатывает запрос на естественном языке и возвращает структурированный ответ
+    """
+    print(f"🤖 Начинаем обработку запроса: '{query}'")
+    try:
+        # Нормализуем запрос
+        normalized_query = get_normalized_text(query)
+        print(f"🔍 Нормализованный запрос: '{normalized_query}' (было: '{query}')")
+
+        # Определяем тип запроса
+        query_type = "unknown"
+        if any(word in normalized_query.lower() for word in ["найти", "поиск", "искать", "где"]):
+            query_type = "search"
+        elif any(word in normalized_query.lower() for word in ["добавить", "создать", "сохранить"]):
+            query_type = "create"
+        elif any(word in normalized_query.lower() for word in ["изменить", "обновить", "исправить"]):
+            query_type = "update"
+
+        # Формируем промпт для ИИ в зависимости от типа запроса
+        system_prompt = """Ты - ИИ-ассистент для работы с базой данных товаров. 
+        Твоя задача - помогать пользователям находить, добавлять и обновлять информацию о товарах.
+        
+        Отвечай кратко и по делу, но в дружелюбной манере. Используй смайлики для улучшения читаемости.
+        
+        Если не можешь найти точное совпадение, предложи похожие варианты.
+        Если запрос неясен, задай уточняющие вопросы.
+        
+        Всегда указывай причину, почему ты предлагаешь тот или иной вариант."""
+
+        # Получаем ответ от ИИ
+        print("🔑 Получаем API ключ...")
+        api_key = await get_api_key(db)
+        if not api_key:
+            print("❌ API ключ не найден")
+            return {
+                "message": "К сожалению, не удалось получить доступ к ИИ. Попробуйте позже.",
+                "success": False
+            }
+        print("✅ API ключ получен")
+
+        print("🌐 Отправляем запрос к ИИ...")
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Тип запроса: {query_type}\nЗапрос: {normalized_query}"}
+            ]
+            
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 1000
+            }
+            
+            async with session.post("https://api.polza.com/v1/chat/completions", headers=headers, json=data) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    ai_response = result["choices"][0]["message"]["content"]
+                    
+                    # Если это поисковый запрос, добавляем результаты поиска
+                    if query_type == "search":
+                        search_results = await smart_search_with_ai(normalized_query, db)
+                        return {
+                            "message": ai_response,
+                            "search_results": search_results.get("matches", []),
+                            "success": True
+                        }
+                    else:
+                        return {
+                            "message": ai_response,
+                            "success": True
+                        }
+                else:
+                    return {
+                        "message": "Извините, произошла ошибка при обработке запроса.",
+                        "success": False
+                    }
+    except Exception as e:
+        print(f"Ошибка при обработке запроса: {e}")
+        return {
+            "message": "Произошла ошибка при обработке вашего запроса. Попробуйте переформулировать.",
+            "success": False
+        }
 
 async def extract_articles_from_text(text: str, db: AsyncSession = None) -> List[dict]:
     """Извлекает артикулы из текста строки через парсинг и AI API"""
@@ -147,6 +278,42 @@ from .auth import get_current_user
 
 router = APIRouter()
 
+@router.post("/chat/", response_model=dict)
+async def chat_with_ai(
+    message: dict,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Обработка естественно-языкового запроса к ИИ"""
+    try:
+        query = message.get("message", "").strip()
+        if not query:
+            return {
+                "message": "Пожалуйста, введите ваш запрос.",
+                "success": False
+            }
+        
+        # Обрабатываем запрос
+        response = await process_natural_language_query(query, db)
+        
+        # Сохраняем лог обработки
+        log = AiProcessingLog(
+            request_type="chat",
+            input_text=query,
+            ai_response=response.get("message", ""),
+            status="success" if response.get("success") else "error",
+            processing_time=time.time()
+        )
+        db.add(log)
+        await db.commit()
+        
+        return response
+    except Exception as e:
+        print(f"Ошибка в чате с ИИ: {e}")
+        return {
+            "message": "Произошла ошибка при обработке запроса. Попробуйте позже.",
+            "success": False
+        }
+
 # URL для Polza.ai
 POLZA_API_URL = "https://api.polza.ai/v1/chat/completions"
 
@@ -189,44 +356,147 @@ async def get_api_key(db: AsyncSession) -> str:
         return ""
 
 
+def normalize_ai_article(article: dict) -> dict:
+    """Нормализует данные артикула из ответа ИИ"""
+    normalized = {
+        'contractor_article': None,
+        'description': None,
+        'quantity': 1,
+        'unit': 'шт',
+        'agb_article': None,
+        'bl_article': None,
+        'match_confidence': 0.0,
+        'match_type': 'unknown',
+        'nomenclature': None
+    }
+
+    # Если article - это строка (натуральный запрос), обрабатываем как описание
+    if isinstance(article, str):
+        description = article.strip()
+        if description:
+            # Ищем потенциальный артикул в описании
+            parsed = parse_item_string(description)
+            if parsed['article']:
+                normalized['contractor_article'] = parsed['article']
+                normalized['description'] = parsed['description']
+                normalized['quantity'] = parsed['quantity']
+                normalized['unit'] = parsed['unit']
+            else:
+                normalized['description'] = description
+                normalized['contractor_article'] = None
+        else:
+            normalized['description'] = 'Неизвестный товар'
+        return normalized
+
+    # Обрабатываем словарь из ИИ ответа
+    if isinstance(article, dict):
+        # contractor_article может быть None, пустой строкой или отсутствовать
+        contractor_article = article.get('contractor_article')
+        if contractor_article is not None and contractor_article != '':
+            normalized['contractor_article'] = str(contractor_article).strip()
+        elif not normalized['contractor_article']:
+            # Если contractor_article не указан, используем часть описания как артикул
+            description = article.get('description', '')
+            if description:
+                # Ищем потенциальный артикул в описании
+                parsed = parse_item_string(description)
+                if parsed['article']:
+                    normalized['contractor_article'] = parsed['article']
+                    normalized['description'] = parsed['description'] or description
+                else:
+                    normalized['description'] = description
+            else:
+                normalized['description'] = 'Неизвестный товар'
+
+        # Описание
+        description = article.get('description')
+        if description:
+            normalized['description'] = str(description).strip()
+        elif not normalized['description']:
+            normalized['description'] = 'Неизвестный товар'
+
+        # Количество и единица измерения
+        quantity = article.get('quantity')
+        if quantity is not None:
+            try:
+                normalized['quantity'] = int(quantity)
+            except (ValueError, TypeError):
+                normalized['quantity'] = 1
+
+        unit = article.get('unit')
+        if unit:
+            normalized['unit'] = str(unit).strip()
+
+        # Артикулы АГБ и BL
+        agb_article = article.get('agb_article')
+        if agb_article:
+            normalized['agb_article'] = str(agb_article).strip()
+
+        bl_article = article.get('bl_article')
+        if bl_article:
+            normalized['bl_article'] = str(bl_article).strip()
+
+        # Уверенность сопоставления
+        confidence = article.get('match_confidence')
+        if confidence is not None:
+            try:
+                normalized['match_confidence'] = float(confidence)
+            except (ValueError, TypeError):
+                normalized['match_confidence'] = 0.0
+
+        # Тип сопоставления
+        match_type = article.get('match_type')
+        if match_type:
+            normalized['match_type'] = str(match_type).strip()
+
+    return normalized
+
+
 def parse_item_string(item_string: str) -> dict:
     """Парсит строку товара и извлекает артикул, описание и количество"""
     import re
-    
+
     # Убираем лишние пробелы
     item_string = item_string.strip()
-    
-    # Паттерны для поиска артикулов
+
+    # Расширенные паттерны для поиска артикулов (везде в строке)
     article_patterns = [
-        r'^([A-ZА-Я]{2,6}[-_]\d{6,8})',  # ОХКУ-000184, BL-123456
-        r'^([A-ZА-Я]{2,6}\d{6,8})',      # ОХКУ000184, BL123456
-        r'^(\d{6,8})',                    # 123456
-        r'^([A-ZА-Я]{2,6}[-_]\d{3,8})',  # ОХКУ-184, BL-123
+        r'([A-ZА-Я]{2,6}[-_]\d{6,8})',    # ОХКУ-000184, BL-123456
+        r'([A-ZА-Я]{2,6}\d{6,8})',        # ОХКУ000184, BL123456
+        r'(\d{6,8})',                      # 123456
+        r'([A-ZА-Я]{2,6}[-_]\d{3,8})',    # ОХКУ-184, BL-123
+        r'([A-ZА-Я]{3,6}[-_]\d{4,6})',    # BL-1234, ОХКУ-1234
+        r'(\d{4,6}[-_][A-ZА-Я]{2,4})',    # 1234-BL, 123456-АГБ
+        r'([A-ZА-Я]{1,3}\d{4,8})',        # B1234, BL123456
+        r'(\d{4,8}[A-ZА-Я]{1,3})',        # 1234B, 123456BL
     ]
-    
+
     # Паттерны для поиска количества (в порядке приоритета)
     quantity_patterns = [
         r'(\d+)\s*(шт|штук|pcs|pieces?|кг|kg|л|l|м|m|м²|м³)\s*$',  # количество в конце строки
         r'\((\d+)\s*(шт|штук|pcs|pieces?|кг|kg|л|l|м|m|м²|м³)\)',  # количество в скобках
         r'(\d+)\s*(шт|штук|pcs|pieces?|кг|kg|л|l|м|m|м²|м³)',      # общий паттерн
     ]
-    
+
     # Извлекаем артикул
     article = ""
     description = item_string
     quantity = 1
     unit = "шт"
-    
-    # Ищем артикул в начале строки
+
+    # Ищем артикул в любой части строки (начинаем с более точных паттернов)
     for pattern in article_patterns:
-        match = re.match(pattern, item_string)
-        if match:
-            article = match.group(1)
-            # Убираем артикул из описания
-            description = item_string[len(article):].strip()
-            # Убираем возможные разделители после артикула
-            description = re.sub(r'^[-_\s]+', '', description)
-            break
+        matches = re.findall(pattern, item_string)
+        if matches:
+            # Берем самый длинный потенциальный артикул
+            potential_articles = [m for m in matches if len(m) >= 3]
+            if potential_articles:
+                article = max(potential_articles, key=len)
+                # Убираем артикул из описания
+                description = re.sub(re.escape(article), '', item_string).strip()
+                # Убираем лишние разделители
+                description = re.sub(r'^[-_.,\s]+|[-_.,\s]+$', '', description)
+                break
     
     # Ищем количество и единицу измерения
     for pattern in quantity_patterns:
@@ -258,116 +528,424 @@ def parse_item_string(item_string: str) -> dict:
         'unit': unit
     }
 
+@router.post("/search/")
+async def search_nomenclature(
+    request: dict,
+    db: AsyncSession = Depends(get_db)
+) -> dict:
+    """Поиск номенклатуры по различным критериям с поддержкой морфологии"""
+    original_query = request.get("query", "").strip()
+    search_type = request.get("search_type", "article")
+
+    if not original_query:
+        return {"matches": []}
+
+    # Нормализуем поисковый запрос
+    normalized_query = get_normalized_text(original_query)
+    print(f"Нормализованный запрос: '{normalized_query}' (было: '{original_query}')")
+
+    # Создаем базовый запрос
+    base_query = select(MatchingNomenclature).where(MatchingNomenclature.is_active == True)
+
+    # Получаем все потенциальные совпадения
+    result = await db.execute(base_query)
+    all_items = result.scalars().all()
+
+    # Преобразуем результаты с учетом морфологии
+    matches = []
+    for item in all_items:
+        match_confidence = 0
+        match_reason = ""
+
+        if search_type == "article":
+            # Для артикулов используем прямое сравнение
+            if item.agb_article and normalized_query.lower() in item.agb_article.lower():
+                match_confidence = 100 if normalized_query.lower() == item.agb_article.lower() else 80
+                match_reason = "Совпадение по артикулу АГБ"
+            elif item.bl_article and normalized_query.lower() in item.bl_article.lower():
+                match_confidence = 90 if normalized_query.lower() == item.bl_article.lower() else 70
+                match_reason = "Совпадение по артикулу BL"
+        
+        elif search_type == "name":
+            # Для наименований используем морфологический анализ
+            normalized_name = get_normalized_text(item.name)
+            
+            # Проверяем точное совпадение нормализованных форм
+            if normalized_query.lower() == normalized_name.lower():
+                match_confidence = 100
+                match_reason = "Точное совпадение наименования"
+            else:
+                # Проверяем частичное совпадение
+                query_words = set(normalized_query.lower().split())
+                name_words = set(normalized_name.lower().split())
+                
+                # Находим общие слова
+                common_words = query_words & name_words
+                
+                if common_words:
+                    # Рассчитываем процент совпадения
+                    match_confidence = int((len(common_words) / len(query_words)) * 100)
+                    match_reason = "Частичное совпадение наименования"
+                
+                # Если совпадение низкое, проверяем схожесть текста
+                if match_confidence < 70:
+                    similarity = calculate_similarity(normalized_query, normalized_name)
+                    text_match_confidence = int(similarity * 100)
+                    if text_match_confidence > match_confidence:
+                        match_confidence = text_match_confidence
+                        match_reason = "Схожесть текста наименования"
+        
+        elif search_type == "code":
+            # Для кодов используем прямое сравнение
+            if item.code_1c and normalized_query.lower() in item.code_1c.lower():
+                match_confidence = 100 if normalized_query.lower() == item.code_1c.lower() else 80
+                match_reason = "Совпадение по коду 1С"
+
+        # Добавляем только если уверенность выше порога
+        if match_confidence >= 50:
+            matches.append({
+                "id": item.id,
+                "agb_article": item.agb_article,
+                "name": item.name,
+                "code_1c": item.code_1c,
+                "bl_article": item.bl_article,
+                "packaging": item.packaging,
+                "unit": item.unit,
+                "match_confidence": match_confidence,
+                "match_reason": match_reason
+            })
+
+    # Сортируем по уверенности
+    matches.sort(key=lambda x: x["match_confidence"], reverse=True)
+    
+    # Ограничиваем количество результатов
+    matches = matches[:20]
+    
+    # Сохраняем результаты поиска в истории
+    chat_message = AIChatMessage(
+        session_id=1,  # TODO: Получать из контекста
+        message_type="system",
+        content=f"Поиск: {original_query} → {normalized_query} (тип: {search_type})",
+        search_query=original_query,
+        search_type=search_type,
+        matching_results=matches
+    )
+    db.add(chat_message)
+    await db.commit()
+
+    return {"matches": matches}
+
 async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
     """Умный поиск через AI - парсит строку и ищет по компонентам"""
     try:
-        # Сначала парсим строку для извлечения компонентов
-        parsed_item = parse_item_string(search_text)
+        # Нормализуем поисковый запрос
+        normalized_text = get_normalized_text(search_text)
+        print(f"🔍 Нормализация запроса: '{search_text}' → '{normalized_text}'")
         
-        print(f"🔍 Парсинг строки: '{search_text}'")
+        # Парсим нормализованную строку для извлечения компонентов
+        parsed_item = parse_item_string(normalized_text)
+        
+        print(f"🔍 Парсинг строки: '{normalized_text}'")
         print(f"   Артикул: '{parsed_item['article']}'")
         print(f"   Описание: '{parsed_item['description']}'")
         print(f"   Количество: {parsed_item['quantity']} {parsed_item['unit']}")
         
-        # Сначала проверяем уже существующие сопоставления по артикулу
-        if parsed_item['article']:
-            existing_mapping = await db.execute(
-                select(ArticleMapping).where(
-                    ArticleMapping.contractor_article == parsed_item['article']
-                ).limit(1)
-            )
-            existing = existing_mapping.scalar_one_or_none()
+        # Сначала проверяем уже существующие сопоставления по артикулу или описанию
+        if parsed_item['article'] or parsed_item['description']:
+            print(f"🔍 Ищем в существующих сопоставлениях...")
+            # Создаем базовый запрос
+            query = select(ArticleMapping).where(ArticleMapping.is_active == True)
+            conditions = []
             
-            if existing:
-                print(f"✅ Найдено существующее сопоставление по артикулу: {existing.contractor_article} -> {existing.agb_article}")
-                return {
-                    "search_type": "existing_mapping",
-                    "matches": [{
-                        "agb_article": existing.agb_article,
-                        "bl_article": existing.bl_article,
-                        "name": existing.agb_description,
-                        "code_1c": "",
-                        "confidence": existing.match_confidence or 100,
-                        "packaging": existing.packaging_factor or 1,
-                        "is_existing": True,
-                        "mapping_id": existing.id
-                    }]
-                }
-        
-        # Если артикул не найден, ищем по описанию в существующих сопоставлениях
-        if parsed_item['description']:
-            existing_by_description = await db.execute(
-                select(ArticleMapping).where(
-                    ArticleMapping.contractor_description.ilike(f"%{parsed_item['description']}%")
-                ).limit(5)
-            )
-            existing_descriptions = existing_by_description.scalars().all()
+            if parsed_item['article']:
+                conditions.append(ArticleMapping.contractor_article.ilike(f"%{parsed_item['article']}%"))
             
-            if existing_descriptions:
-                print(f"✅ Найдено {len(existing_descriptions)} сопоставлений по описанию")
-                matches = []
-                for mapping in existing_descriptions:
-                    matches.append({
-                        "agb_article": mapping.agb_article,
-                        "bl_article": mapping.bl_article,
-                        "name": mapping.agb_description,
-                        "code_1c": "",
-                        "confidence": mapping.match_confidence or 90,  # Немного меньше уверенности для поиска по описанию
-                        "packaging": mapping.packaging_factor or 1,
-                        "is_existing": True,
-                        "mapping_id": mapping.id,
-                        "contractor_article": mapping.contractor_article
-                    })
+            if parsed_item['description']:
+                conditions.append(ArticleMapping.contractor_description.ilike(f"%{parsed_item['description']}%"))
+            
+            if conditions:
+                query = query.where(or_(*conditions)).limit(10)
+                existing_mappings = await db.execute(query)
+                mappings = existing_mappings.scalars().all()
                 
-                return {
-                    "search_type": "existing_mapping_by_description",
-                    "matches": matches
+                if mappings:
+                    print(f"✅ Найдено {len(mappings)} существующих сопоставлений")
+                    matches = []
+                    for mapping in mappings:
+                        confidence = 100 if mapping.contractor_article == parsed_item['article'] else 90
+                        matches.append({
+                            "agb_article": mapping.agb_article,
+                            "bl_article": mapping.bl_article,
+                            "name": mapping.agb_description,
+                            "code_1c": "",
+                            "confidence": mapping.match_confidence or confidence,
+                            "packaging": mapping.packaging_factor or 1,
+                            "is_existing": True,
+                            "mapping_id": mapping.id,
+                            "contractor_article": mapping.contractor_article,
+                            "match_reason": "Найдено в существующих сопоставлениях"
+                        })
+                    
+                    return {
+                        "search_type": "existing_mapping",
+                        "matches": matches
+                    }
+        
+        # Проверяем точные и частичные совпадения в базе данных
+        print(f"🔍 Ищем в базе номенклатуры...")
+        matches = []
+        
+        # Создаем базовый запрос для поиска в номенклатуре
+        query = select(MatchingNomenclature).where(MatchingNomenclature.is_active == True)
+        conditions = []
+        
+        # Добавляем условия поиска
+        if parsed_item['article']:
+            conditions.extend([
+                MatchingNomenclature.agb_article.ilike(f"%{parsed_item['article']}%"),
+                MatchingNomenclature.bl_article.ilike(f"%{parsed_item['article']}%"),
+                MatchingNomenclature.code_1c.ilike(f"%{parsed_item['article']}%")
+            ])
+        
+        if parsed_item['description']:
+            conditions.append(MatchingNomenclature.name.ilike(f"%{parsed_item['description']}%"))
+        
+        if conditions:
+            query = query.where(or_(*conditions)).limit(20)
+            result = await db.execute(query)
+            found_items = result.scalars().all()
+            
+            for item in found_items:
+                confidence = 0
+                match_reason = ""
+                
+                # Вычисляем уверенность на основе совпадений
+                if parsed_item['article']:
+                    if item.agb_article and item.agb_article.lower() == parsed_item['article'].lower():
+                        confidence = 100
+                        match_reason = "Точное совпадение по артикулу АГБ"
+                    elif item.bl_article and item.bl_article.lower() == parsed_item['article'].lower():
+                        confidence = 95
+                        match_reason = "Точное совпадение по артикулу BL"
+                    elif item.code_1c and item.code_1c.lower() == parsed_item['article'].lower():
+                        confidence = 90
+                        match_reason = "Точное совпадение по коду 1С"
+                    else:
+                        # Частичное совпадение
+                        confidence = 70
+                        match_reason = "Частичное совпадение по артикулу"
+                
+                if parsed_item['description'] and confidence < 100:
+                    desc_similarity = calculate_similarity(parsed_item['description'], item.name)
+                    if desc_similarity > 0.8:
+                        confidence = max(confidence, 85)
+                        match_reason = "Высокая схожесть описания"
+                    elif desc_similarity > 0.6:
+                        confidence = max(confidence, 75)
+                        match_reason = "Средняя схожесть описания"
+                
+                if confidence > 0:
+                    matches.append({
+                        "agb_article": item.agb_article,
+                        "bl_article": item.bl_article,
+                        "name": item.name,
+                        "code_1c": item.code_1c,
+                        "confidence": confidence,
+                        "match_reason": match_reason,
+                        "is_existing": False
+                    })
+
+        # Если нашли совпадения в базе, возвращаем их
+        if matches:
+            print(f"✅ Найдено {len(matches)} совпадений в базе номенклатуры")
+            return {
+                "search_type": "database_match",
+                "matches": matches
+            }
+
+        print(f"❌ Совпадений в базе не найдено, используем ИИ")
+        
+        # Используем ИИ для поиска
+        try:
+            # Получаем все номенклатуры для контекста
+            all_nomenclatures = await db.execute(
+                select(MatchingNomenclature).where(MatchingNomenclature.is_active == True).limit(100)
+            )
+            nomenclatures = all_nomenclatures.scalars().all()
+            
+            # Формируем текст с номенклатурами для ИИ
+            nomenclatures_text = "\n".join([
+                f"- {nom.agb_article} | {nom.bl_article or 'N/A'} | {nom.name}"
+                for nom in nomenclatures
+            ])
+            
+            # Создаем промпт для ИИ
+            prompt = f"""Найди в базе данных товар по запросу: "{search_text}"
+
+База данных товаров:
+{nomenclatures_text}
+
+Верни JSON массив с найденными товарами в формате:
+[
+    {{
+        "agb_article": "артикул АГБ",
+        "bl_article": "артикул BL",
+        "name": "наименование",
+        "code_1c": "код 1С",
+        "confidence": 85,
+        "match_reason": "причина совпадения"
+    }}
+]
+
+Если ничего не найдено, верни пустой массив: []"""
+
+            # Получаем API ключ
+            api_key = await get_api_key(db)
+            if not api_key:
+                return {"search_type": "error", "matches": []}
+
+            # Отправляем запрос к ИИ
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
                 }
-        
-        # Получаем все номенклатуры из базы данных
-        result = await db.execute(select(MatchingNomenclature))
-        nomenclatures = result.scalars().all()
-        
+                
+                data = {
+                    "model": "gpt-4o-mini",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 1500
+                }
+                
+                async with session.post("https://api.polza.com/v1/chat/completions", headers=headers, json=data) as response:
+                    if response.status in [200, 201]:
+                        result = await response.json()
+                        ai_response = result["choices"][0]["message"]["content"]
+                        
+                        # Парсим JSON ответ
+                        import json
+                        try:
+                            if "```json" in ai_response:
+                                json_start = ai_response.find("```json") + 7
+                                json_end = ai_response.find("```", json_start)
+                                ai_response = ai_response[json_start:json_end].strip()
+                            elif "```" in ai_response:
+                                json_start = ai_response.find("```") + 3
+                                json_end = ai_response.find("```", json_start)
+                                ai_response = ai_response[json_start:json_end].strip()
+
+                            matches = json.loads(ai_response)
+                            if isinstance(matches, list) and matches:
+                                print(f"✅ ИИ нашел {len(matches)} совпадений")
+                                return {
+                                    "search_type": "ai_match",
+                                    "matches": matches
+                                }
+                        except json.JSONDecodeError:
+                            pass
+            
+            # Если ИИ не нашел ничего, возвращаем пустой результат
+            return {"search_type": "not_found", "matches": []}
+            
+        except Exception as e:
+            print(f"❌ Ошибка ИИ поиска: {e}")
+            return {"search_type": "error", "matches": []}
+
+        # Формируем список номенклатур для AI с приоритетом по релевантности
+        # Сначала ищем возможные совпадения по артикулу или описанию
+        relevant_nomenclatures = []
+        search_terms = [parsed_item['article'], parsed_item['description']]
+        search_terms = [term.lower() for term in search_terms if term]
+
+        # Ищем релевантные номенклатуры
+        for nom in nomenclatures:
+            relevance_score = 0
+
+            # Проверяем артикул АГБ
+            if parsed_item['article'] and nom.agb_article:
+                if parsed_item['article'].lower() in nom.agb_article.lower():
+                    relevance_score += 100
+                elif nom.agb_article.lower() in parsed_item['article'].lower():
+                    relevance_score += 80
+
+            # Проверяем артикул BL
+            if parsed_item['article'] and nom.bl_article:
+                if parsed_item['article'].lower() in nom.bl_article.lower():
+                    relevance_score += 90
+                elif nom.bl_article.lower() in parsed_item['article'].lower():
+                    relevance_score += 70
+
+            # Проверяем код 1С
+            if parsed_item['article'] and nom.code_1c:
+                if parsed_item['article'].lower() in nom.code_1c.lower():
+                    relevance_score += 60
+
+            # Проверяем наименование
+            if parsed_item['description'] and nom.name:
+                if parsed_item['description'].lower() in nom.name.lower():
+                    relevance_score += 50
+                elif nom.name.lower() in parsed_item['description'].lower():
+                    relevance_score += 40
+
+            if relevance_score > 0:
+                relevant_nomenclatures.append((nom, relevance_score))
+
+        # Сортируем по релевантности
+        relevant_nomenclatures.sort(key=lambda x: x[1], reverse=True)
+
+        # Берем топ-100 релевантных + 100 случайных для разнообразия
+        top_relevant = relevant_nomenclatures[:100]
+        remaining_count = min(100, len(nomenclatures) - len(top_relevant))
+
+        import random
+        random_nomenclatures = random.sample(
+            [nom for nom, score in relevant_nomenclatures[100:] if nom not in [n for n, s in top_relevant]],
+            remaining_count
+        ) if len(nomenclatures) > len(top_relevant) else []
+
+        selected_nomenclatures = [nom for nom, score in top_relevant] + random_nomenclatures
+
+        print(f"📊 Выбрано для поиска: {len(selected_nomenclatures)} номенклатур (релевантных: {len(top_relevant)}, случайных: {len(random_nomenclatures)})")
+
         # Формируем список номенклатур для AI
         nomenclatures_text = "\n".join([
-            f"Артикул АГБ: {nom.agb_article}, Артикул BL: {nom.bl_article or 'нет'}, Название: {nom.name}, Код 1С: {nom.code_1c}"
-            for nom in nomenclatures[:200]  # Увеличиваем лимит для лучшего поиска
+            f"ID: {nom.id}, АГБ: {nom.agb_article}, BL: {nom.bl_article or 'нет'}, Код1С: {nom.code_1c or 'нет'}, Название: {nom.name}, Фасовка: {nom.packaging or 1}, Ед: {nom.unit}"
+            for nom in selected_nomenclatures[:200]
         ])
         
         # Формируем промпт для AI с учетом парсинга
         prompt = f"""
-        Проанализируй следующие данные товара:
-        
-        Исходная строка: "{search_text}"
-        Извлеченный артикул: "{parsed_item['article']}"
-        Извлеченное описание: "{parsed_item['description']}"
-        Количество: {parsed_item['quantity']} {parsed_item['unit']}
-        
-        Найди соответствия в базе данных по следующим критериям (в порядке приоритета):
-        1. Точное совпадение артикула BL (если извлеченный артикул похож на BL артикул)
-        2. Точное совпадение артикула АГБ (если извлеченный артикул похож на АГБ артикул)
-        3. Поиск по названию товара (сравнивай извлеченное описание с названиями в базе)
-        4. Общий поиск по всем полям
-        
-        База данных номенклатур:
+        ТЫ - эксперт по поиску товаров в базе данных АГБ.
+
+        ЗАПРОС ПОЛЬЗОВАТЕЛЯ: "{search_text}"
+
+        ПРОАНАЛИЗИРУЙ ЗАПРОС И НАЙДИ СООТВЕТСТВИЯ В БАЗЕ ДАННЫХ:
         {nomenclatures_text}
-        
-        Верни результат в формате JSON:
+
+        ПРАВИЛА:
+        - Ищи ТОЧНЫЕ совпадения по названиям товаров
+        - Сравнивай слова и фразы из запроса с названиями в базе
+        - Если точного совпадения нет, ищи похожие товары (схожесть > 70%)
+        - Верни ТОЛЬКО релевантные результаты
+
+        ФОРМАТ ОТВЕТА (JSON):
         {{
-            "search_type": "bl_article|agb_article|name|general",
+            "search_type": "ai_match",
             "matches": [
                 {{
-                    "agb_article": "артикул_агб",
-                    "bl_article": "артикул_bl", 
-                    "name": "название",
-                    "code_1c": "код_1с",
-                    "confidence": процент_уверенности,
-                    "packaging": коэффициент_фасовки
+                    "id": "ID_из_базы",
+                    "agb_article": "артикул_АГБ",
+                    "bl_article": "артикул_BL_или_null",
+                    "code_1c": "код_1С_или_null",
+                    "name": "название_товара",
+                    "confidence": 75,
+                    "match_reason": "найдено_по_названию"
                 }}
             ]
         }}
-        
-        Найди до 5 наиболее подходящих вариантов.
+
+        ЕСЛИ НИЧЕГО НЕ НАЙДЕНО - верни: {{"search_type": "ai_match", "matches": []}}
         """
         
         # Получаем API ключ из базы данных
@@ -376,56 +954,84 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
             print("❌ Не удалось получить API ключ")
             return {"search_type": "general", "matches": []}
         
-        # Отправляем запрос к AI API
-        async with aiohttp.ClientSession() as session:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
+        try:
+            # Отправляем запрос к AI API
+            async with aiohttp.ClientSession() as session:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                data = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 1500
+                }
+                
+                try:
+                    async with session.post(POLZA_API_URL, headers=headers, json=data) as response:
+                        if response.status in [200, 201]:
+                            result = await response.json()
+                            ai_response = result["choices"][0]["message"]["content"]
+                            
+                            # Парсим JSON ответ
+                            import json
+                            try:
+                                # Извлекаем JSON из markdown блока, если он есть
+                                if "```json" in ai_response:
+                                    json_start = ai_response.find("```json") + 7
+                                    json_end = ai_response.find("```", json_start)
+                                    if json_end != -1:
+                                        ai_response = ai_response[json_start:json_end].strip()
+                                elif "```" in ai_response:
+                                    json_start = ai_response.find("```") + 3
+                                    json_end = ai_response.find("```", json_start)
+                                    if json_end != -1:
+                                        ai_response = ai_response[json_start:json_end].strip()
+
+                                # Если ответ содержит "НИЧЕГО НЕ НАЙДЕНО", возвращаем пустой результат
+                                if "НИЧЕГО НЕ НАЙДЕНО" in ai_response.upper() or len(ai_response.strip()) < 10:
+                                    return {"search_type": "ai_match", "matches": []}
+
+                                matches = json.loads(ai_response)
+                                ai_matches = matches.get('matches', [])
+                                print(f"✅ AI нашел {len(ai_matches)} совпадений")
+                                return matches
+                            except json.JSONDecodeError as e:
+                                print(f"Failed to parse AI response: {e}")
+                                print(f"AI response: {ai_response}")
+                                # Если не удалось распарсить JSON, проверяем текст ответа
+                                if ai_response and "найден" in ai_response.lower() and len(ai_response) < 100:
+                                    return {"search_type": "ai_match", "matches": []}
+                                return {"search_type": "general", "matches": []}
+                        else:
+                            print(f"AI API error: {response.status}")
+                            return {"search_type": "general", "matches": []}
+                except Exception as e:
+                    print(f"HTTP request error: {e}")
+                    return {"search_type": "error", "matches": []}
+        except Exception as e:
+            print(f"AI search error: {e}")
+            # Создаем fallback результат с сообщением о не найденном товаре
+            return {
+                "search_type": "not_found",
+                "matches": [{
+                    "id": "0",
+                    "agb_article": "",
+                    "bl_article": "",
+                    "code_1c": "",
+                    "name": f"Товар '{search_text}' не найден в базе данных",
+                    "confidence": 0.0,
+                    "match_reason": "товар_не_найден"
+                }]
             }
-            
-            data = {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.1,
-                "max_tokens": 1500
-            }
-            
-            async with session.post(POLZA_API_URL, headers=headers, json=data) as response:
-                if response.status in [200, 201]:
-                    result = await response.json()
-                    ai_response = result["choices"][0]["message"]["content"]
-                    
-                    # Парсим JSON ответ
-                    import json
-                    try:
-                        # Извлекаем JSON из markdown блока, если он есть
-                        if "```json" in ai_response:
-                            json_start = ai_response.find("```json") + 7
-                            json_end = ai_response.find("```", json_start)
-                            if json_end != -1:
-                                ai_response = ai_response[json_start:json_end].strip()
-                        elif "```" in ai_response:
-                            json_start = ai_response.find("```") + 3
-                            json_end = ai_response.find("```", json_start)
-                            if json_end != -1:
-                                ai_response = ai_response[json_start:json_end].strip()
-                        
-                        matches = json.loads(ai_response)
-                        print(f"✅ AI нашел {len(matches.get('matches', []))} совпадений")
-                        return matches
-                    except json.JSONDecodeError as e:
-                        print(f"Failed to parse AI response: {e}")
-                        print(f"AI response: {ai_response}")
-                        return {"search_type": "general", "matches": []}
-                else:
-                    print(f"AI API error: {response.status}")
-                    return {"search_type": "general", "matches": []}
-                    
+
     except Exception as e:
-        print(f"AI search error: {e}")
-        return {"search_type": "general", "matches": []}
+        print(f"Global error: {e}")
+        return {"search_type": "error", "matches": []}
 
 
 async def search_with_ai(description: str, db: AsyncSession) -> dict:
@@ -514,6 +1120,39 @@ async def create_article_mapping(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка при создании соответствия: {str(e)}")
+
+
+@router.delete("/mappings/{mapping_id}/", response_model=dict)
+async def delete_article_mapping(
+    mapping_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Удаление соответствия артикулов"""
+    if current_user.role not in [UserRole.ADMIN, UserRole.VED_PASSPORT]:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+    
+    try:
+        # Находим сопоставление
+        result = await db.execute(
+            select(ArticleMapping).where(ArticleMapping.id == mapping_id)
+        )
+        mapping = result.scalar_one_or_none()
+        
+        if not mapping:
+            raise HTTPException(status_code=404, detail="Сопоставление не найдено")
+        
+        # Мягкое удаление - помечаем как неактивное
+        mapping.is_active = False
+        await db.commit()
+        
+        return {"message": "Сопоставление успешно удалено", "success": True}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении сопоставления: {str(e)}")
 
 
 @router.post("/requests/", response_model=ContractorRequestSchema)
@@ -1236,20 +1875,41 @@ async def get_found_items(
         raise HTTPException(status_code=500, detail=f"Ошибка при получении найденных элементов: {str(e)}")
 
 
+@router.get("/test-found-items-debug/")
+async def test_found_items_debug(db: AsyncSession = Depends(get_db)):
+    """Отладочный endpoint для проверки фильтрации"""
+    try:
+        # Получаем все элементы
+        result_all = await db.execute(select(ArticleMapping))
+        all_mappings = result_all.scalars().all()
+        
+        # Получаем только активные элементы
+        result_active = await db.execute(select(ArticleMapping).where(ArticleMapping.is_active == True))
+        active_mappings = result_active.scalars().all()
+        
+        return {
+            "total_count": len(all_mappings),
+            "active_count": len(active_mappings),
+            "inactive_count": len(all_mappings) - len(active_mappings),
+            "message": "Отладочная информация о фильтрации"
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.get("/test-found-items/")
 async def test_found_items(db: AsyncSession = Depends(get_db)):
     """Тестовый endpoint для проверки найденных элементов без аутентификации"""
     try:
-        # Используем SQLAlchemy ORM для получения данных
-        result = await db.execute(select(ArticleMapping))
+        # Используем SQLAlchemy ORM для получения данных, фильтруем только активные
+        result = await db.execute(select(ArticleMapping).where(ArticleMapping.is_active == True))
         mappings = result.scalars().all()
-        
-        print(f"Найдено {len(mappings)} записей в article_mappings")
         
         found_items = []
         for mapping in mappings:
             item = {
                 "id": mapping.id,
+                "mapping_id": mapping.id,  # Добавляем mapping_id для удаления
                 "bl_article": mapping.bl_article,
                 "search_article": mapping.contractor_article,
                 "our_article": mapping.agb_article,
@@ -1454,10 +2114,10 @@ async def perform_matching(request_id: int, db: AsyncSession) -> dict:
                     # Не найдено соответствие
                     matched_items.append({
                         "line_number": item.line_number,
-                        "contractor_article": item.contractor_article,
-                        "description": item.description,
-                        "agb_article": None,
-                        "bl_article": None,
+                        "contractor_article": item.contractor_article or '',
+                        "description": item.description or '',
+                        "agb_article": '',
+                        "bl_article": '',
                         "match_confidence": 0,
                         "packaging_factor": 1.0,
                         "recalculated_quantity": item.quantity,
@@ -2404,38 +3064,55 @@ async def get_ai_response(text: str, api_key: str, provider: str) -> str:
                 messages=[
                     {
                         "role": "system",
-                        "content": """Ты - ИИ-агент для сопоставления артикулов компании АГБ. 
+                        "content": """ТЫ - ИИ-СПЕЦИАЛИСТ ПО ИЗВЛЕЧЕНИЮ И СОПОСТАВЛЕНИЮ АРТИКУЛОВ КОМПАНИИ АГБ.
 
-ПРАВИЛА РАБОТЫ:
-1. Если пользователь просит найти артикулы, проанализировать документ или найти товары - найди их и верни в формате JSON
-2. Если это обычный вопрос, приветствие или диалог - отвечай как обычный чат-бот
+ИНСТРУКЦИИ:
+1. ТВОЯ ОСНОВНАЯ ЗАДАЧА: Извлекать артикулы и товары из документов/текста
+2. ЕСЛИ это запрос на поиск артикулов - ОБЯЗАТЕЛЬНО верни JSON с результатами
+3. ЕСЛИ это обычный чат - отвечай как помощник
 
-ЗАДАЧА СОПОСТАВЛЕНИЯ:
-- Найди все артикулы в тексте/документе
-- Ориентируйся на артикулы "бортлангер" 
-- Ищи соответствия в базе данных АГБ
-- Если точного соответствия нет, предложи наиболее подходящее (уверенность ≥80%)
-- Ищи как по артикулам, так и по наименованиям
+ПРИЗНАКИ АРТИКУЛОВ КОМПАНИИ АГБ:
+- Формат: АГБ-XXXXXX, АГБXXXXXX (6-8 цифр)
+- BL-XXXXXX, BLXXXXXX (артикулы "бортлангер")
+- ОХКУ-XXXXXX, ОХКУXXXXXX (артикулы)
+- Коды 1С: числовые коды (УТ-коды)
+- Сочетания: цифры + буквы (1234BL, BL1234)
 
-ФОРМАТ ДЛЯ АРТИКУЛОВ (только когда просят найти артикулы):
+ИЗВЛЕКАЙ ИНФОРМАЦИЮ:
+- Артикулы контрагентов (любые форматы)
+- Наименования товаров (на русском/английском)
+- Количества и единицы измерения
+- Описания товаров
+
+ФОРМАТ ОТВЕТА ДЛЯ АРТИКУЛОВ:
 [
     {
-        "contractor_article": "артикул контрагента",
-        "description": "описание товара", 
-        "quantity": количество,
-        "unit": "единица измерения",
-        "agb_article": "артикул АГБ (если найден)",
-        "bl_article": "артикул BL (если найден)",
-        "match_confidence": "уверенность сопоставления (0-100)",
-        "match_type": "точное/частичное/по_наименованию"
+        "contractor_article": "артикул контрагента (если есть)",
+        "description": "полное наименование товара",
+        "quantity": число,
+        "unit": "шт/кг/л/м²/м³",
+        "agb_article": "артикул АГБ (если похож)",
+        "bl_article": "BL артикул (если похож)",
+        "match_confidence": 85,
+        "match_type": "exact/partial/by_name"
     }
 ]
 
-ПРИМЕРЫ:
-- "найди артикулы" → ищи артикулы и верни JSON
-- "привет" → отвечай как чат-бот
-- "как дела?" → отвечай как чат-бот
-- "расскажи о компании" → отвечай как чат-бот"""
+ПРАВИЛА ИЗВЛЕЧЕНИЯ:
+- ИЩИ ВСЕ возможные артикулы в тексте
+- НЕ ПРОПУСКАЙ товары без артикулов - они тоже важны
+- ЕСЛИ артикул содержит "BL", "борт" - это BL артикул
+- ЕСЛИ артикул содержит "АГБ" - это АГБ артикул
+- КОЛИЧЕСТВО: ищи числа с единицами измерения
+- ЕСЛИ количества нет - ставь 1
+
+ПРИМЕРЫ РАСПОЗНАВАНИЯ:
+- "BL-123456 болт М12" → contractor_article: "BL-123456", description: "болт М12"
+- "АГБ-789012" → agb_article: "АГБ-789012"
+- "10 шт гайка М10" → quantity: 10, unit: "шт", description: "гайка М10"
+- "труба 100м" → quantity: 100, unit: "м", description: "труба"
+
+ВЕРНИ ТОЛЬКО JSON МАССИВ!"""
                     },
                     {
                         "role": "user",
@@ -2456,38 +3133,55 @@ async def get_ai_response(text: str, api_key: str, provider: str) -> str:
                 "messages": [
                     {
                         "role": "system",
-                        "content": """Ты - ИИ-агент для сопоставления артикулов компании АГБ. 
+                        "content": """ТЫ - ИИ-СПЕЦИАЛИСТ ПО ИЗВЛЕЧЕНИЮ И СОПОСТАВЛЕНИЮ АРТИКУЛОВ КОМПАНИИ АГБ.
 
-ПРАВИЛА РАБОТЫ:
-1. Если пользователь просит найти артикулы, проанализировать документ или найти товары - найди их и верни в формате JSON
-2. Если это обычный вопрос, приветствие или диалог - отвечай как обычный чат-бот
+ИНСТРУКЦИИ:
+1. ТВОЯ ОСНОВНАЯ ЗАДАЧА: Извлекать артикулы и товары из документов/текста
+2. ЕСЛИ это запрос на поиск артикулов - ОБЯЗАТЕЛЬНО верни JSON с результатами
+3. ЕСЛИ это обычный чат - отвечай как помощник
 
-ЗАДАЧА СОПОСТАВЛЕНИЯ:
-- Найди все артикулы в тексте/документе
-- Ориентируйся на артикулы "бортлангер" 
-- Ищи соответствия в базе данных АГБ
-- Если точного соответствия нет, предложи наиболее подходящее (уверенность ≥80%)
-- Ищи как по артикулам, так и по наименованиям
+ПРИЗНАКИ АРТИКУЛОВ КОМПАНИИ АГБ:
+- Формат: АГБ-XXXXXX, АГБXXXXXX (6-8 цифр)
+- BL-XXXXXX, BLXXXXXX (артикулы "бортлангер")
+- ОХКУ-XXXXXX, ОХКУXXXXXX (артикулы)
+- Коды 1С: числовые коды (УТ-коды)
+- Сочетания: цифры + буквы (1234BL, BL1234)
 
-ФОРМАТ ДЛЯ АРТИКУЛОВ (только когда просят найти артикулы):
+ИЗВЛЕКАЙ ИНФОРМАЦИЮ:
+- Артикулы контрагентов (любые форматы)
+- Наименования товаров (на русском/английском)
+- Количества и единицы измерения
+- Описания товаров
+
+ФОРМАТ ОТВЕТА ДЛЯ АРТИКУЛОВ:
 [
     {
-        "contractor_article": "артикул контрагента",
-        "description": "описание товара", 
-        "quantity": количество,
-        "unit": "единица измерения",
-        "agb_article": "артикул АГБ (если найден)",
-        "bl_article": "артикул BL (если найден)",
-        "match_confidence": "уверенность сопоставления (0-100)",
-        "match_type": "точное/частичное/по_наименованию"
+        "contractor_article": "артикул контрагента (если есть)",
+        "description": "полное наименование товара",
+        "quantity": число,
+        "unit": "шт/кг/л/м²/м³",
+        "agb_article": "артикул АГБ (если похож)",
+        "bl_article": "BL артикул (если похож)",
+        "match_confidence": 85,
+        "match_type": "exact/partial/by_name"
     }
 ]
 
-ПРИМЕРЫ:
-- "найди артикулы" → ищи артикулы и верни JSON
-- "привет" → отвечай как чат-бот
-- "как дела?" → отвечай как чат-бот
-- "расскажи о компании" → отвечай как чат-бот"""
+ПРАВИЛА ИЗВЛЕЧЕНИЯ:
+- ИЩИ ВСЕ возможные артикулы в тексте
+- НЕ ПРОПУСКАЙ товары без артикулов - они тоже важны
+- ЕСЛИ артикул содержит "BL", "борт" - это BL артикул
+- ЕСЛИ артикул содержит "АГБ" - это АГБ артикул
+- КОЛИЧЕСТВО: ищи числа с единицами измерения
+- ЕСЛИ количества нет - ставь 1
+
+ПРИМЕРЫ РАСПОЗНАВАНИЯ:
+- "BL-123456 болт М12" → contractor_article: "BL-123456", description: "болт М12"
+- "АГБ-789012" → agb_article: "АГБ-789012"
+- "10 шт гайка М10" → quantity: 10, unit: "шт", description: "гайка М10"
+- "труба 100м" → quantity: 100, unit: "м", description: "труба"
+
+ВЕРНИ ТОЛЬКО JSON МАССИВ!"""
                     },
                     {
                         "role": "user",
@@ -2526,11 +3220,28 @@ async def match_articles_with_database(articles: List[dict], db: AsyncSession) -
     results = []
     
     for article in articles:
-        contractor_article = article.get('contractor_article', '')
-        description = article.get('description', '')
-        
+        # Проверяем, что article - это словарь
+        if not isinstance(article, dict):
+            print(f"❌ Ошибка: article должен быть словарем, получен: {type(article)}")
+            return []
+
+        contractor_article = article.get('contractor_article')
+        description = article.get('description')
+
+        # Если нет артикула и описания, пропускаем
+        if not contractor_article and not description:
+            print(f"❌ Ошибка: отсутствуют contractor_article и description")
+            results.append(MatchingResult(
+                id=str(uuid.uuid4()),
+                contractor_article='',
+                description='Неизвестный товар',
+                matched=False,
+                match_confidence=0.0
+            ))
+            return results
+
         # Используем умный поиск через AI
-        search_text = f"{contractor_article} {description}".strip()
+        search_text = f"{contractor_article or ''} {description or ''}".strip()
         print(f"🔍 Вызываем smart_search_with_ai для: '{search_text}'")
         print(f"🔍 contractor_article: '{contractor_article}'")
         print(f"🔍 description: '{description}'")
@@ -2557,9 +3268,9 @@ async def match_articles_with_database(articles: List[dict], db: AsyncSession) -
                 contractor_article=contractor_article,
                 description=description,
                 matched=True,
-                agb_article=best_match.get('agb_article', ''),
-                bl_article=best_match.get('bl_article', ''),
-                match_confidence=best_match.get('confidence', 0),
+                agb_article=best_match.get('agb_article'),
+                bl_article=best_match.get('bl_article'),
+                match_confidence=best_match.get('confidence', 0.0),
                 nomenclature={
                     'id': 0,
                     'name': best_match.get('name', ''),
@@ -2574,12 +3285,12 @@ async def match_articles_with_database(articles: List[dict], db: AsyncSession) -
         else:
             # Если соответствие не найдено
             results.append(MatchingResult(
-                    id=str(uuid.uuid4()),
-                    contractor_article=contractor_article,
-                    description=description,
-                    matched=False,
-                    match_confidence=0.0
-                ))
+                id=str(uuid.uuid4()),
+                contractor_article=contractor_article,
+                description=description,
+                matched=False,
+                match_confidence=0.0
+            ))
     
     return results
 
@@ -2587,7 +3298,11 @@ async def find_exact_article_match(contractor_article: str, db: AsyncSession) ->
     """Найти точное соответствие артикула в базе данных"""
     try:
         from sqlalchemy.future import select
-        
+
+        # Если contractor_article None или пустой, не ищем
+        if not contractor_article:
+            return None
+
         # Ищем точное соответствие по артикулу
         result = await db.execute(
             select(MatchingNomenclature).where(
@@ -2595,7 +3310,7 @@ async def find_exact_article_match(contractor_article: str, db: AsyncSession) ->
             ).limit(1)
         )
         match = result.scalar_one_or_none()
-        
+
         if match:
             return {
                 'id': match.id,
@@ -2605,7 +3320,7 @@ async def find_exact_article_match(contractor_article: str, db: AsyncSession) ->
                 'bl_article': match.bl_article,
                 'confidence': 100.0
             }
-        
+
         return None
     except Exception as e:
         print(f"Error in find_exact_article_match: {e}")
@@ -2775,37 +3490,64 @@ async def process_ai_request(
                         print(f"DEBUG: Found articles in text: {len(articles)}")
                     else:
                         print(f"DEBUG: No JSON found, treating as regular chat response")
-                        
+                        # Проверяем, может это описание товара
+                        if clean_response and len(clean_response.strip()) > 10:
+                            print(f"🔍 Попытка обработать как натуральное описание товара: {clean_response[:100]}...")
+                            articles = [{
+                                'contractor_article': '',
+                                'description': clean_response.strip(),
+                                'quantity': 1,
+                                'unit': 'шт'
+                            }]
+                            print(f"🔍 Создан артикул из натурального текста: {articles[0]}")
+                        else:
+                            print(f"DEBUG: Treating as regular chat response")
+                            pass
             except json.JSONDecodeError as e:
                 print(f"DEBUG: JSON parsing error: {e}")
                 print(f"DEBUG: Response: {ai_response}")
-                # Если не удалось распарсить JSON, это обычный чат
-                pass
+                # Если не удалось распарсить JSON, проверяем, может это описание товара
+                if ai_response and len(ai_response.strip()) > 10:
+                    print(f"🔍 Попытка обработать как натуральное описание товара: {ai_response[:100]}...")
+                    # Обрабатываем как натуральное описание товара
+                    articles = [{
+                        'contractor_article': '',
+                        'description': ai_response.strip(),
+                        'quantity': 1,
+                        'unit': 'шт'
+                    }]
+                    print(f"🔍 Создан артикул из натурального текста: {articles[0]}")
+                else:
+                    # Если не удалось распарсить JSON, это обычный чат
+                    pass
             
             # Если нашли артикулы, создаем результаты сопоставления
             if articles:
                 print(f"🔍 HTTP API: Найдено {len(articles)} артикулов в AI ответе")
                 for article in articles:
                     print(f"🔍 HTTP API: Обрабатываем артикул: {article}")
+                    # Нормализуем данные из ИИ ответа
+                    normalized_article = normalize_ai_article(article)
+
                     # Сопоставляем с базой данных
                     print(f"🔍 HTTP API: Вызываем match_articles_with_database...")
-                    matched_result = await match_articles_with_database([article], db)
+                    matched_result = await match_articles_with_database([normalized_article], db)
                     print(f"🔍 HTTP API: Результат сопоставления: {matched_result}")
                     if matched_result:
                         print(f"🔍 HTTP API: Добавляем {len(matched_result)} результатов")
                         matching_results.extend(matched_result)
                     else:
-                        print(f"🔍 HTTP API: Создаем базовый результат для {article.get('contractor_article', '')}")
+                        print(f"🔍 HTTP API: Создаем базовый результат для {normalized_article.get('contractor_article', normalized_article.get('description', 'неизвестный товар'))}")
                         # Если сопоставление не найдено, создаем базовый результат
                         matching_results.append(MatchingResult(
                             id=str(uuid.uuid4()),
-                            contractor_article=article.get('contractor_article', ''),
-                            description=article.get('description', ''),
+                            contractor_article=normalized_article.get('contractor_article'),
+                            description=normalized_article.get('description'),
                             matched=False,
-                            agb_article=article.get('agb_article'),
-                            bl_article=article.get('bl_article'),
-                            match_confidence=article.get('match_confidence'),
-                            nomenclature=article.get('nomenclature')
+                            agb_article=normalized_article.get('agb_article'),
+                            bl_article=normalized_article.get('bl_article'),
+                            match_confidence=normalized_article.get('match_confidence'),
+                            nomenclature=normalized_article.get('nomenclature')
                         ))
             else:
                 print(f"🔍 HTTP API: Нет артикулов для обработки")

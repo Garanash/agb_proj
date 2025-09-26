@@ -64,11 +64,13 @@ export default function UserProfile() {
 
   // Генерируем аватар из инициалов
   const getInitials = (user: any) => {
+    if (!user) return '?'
+
     const parts = []
     if (user.last_name) parts.push(user.last_name)
     if (user.first_name) parts.push(user.first_name)
     if (user.middle_name) parts.push(user.middle_name)
-    
+
     return parts
       .map(name => name[0])
       .join('')
@@ -79,14 +81,15 @@ export default function UserProfile() {
   const getAvatarColor = (username: string) => {
     const colors = [
       'bg-blue-500',
-      'bg-green-500', 
+      'bg-green-500',
       'bg-purple-500',
       'bg-pink-500',
       'bg-indigo-500',
       'bg-yellow-500',
       'bg-red-500'
     ]
-    const index = username.length % colors.length
+    const length = username ? username.length : 0
+    const index = length % colors.length
     return colors[index]
   }
 
@@ -98,8 +101,16 @@ export default function UserProfile() {
         return 'Менеджер'
       case 'employee':
         return 'Сотрудник'
+      case 'ved_passport':
+        return 'Специалист ВЭД'
+      case 'service_engineer':
+        return 'Сервисный инженер'
+      case 'security':
+        return 'Служба безопасности'
+      case 'hr':
+        return 'Отдел кадров'
       default:
-        return role
+        return role || 'Пользователь'
     }
   }
 
@@ -121,15 +132,15 @@ export default function UserProfile() {
         {/* Аватар с инициалами */}
         <div className={`
           w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden
-          ${!user?.avatar_url ? getAvatarColor(user?.username || '') : ''}
+          ${!user?.avatar_url ? getAvatarColor(user?.username || 'user') : ''}
         `}>
           {user?.avatar_url ? (
-            <img 
-              src={`${getApiUrl()}/uploads/${user.avatar_url}`} 
-              alt={`${user?.last_name} ${user?.first_name}`} 
+            <img
+              src={`${getApiUrl()}/uploads/${user.avatar_url}`}
+              alt={`${user?.last_name || ''} ${user?.first_name || ''}`}
               className="w-full h-full object-cover"
               onError={(e) => {
-                console.log('Avatar load error:', user.avatar_url);
+                console.log('Avatar load error:', user?.avatar_url);
                 e.currentTarget.style.display = 'none';
               }}
             />
@@ -141,10 +152,10 @@ export default function UserProfile() {
         {/* Информация о пользователе */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 truncate">
-            {user?.last_name} {user?.first_name} {user?.middle_name || ''}
+            {user?.last_name || ''} {user?.first_name || ''} {user?.middle_name || ''}
           </p>
           <p className="text-xs text-gray-600 truncate">
-            @{user?.username}
+            @{user?.username || 'пользователь'}
           </p>
         </div>
         
@@ -165,7 +176,7 @@ export default function UserProfile() {
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">Email:</span>
               <span className="text-gray-800 font-medium truncate ml-2">
-                {user?.email}
+                {user?.email || 'не указан'}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs">
@@ -178,12 +189,12 @@ export default function UserProfile() {
               <span className="text-gray-600">Статус:</span>
               <span className={`
                 px-2 py-1 rounded-full text-xs font-medium
-                ${user?.is_active 
-                  ? 'bg-green-100 text-green-800' 
+                ${user?.is_active !== false
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
                 }
               `}>
-                {user?.is_active ? 'Активен' : 'Неактивен'}
+                {user?.is_active !== false ? 'Активен' : 'Неактивен'}
               </span>
             </div>
           </div>
