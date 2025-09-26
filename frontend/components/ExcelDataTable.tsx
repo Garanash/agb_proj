@@ -142,7 +142,18 @@ export default function ExcelDataTable({
     
     if (lines.length === 1) {
       // Обычная вставка одной ячейки
-      setEditValue(pastedText.trim())
+      if (editingCell) {
+        setEditValue(pastedText.trim())
+      } else {
+        // Если ячейка не в режиме редактирования, переводим её в этот режим
+        const target = e.currentTarget as HTMLElement
+        const rowId = target.closest('[data-row-id]')?.getAttribute('data-row-id')
+        const field = target.getAttribute('data-field')
+        if (rowId && field) {
+          setEditingCell({ rowId, field })
+          setEditValue(pastedText.trim())
+        }
+      }
       return
     }
 
@@ -152,12 +163,33 @@ export default function ExcelDataTable({
       
       if (parsedData.length === 0) {
         // Если не удалось распарсить, вставляем как обычный текст
-        setEditValue(pastedText.trim())
+        if (editingCell) {
+          setEditValue(pastedText.trim())
+        } else {
+          const target = e.currentTarget as HTMLElement
+          const rowId = target.closest('[data-row-id]')?.getAttribute('data-row-id')
+          const field = target.getAttribute('data-field')
+          if (rowId && field) {
+            setEditingCell({ rowId, field })
+            setEditValue(pastedText.trim())
+          }
+        }
         return
       }
 
+      // Определяем целевую строку для вставки
+      let targetRowId: string
+      if (editingCell) {
+        targetRowId = editingCell.rowId
+      } else {
+        const target = e.currentTarget as HTMLElement
+        const rowId = target.closest('[data-row-id]')?.getAttribute('data-row-id')
+        if (!rowId) return
+        targetRowId = rowId
+      }
+
       // Находим текущую строку и индекс
-      const currentRowIndex = data.findIndex(row => row.id === editingCell?.rowId)
+      const currentRowIndex = data.findIndex(row => row.id === targetRowId)
       if (currentRowIndex === -1) return
 
       // Создаем новые строки
@@ -189,7 +221,17 @@ export default function ExcelDataTable({
     } catch (error) {
       console.error('Ошибка при парсинге множественных данных:', error)
       // В случае ошибки вставляем как обычный текст
-      setEditValue(pastedText.trim())
+      if (editingCell) {
+        setEditValue(pastedText.trim())
+      } else {
+        const target = e.currentTarget as HTMLElement
+        const rowId = target.closest('[data-row-id]')?.getAttribute('data-row-id')
+        const field = target.getAttribute('data-field')
+        if (rowId && field) {
+          setEditingCell({ rowId, field })
+          setEditValue(pastedText.trim())
+        }
+      }
     }
   }
 
@@ -426,7 +468,7 @@ export default function ExcelDataTable({
 
           {/* Строки данных */}
           {data.map((row, rowIndex) => (
-            <div key={row.id} className="grid gap-0 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800" style={{gridTemplateColumns: '60px 200px 120px 80px 80px 120px 120px 120px 100px 80px 150px 150px 150px 150px 150px 150px 150px 150px 150px 150px 60px'}}>
+            <div key={row.id} data-row-id={row.id} className="grid gap-0 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800" style={{gridTemplateColumns: '60px 200px 120px 80px 80px 120px 120px 120px 100px 80px 150px 150px 150px 150px 150px 150px 150px 150px 150px 150px 60px'}}>
               {/* Статус */}
               <div className="p-2 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                 <div className="flex items-center">
@@ -436,6 +478,7 @@ export default function ExcelDataTable({
 
               {/* Наименование */}
               <div 
+                data-field="наименование"
                 className={`p-1 border-r border-gray-200 dark:border-gray-700 cursor-pointer min-h-[40px] flex items-center ${
                   selectedCell?.rowId === row.id && selectedCell?.field === 'наименование' 
                     ? 'bg-blue-100 dark:bg-blue-900/30' 
@@ -443,6 +486,7 @@ export default function ExcelDataTable({
                 }`}
                 onClick={() => handleCellClick(row.id, 'наименование', row.наименование)}
                 onDoubleClick={() => handleCellDoubleClick(row.id, 'наименование', row.наименование)}
+                onPaste={handlePaste}
               >
                 {editingCell?.rowId === row.id && editingCell?.field === 'наименование' ? (
                   <input
