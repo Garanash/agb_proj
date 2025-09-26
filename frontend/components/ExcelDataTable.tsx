@@ -131,6 +131,87 @@ export default function ExcelDataTable({
     }
   }
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    
+    const pastedText = e.clipboardData.getData('text')
+    if (!pastedText.trim()) return
+
+    // Проверяем, содержит ли вставленный текст несколько строк
+    const lines = pastedText.trim().split('\n').filter(line => line.trim())
+    
+    if (lines.length === 1) {
+      // Обычная вставка одной ячейки
+      setEditValue(pastedText.trim())
+      return
+    }
+
+    // Множественная вставка - парсим данные
+    try {
+      const parsedData = parseMultipleRowsData(lines)
+      
+      if (parsedData.length === 0) {
+        // Если не удалось распарсить, вставляем как обычный текст
+        setEditValue(pastedText.trim())
+        return
+      }
+
+      // Находим текущую строку и индекс
+      const currentRowIndex = data.findIndex(row => row.id === editingCell?.rowId)
+      if (currentRowIndex === -1) return
+
+      // Создаем новые строки
+      const newRows: ExcelRow[] = parsedData.map((rowData, index) => ({
+        id: `new_${Date.now()}_${index}`,
+        наименование: rowData[0] || '',
+        запрашиваемый_артикул: rowData[1] || '',
+        количество: parseFloat(rowData[2]) || 1,
+        единица_измерения: rowData[3] || 'шт',
+        наш_артикул: rowData[4] || '',
+        артикул_bl: rowData[5] || '',
+        номер_1с: rowData[6] || '',
+        стоимость: parseFloat(rowData[7]) || 0,
+        статус_сопоставления: 'pending' as const,
+        уверенность: 0
+      }))
+
+      // Вставляем новые строки после текущей
+      const updatedData = [
+        ...data.slice(0, currentRowIndex + 1),
+        ...newRows,
+        ...data.slice(currentRowIndex + 1)
+      ]
+
+      onDataChange(updatedData)
+      setEditingCell(null)
+      setEditValue('')
+      
+    } catch (error) {
+      console.error('Ошибка при парсинге множественных данных:', error)
+      // В случае ошибки вставляем как обычный текст
+      setEditValue(pastedText.trim())
+    }
+  }
+
+  const parseMultipleRowsData = (lines: string[]): string[][] => {
+    // Определяем разделители (табуляция или точка с запятой)
+    const firstLine = lines[0]
+    const hasTabs = firstLine.includes('\t')
+    const hasSemicolons = firstLine.includes(';')
+    
+    let delimiter = '\t' // По умолчанию табуляция
+    if (hasSemicolons && !hasTabs) {
+      delimiter = ';'
+    } else if (hasTabs) {
+      delimiter = '\t'
+    }
+
+    // Парсим все строки
+    return lines.map(line => 
+      line.split(delimiter).map(col => col.trim())
+    )
+  }
+
   const moveToNextCell = () => {
     if (!selectedCell) return
     
@@ -370,6 +451,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -397,6 +479,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -425,6 +508,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -451,6 +535,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   >
@@ -487,6 +572,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -514,6 +600,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -541,6 +628,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -569,6 +657,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
@@ -598,6 +687,7 @@ export default function ExcelDataTable({
                     value={editValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}
+                    onPaste={handlePaste}
                     onBlur={handleCellSave}
                     className="w-full h-full border-none outline-none bg-transparent text-sm"
                   />
