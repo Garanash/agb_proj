@@ -135,16 +135,12 @@ export default function ExcelDataTable({
     e.preventDefault()
     
     const pastedText = e.clipboardData.getData('text')
-    console.log('🔍 Вставленный текст:', pastedText)
-    console.log('🔍 Длина текста:', pastedText.length)
     
     if (!pastedText.trim()) return
 
     // Проверяем, содержит ли вставленный текст несколько строк
     // Убираем символы возврата каретки и разделяем по символам новой строки
     const lines = pastedText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n').filter(line => line.trim())
-    console.log('🔍 Разделенные строки:', lines)
-    console.log('🔍 Количество строк:', lines.length)
     
     if (lines.length === 1) {
       // Обычная вставка одной ячейки
@@ -213,9 +209,9 @@ export default function ExcelDataTable({
         уверенность: 0
       }))
 
-      // Вставляем новые строки после текущей
+      // Вставляем новые строки начиная с текущей строки (заменяем её)
       const updatedData = [
-        ...data.slice(0, currentRowIndex + 1),
+        ...data.slice(0, currentRowIndex),
         ...newRows,
         ...data.slice(currentRowIndex + 1)
       ]
@@ -242,16 +238,10 @@ export default function ExcelDataTable({
   }
 
   const parseMultipleRowsData = (lines: string[]): string[][] => {
-    console.log('🔍 Парсинг множественных данных:', lines)
-    
     // Определяем разделители (табуляция или точка с запятой)
     const firstLine = lines[0]
     const hasTabs = firstLine.includes('\t')
     const hasSemicolons = firstLine.includes(';')
-    
-    console.log('🔍 Первая строка:', firstLine)
-    console.log('🔍 Есть табуляции:', hasTabs)
-    console.log('🔍 Есть точки с запятой:', hasSemicolons)
     
     let delimiter = '\t' // По умолчанию табуляция
     if (hasSemicolons && !hasTabs) {
@@ -259,16 +249,11 @@ export default function ExcelDataTable({
     } else if (hasTabs) {
       delimiter = '\t'
     }
-    
-    console.log('🔍 Выбранный разделитель:', delimiter)
 
     // Парсим все строки
-    const result = lines.map(line => 
+    return lines.map(line => 
       line.split(delimiter).map(col => col.trim())
     )
-    
-    console.log('🔍 Результат парсинга:', result)
-    return result
   }
 
   const moveToNextCell = () => {
