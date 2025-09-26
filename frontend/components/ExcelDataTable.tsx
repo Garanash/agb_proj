@@ -209,11 +209,11 @@ export default function ExcelDataTable({
         уверенность: 0
       }))
 
-      // Вставляем новые строки начиная с текущей строки (заменяем её)
+      // Вставляем новые строки начиная с текущей строки (не заменяем её)
       const updatedData = [
         ...data.slice(0, currentRowIndex),
         ...newRows,
-        ...data.slice(currentRowIndex + 1)
+        ...data.slice(currentRowIndex)
       ]
 
       onDataChange(updatedData)
