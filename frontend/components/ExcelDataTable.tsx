@@ -44,17 +44,19 @@ interface ExcelDataTableProps {
   isSaving?: boolean
   savedVariants?: {[key: string]: number}
   onSaveVariant?: (rowId: string, variantIndex: number) => void
+  onSaveConfirmedMatch?: (rowData: ExcelRow, variant: any) => void
 }
 
 export default function ExcelDataTable({ 
   data, 
   onDataChange, 
   onAutoMatch, 
-  onSave,
-  isMatching,
+  onSave, 
+  isMatching, 
   isSaving = false,
   savedVariants = {},
-  onSaveVariant
+  onSaveVariant,
+  onSaveConfirmedMatch
 }: ExcelDataTableProps) {
   const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -334,6 +336,11 @@ export default function ExcelDataTable({
     // Сохраняем выбор варианта
     if (onSaveVariant) {
       onSaveVariant(rowId, variantIndex)
+    }
+    
+    // Сохраняем подтвержденное сопоставление
+    if (onSaveConfirmedMatch) {
+      onSaveConfirmedMatch(row, variant)
     }
     
     setShowVariantModal(false)

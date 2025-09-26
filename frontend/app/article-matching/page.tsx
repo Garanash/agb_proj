@@ -123,7 +123,7 @@ export default function ArticleMatchingPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [matching, setMatching] = useState(false)
-  const [activeTab, setActiveTab] = useState<'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching' | 'excel_matching'>('excel_matching')
+  const [activeTab, setActiveTab] = useState<'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching' | 'excel_matching' | 'found_matches'>('excel_matching')
   const [textInput, setTextInput] = useState('')
   const [inputMode, setInputMode] = useState<'file' | 'text'>('file')
   const [contractorName, setContractorName] = useState('')
@@ -196,6 +196,8 @@ export default function ArticleMatchingPage() {
   const [isAutoMatching, setIsAutoMatching] = useState(false)
   const [isSavingExcel, setIsSavingExcel] = useState(false)
   const [savedVariants, setSavedVariants] = useState<{[key: string]: number}>({})
+  const [foundMatches, setFoundMatches] = useState<any[]>([])
+  const [loadingFoundMatches, setLoadingFoundMatches] = useState(false)
 
   useEffect(() => {
     console.log('=== useEffect вызван ===')
@@ -216,10 +218,11 @@ export default function ArticleMatchingPage() {
     }
 
     console.log('Загружаем данные...')
-    loadRequests()
-    loadOurDatabase()
-    loadFoundItems()
-    loadSavedVariants()
+        loadRequests()
+        loadOurDatabase()
+        loadFoundItems()
+        loadSavedVariants()
+        loadFoundMatches()
   }, [isAuthenticated, user, router])
 
   const loadRequests = async () => {
@@ -860,12 +863,18 @@ export default function ArticleMatchingPage() {
       return
     }
 
+    if (!token) {
+      alert('Необходима авторизация для выполнения сопоставления')
+      return
+    }
+
     setIsAutoMatching(true)
     try {
       const response = await fetch('http://localhost:8000/api/v1/article-matching/auto-match-excel/', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ data: excelData })
       })
@@ -942,6 +951,26 @@ export default function ArticleMatchingPage() {
     }
   }
 
+  const loadFoundMatches = async () => {
+    try {
+      setLoadingFoundMatches(true)
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setFoundMatches(result.matches || [])
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке найденных сопоставлений:', error)
+    } finally {
+      setLoadingFoundMatches(false)
+    }
+  }
+
   const saveVariantSelection = async (rowId: string, variantIndex: number) => {
     try {
       const response = await fetch('http://localhost:8000/api/v1/article-matching/save-variant-selection/', {
@@ -961,6 +990,57 @@ export default function ArticleMatchingPage() {
       }
     } catch (error) {
       console.error('Ошибка при сохранении выбранного варианта:', error)
+    }
+  }
+
+  const deleteFoundMatch = async (matchId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/article-matching/found-matches/${matchId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setFoundMatches(prev => prev.filter(match => match.id !== matchId))
+      }
+    } catch (error) {
+      console.error('Ошибка при удалении сопоставления:', error)
+    }
+  }
+
+  const saveConfirmedMatch = async (rowData: ExcelRow, variant: any) => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-found-match/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          search_name: rowData.наименование,
+          search_article: rowData.запрашиваемый_артикул,
+          quantity: rowData.количество,
+          unit: rowData.единица_измерения,
+          matched_name: variant.наименование,
+          matched_article: variant.наш_артикул,
+          bl_article: variant.артикул_bl,
+          article_1c: variant.номер_1с,
+          cost: rowData.стоимость,
+          confidence: variant.уверенность,
+          match_type: variant.тип_совпадения || 'user_confirmed',
+          is_auto_confirmed: false,
+          is_user_confirmed: true
+        })
+      })
+
+      if (response.ok) {
+        // Обновляем список найденных сопоставлений
+        loadFoundMatches()
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении подтвержденного сопоставления:', error)
     }
   }
 
@@ -1007,6 +1087,16 @@ export default function ArticleMatchingPage() {
               }`}
             >
               Excel сопоставление
+            </button>
+            <button
+              onClick={() => setActiveTab('found_matches')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'found_matches'
+                  ? 'border-green-500 text-green-600 dark:text-green-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              Найденные
             </button>
             <button
               onClick={() => setActiveTab('our_database')}
@@ -1750,6 +1840,7 @@ export default function ArticleMatchingPage() {
                 isSaving={isSavingExcel}
                 savedVariants={savedVariants}
                 onSaveVariant={saveVariantSelection}
+                onSaveConfirmedMatch={saveConfirmedMatch}
               />
 
           </div>
@@ -2115,6 +2206,142 @@ export default function ArticleMatchingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Найденные сопоставления */}
+        {activeTab === 'found_matches' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Найденные сопоставления
+              </h2>
+              <button
+                onClick={loadFoundMatches}
+                disabled={loadingFoundMatches}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+              >
+                {loadingFoundMatches ? 'Загрузка...' : 'Обновить'}
+              </button>
+            </div>
+
+            {loadingFoundMatches ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              </div>
+            ) : foundMatches.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 dark:text-gray-400">Найденные сопоставления отсутствуют</p>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Поисковый запрос
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Найденное соответствие
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Артикулы
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Уверенность
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Статус
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Дата
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Действия
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {foundMatches.map((match) => (
+                        <tr key={match.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {match.search_name}
+                              </div>
+                              {match.search_article && (
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  Арт: {match.search_article}
+                                </div>
+                              )}
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {match.quantity} {match.unit}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {match.matched_name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              <div>АГБ: {match.matched_article || '—'}</div>
+                              <div>BL: {match.bl_article || '—'}</div>
+                              <div>1С: {match.article_1c || '—'}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              match.confidence >= 90 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : match.confidence >= 70
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
+                              {match.confidence}%
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex flex-col space-y-1">
+                              {match.is_auto_confirmed && (
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                  Авто
+                                </span>
+                              )}
+                              {match.is_user_confirmed && (
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  Подтверждено
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {match.match_type}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(match.created_at).toLocaleDateString('ru-RU')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button
+                              onClick={() => {
+                                if (confirm('Удалить это сопоставление?')) {
+                                  deleteFoundMatch(match.id)
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Удалить
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
