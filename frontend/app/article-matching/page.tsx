@@ -123,13 +123,12 @@ export default function ArticleMatchingPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [matching, setMatching] = useState(false)
-  const [activeTab, setActiveTab] = useState<'matching' | 'results' | 'our_database' | 'found_items' | 'ai_matching' | 'excel_matching' | 'found_matches'>('excel_matching')
+  const [activeTab, setActiveTab] = useState<'matching' | 'results' | 'our_database' | 'ai_matching' | 'excel_matching' | 'found_matches'>('excel_matching')
   const [textInput, setTextInput] = useState('')
   const [inputMode, setInputMode] = useState<'file' | 'text'>('file')
   const [contractorName, setContractorName] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [ourDatabase, setOurDatabase] = useState<any[]>([])
-  const [foundItems, setFoundItems] = useState<any[]>([])
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
@@ -220,7 +219,6 @@ export default function ArticleMatchingPage() {
     console.log('Загружаем данные...')
         loadRequests()
         loadOurDatabase()
-        loadFoundItems()
         loadSavedVariants()
         loadFoundMatches()
   }, [isAuthenticated, user, router])
@@ -281,36 +279,6 @@ export default function ArticleMatchingPage() {
     }
   }
 
-  const loadFoundItems = async () => {
-    console.log('=== loadFoundItems вызвана ===')
-    
-    try {
-      const url = 'http://localhost:8000/api/v1/article-matching/test-found-items/'
-      console.log('URL:', url)
-      
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      console.log('Ответ от сервера (найденные):', response.status, response.statusText)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('Получены найденные элементы:', data.count, 'элементов')
-        console.log('Первые 3 элемента:', data.data.slice(0, 3))
-        setFoundItems(data.data || [])
-      } else {
-        const errorData = await response.json()
-        console.error('Ошибка загрузки найденных элементов:', errorData)
-        setFoundItems([])
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки найденных элементов:', error)
-      setFoundItems([])
-    }
-  }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -385,7 +353,6 @@ export default function ArticleMatchingPage() {
           
           // Обновляем найденные элементы через некоторое время
           setTimeout(() => {
-            loadFoundItems()
           }, 5000)
         } else {
           const error = await response.json()
@@ -441,7 +408,6 @@ export default function ArticleMatchingPage() {
         setTextInput('')
         
         // Обновляем найденные элементы
-        await loadFoundItems()
         
         alert(`Текст успешно обработан! Найдено ${matchingResults.matched_items} из ${matchingResults.total_items} позиций.`)
       } else {
@@ -594,11 +560,6 @@ export default function ArticleMatchingPage() {
       if (response.ok) {
         // Удаляем элемент из локального состояния по ID элемента
         console.log('Удаляем элемент с ID:', itemToDelete.id, 'из локального состояния')
-        setFoundItems(prev => {
-          const filtered = prev.filter(foundItem => foundItem.id !== itemToDelete.id)
-          console.log('Было элементов:', prev.length, 'Стало элементов:', filtered.length)
-          return filtered
-        })
         setSuccessMessage('Сопоставление успешно удалено')
         setShowSuccessModal(true)
       } else {
@@ -731,11 +692,6 @@ export default function ArticleMatchingPage() {
 
       if (response.ok) {
         // Обновляем локальное состояние
-        setFoundItems(prev => prev.map(item => 
-          item.id === editingFoundItem.id 
-            ? { ...item, ...foundEditForm }
-            : item
-        ))
         cancelFoundEdit()
       } else {
         console.error('Ошибка при сохранении найденного элемента')
@@ -839,7 +795,6 @@ export default function ArticleMatchingPage() {
       if (response.ok) {
         const newMapping = await response.json()
         // Обновляем список найденных элементов
-        await loadFoundItems()
         closeCreateMappingModal()
         alert('Сопоставление успешно создано!')
       } else {
@@ -1109,16 +1064,6 @@ export default function ArticleMatchingPage() {
               Наша база
             </button>
             <button
-              onClick={() => setActiveTab('found_items')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'found_items'
-                  ? 'border-purple-500 text-purple-600 dark:text-purple-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-              }`}
-            >
-              Найденные
-            </button>
-            <button
               onClick={() => setActiveTab('ai_matching')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'ai_matching'
@@ -1182,13 +1127,6 @@ export default function ArticleMatchingPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-6">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Результаты сопоставления</h2>
-                <button
-                    onClick={() => loadFoundItems()}
-                    className="bg-blue-600 dark:bg-blue-700 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 flex items-center space-x-2"
-                >
-                    <ArrowPathIcon className="h-5 w-5" />
-                    <span>Обновить</span>
-                </button>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
@@ -1391,114 +1329,6 @@ export default function ArticleMatchingPage() {
           </div>
         )}
 
-        {/* Найденные элементы */}
-        {activeTab === 'found_items' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Найденные элементы</h2>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={openCreateMappingModal}
-                    className="bg-purple-600 dark:bg-purple-700 text-white px-4 py-2 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 flex items-center space-x-2"
-                  >
-                    <PlusIcon className="h-5 w-5" />
-                    <span>Добавить сопоставление</span>
-                  </button>
-                  <button
-                    onClick={loadFoundItems}
-                    className="bg-green-600 dark:bg-green-700 text-white px-4 py-2 rounded-md hover:bg-green-700 dark:hover:bg-green-600 flex items-center space-x-2"
-                  >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    <span>Обновить</span>
-                  </button>
-                </div>
-              </div>
-              {foundItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 dark:text-gray-400">Нет данных для отображения</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Артикул BL
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Артикул поиска
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Наш артикул
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Найденные данные
-                        </th>
-                        <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Действия
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                      {foundItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                            {item.bl_article || '-'}
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            {item.search_article || '-'}
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            {item.our_article || '-'}
-                          </td>
-                          <td className="px-3 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                            {item.found_data || '-'}
-                          </td>
-                          <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => startFoundEdit(item)}
-                                className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                title="Редактировать"
-                              >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleItemClick(item)}
-                                className="text-purple-600 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-300 p-1 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                                title="Подробнее"
-                              >
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                              </button>
-                              {item.mapping_id && (
-                                <button
-                                  onClick={() => handleDeleteItem(item)}
-                                  className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  title="Удалить сопоставление"
-                                >
-                                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Модальное окно */}
         {showModal && selectedItem && (
