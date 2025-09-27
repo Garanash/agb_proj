@@ -859,3 +859,14 @@ class FoundMatch(Base):
     user = relationship("User")
 
 
+# Импортируем модели v3 для включения в базу данных
+try:
+    from api.v3.models import (
+        Role as RoleV3, RolePermission as RolePermissionV3, 
+        UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
+        SystemNotification, UserActivity, SystemSettings
+    )
+except ImportError:
+    pass
+
+
