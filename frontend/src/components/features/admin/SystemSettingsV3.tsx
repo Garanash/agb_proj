@@ -6,7 +6,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
 import { Settings, Construction } from 'lucide-react';
 
-export const SystemSettingsV3: React.FC = () => {
+const SystemSettingsV3: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -29,3 +29,4 @@ export const SystemSettingsV3: React.FC = () => {
     </Card>
   );
 };
+export default SystemSettingsV3;

@@ -56,6 +56,34 @@ const AdminPage = () => {
           </pre>
         </div>
 
+        {/* Новая админ панель v3 - временно отключена */}
+        <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">🚀 Новая админ панель v3</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Расширенная система управления с ролями, настройками email, API ключами и уведомлениями
+              </p>
+              <div className="flex gap-2">
+                <Link
+                  href="/admin/v3"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Открыть панель v3
+                </Link>
+                <Link
+                  href="/api/v3/health"
+                  target="_blank"
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  API v3
+                </Link>
+              </div>
+            </div>
+            <div className="text-6xl">⚡</div>
+          </div>
+        </div>
+
         {/* Навигация */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Link

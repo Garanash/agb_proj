@@ -142,6 +142,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.dashboard import router as dashboard_router
+    api_router.include_router(dashboard_router, tags=["📊 Дашборд"])
+except ImportError:
+    pass
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

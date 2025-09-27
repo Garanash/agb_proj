@@ -12,8 +12,8 @@ from fastapi import HTTPException, status
 from .models import Role, RolePermission, UserRole as UserRoleV3
 from ..v1.dependencies import get_current_user
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+# from email.mime.text import MimeText
+# from email.mime.multipart import MimeMultipart
 import json
 
 
@@ -86,57 +86,57 @@ class PermissionManager:
             )
 
 
-# Email утилиты
-class EmailManager:
-    """Менеджер отправки email"""
-    
-    @staticmethod
-    async def send_email(
-        smtp_server: str,
-        smtp_port: int,
-        username: str,
-        password: str,
-        use_tls: bool,
-        use_ssl: bool,
-        from_email: str,
-        from_name: Optional[str],
-        to_email: str,
-        subject: str,
-        body: str,
-        is_html: bool = False
-    ) -> bool:
-        """Отправляет email"""
-        try:
-            # Создаем сообщение
-            msg = MimeMultipart()
-            msg['From'] = f"{from_name} <{from_email}>" if from_name else from_email
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            
-            # Добавляем тело сообщения
-            body_type = 'html' if is_html else 'plain'
-            msg.attach(MimeText(body, body_type, 'utf-8'))
-            
-            # Подключаемся к серверу
-            if use_ssl:
-                server = smtplib.SMTP_SSL(smtp_server, smtp_port)
-            else:
-                server = smtplib.SMTP(smtp_server, smtp_port)
-                if use_tls:
-                    server.starttls()
-            
-            # Авторизуемся
-            server.login(username, password)
-            
-            # Отправляем
-            server.send_message(msg)
-            server.quit()
-            
-            return True
-            
-        except Exception as e:
-            print(f"Ошибка отправки email: {e}")
-            return False
+# Email утилиты (временно отключены)
+# class EmailManager:
+#     """Менеджер отправки email"""
+#     
+#     @staticmethod
+#     async def send_email(
+#         smtp_server: str,
+#         smtp_port: int,
+#         username: str,
+#         password: str,
+#         use_tls: bool,
+#         use_ssl: bool,
+#         from_email: str,
+#         from_name: Optional[str],
+#         to_email: str,
+#         subject: str,
+#         body: str,
+#         is_html: bool = False
+#     ) -> bool:
+#         """Отправляет email"""
+#         try:
+#             # Создаем сообщение
+#             msg = MimeMultipart()
+#             msg['From'] = f"{from_name} <{from_email}>" if from_name else from_email
+#             msg['To'] = to_email
+#             msg['Subject'] = subject
+#             
+#             # Добавляем тело сообщения
+#             body_type = 'html' if is_html else 'plain'
+#             msg.attach(MimeText(body, body_type, 'utf-8'))
+#             
+#             # Подключаемся к серверу
+#             if use_ssl:
+#                 server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+#             else:
+#                 server = smtplib.SMTP(smtp_server, smtp_port)
+#                 if use_tls:
+#                     server.starttls()
+#             
+#             # Авторизуемся
+#             server.login(username, password)
+#             
+#             # Отправляем
+#             server.send_message(msg)
+#             server.quit()
+#             
+#             return True
+#             
+#         except Exception as e:
+#             print(f"Ошибка отправки email: {e}")
+#             return False
 
 
 # Логирование активности

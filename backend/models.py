@@ -860,13 +860,15 @@ class FoundMatch(Base):
 
 
 # Импортируем модели v3 для включения в базу данных
-try:
-    from api.v3.models import (
-        Role as RoleV3, RolePermission as RolePermissionV3, 
-        UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
-        SystemNotification, UserActivity, SystemSettings
-    )
-except ImportError:
-    pass
+# Временно отключено из-за проблем с relationships
+# try:
+#     from api.v3.models import (
+#         Role as RoleV3, RolePermission as RolePermissionV3,
+#         UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
+#         SystemNotification, UserActivity, SystemSettings,
+#         SystemLog, LoginLog, SystemMetrics, SecurityEvent, BackupLog
+#     )
+# except ImportError:
+#     pass
 
 

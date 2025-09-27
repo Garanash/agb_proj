@@ -50,7 +50,7 @@ interface RoleFormData {
   permissions: string[];
 }
 
-export const RoleManagementV3: React.FC = () => {
+const RoleManagementV3: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
@@ -567,3 +567,4 @@ export const RoleManagementV3: React.FC = () => {
     </div>
   );
 };
+export default RoleManagementV3;

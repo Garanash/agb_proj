@@ -2,7 +2,7 @@
 Расширенные модели для API v3
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, Text, JSON
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func, Text, JSON, Float, BigInteger
 from sqlalchemy.orm import relationship
 from database import Base
 import enum
@@ -81,17 +81,15 @@ class UserRole(Base):
     __tablename__ = "user_roles_v3"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, nullable=False)  # Убираем ForeignKey пока
     role_id = Column(Integer, ForeignKey("roles_v3.id"), nullable=False)
-    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Кто назначил
+    assigned_by = Column(Integer, nullable=True)  # Кто назначил
     assigned_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True)  # Срок действия
     is_active = Column(Boolean, default=True)
     
     # Связи
-    user = relationship("User", foreign_keys=[user_id])
     role = relationship("Role", back_populates="user_roles")
-    assigned_by_user = relationship("User", foreign_keys=[assigned_by])
 
 
 class EmailSettings(Base):
@@ -125,7 +123,7 @@ class ApiKeySettings(Base):
     additional_config = Column(JSON, nullable=True)  # Дополнительные настройки
     is_active = Column(Boolean, default=True)
     is_default = Column(Boolean, default=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_used = Column(DateTime(timezone=True), nullable=True)
@@ -148,7 +146,7 @@ class SystemNotification(Base):
     is_system_wide = Column(Boolean, default=False)
     priority = Column(Integer, default=1)  # 1-низкий, 2-средний, 3-высокий
     expires_at = Column(DateTime(timezone=True), nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Связи
@@ -188,3 +186,96 @@ class SystemSettings(Base):
     validation_rules = Column(JSON, nullable=True)  # Правила валидации
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class SystemLog(Base):
+    """Системные логи"""
+    __tablename__ = "system_logs_v3"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    level = Column(String(20), nullable=False, index=True)  # INFO, WARNING, ERROR, DEBUG
+    message = Column(Text, nullable=False)
+    module = Column(String(100), nullable=True)
+    function = Column(String(100), nullable=True)
+    line_number = Column(Integer, nullable=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    request_id = Column(String(100), nullable=True, index=True)
+    extra_data = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<SystemLog(level='{self.level}', message='{self.message[:50]}...', created_at='{self.created_at}')>"
+
+
+class LoginLog(Base):
+    """Логи входов в систему"""
+    __tablename__ = "login_logs_v3"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    username = Column(String(100), nullable=False)
+    ip_address = Column(String(45), nullable=False)
+    user_agent = Column(Text, nullable=True)
+    success = Column(Boolean, nullable=False, index=True)
+    failure_reason = Column(String(200), nullable=True)
+    session_id = Column(String(100), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<LoginLog(user_id={self.user_id}, username='{self.username}', success={self.success}, created_at='{self.created_at}')>"
+
+
+class SystemMetrics(Base):
+    """Метрики производительности системы"""
+    __tablename__ = "system_metrics_v3"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    metric_name = Column(String(100), nullable=False, index=True)
+    metric_value = Column(Float, nullable=False)
+    metric_unit = Column(String(20), nullable=True)  # %, MB, seconds, etc.
+    tags = Column(JSON, nullable=True)  # Дополнительные теги для группировки
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<SystemMetrics(metric_name='{self.metric_name}', value={self.metric_value}, created_at='{self.created_at}')>"
+
+
+class SecurityEvent(Base):
+    """События безопасности"""
+    __tablename__ = "security_events_v3"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)  # LOGIN_FAILURE, SUSPICIOUS_ACTIVITY, etc.
+    severity = Column(String(20), nullable=False, index=True)  # LOW, MEDIUM, HIGH, CRITICAL
+    description = Column(Text, nullable=False)
+    user_id = Column(Integer, nullable=True, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    additional_data = Column(JSON, nullable=True)
+    resolved = Column(Boolean, default=False, index=True)
+    resolved_by = Column(Integer, nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<SecurityEvent(type='{self.event_type}', severity='{self.severity}', created_at='{self.created_at}')>"
+
+
+class BackupLog(Base):
+    """Логи резервного копирования"""
+    __tablename__ = "backup_logs_v3"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    backup_type = Column(String(50), nullable=False, index=True)  # DATABASE, FILES, FULL
+    status = Column(String(20), nullable=False, index=True)  # SUCCESS, FAILED, IN_PROGRESS
+    file_path = Column(String(500), nullable=True)
+    file_size = Column(BigInteger, nullable=True)  # Размер в байтах
+    duration_seconds = Column(Integer, nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_by = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    
+    def __repr__(self):
+        return f"<BackupLog(type='{self.backup_type}', status='{self.status}', created_at='{self.created_at}')>"

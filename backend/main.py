@@ -49,6 +49,12 @@ app = FastAPI(
 # CORS настройки для локальной разработки
 from fastapi.middleware.cors import CORSMiddleware
 
+# Простой тестовый endpoint для проверки работы
+@app.get("/test-dashboard")
+async def test_dashboard_endpoint():
+    """Тестовый endpoint для проверки работы dashboard"""
+    return {"message": "Dashboard test endpoint is working", "status": "ok", "timestamp": datetime.now().isoformat()}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

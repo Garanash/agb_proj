@@ -12,12 +12,12 @@ import {
   Settings, Users, Shield, Mail, Key, Bell, 
   BarChart3, Activity, Database, Zap
 } from 'lucide-react';
-import { UserManagementV3 } from './UserManagementV3';
-import { RoleManagementV3 } from './RoleManagementV3';
-import { EmailSettingsV3 } from './EmailSettingsV3';
-import { ApiKeySettingsV3 } from './ApiKeySettingsV3';
-import { SystemNotificationsV3 } from './SystemNotificationsV3';
-import { SystemSettingsV3 } from './SystemSettingsV3';
+import UserManagementV3 from './UserManagementV3';
+import RoleManagementV3 from './RoleManagementV3';
+import EmailSettingsV3 from './EmailSettingsV3';
+import ApiKeySettingsV3 from './ApiKeySettingsV3';
+import SystemNotificationsV3 from './SystemNotificationsV3';
+import SystemSettingsV3 from './SystemSettingsV3';
 import { useAuth } from '@/hooks';
 
 interface AdminStats {
@@ -28,7 +28,7 @@ interface AdminStats {
   systemHealth: 'healthy' | 'warning' | 'error';
 }
 
-export const AdminPanelV3: React.FC = () => {
+const AdminPanelV3: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState<AdminStats>({
@@ -289,3 +289,5 @@ export const AdminPanelV3: React.FC = () => {
     </div>
   );
 };
+
+export default AdminPanelV3;

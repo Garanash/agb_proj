@@ -63,7 +63,7 @@ interface Role {
   isActive: boolean;
 }
 
-export const UserManagementV3: React.FC = () => {
+const UserManagementV3: React.FC = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserV3[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -573,3 +573,5 @@ export const UserManagementV3: React.FC = () => {
     </div>
   );
 };
+
+export default UserManagementV3;

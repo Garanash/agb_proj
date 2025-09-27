@@ -5,6 +5,7 @@ import { getApiUrl } from '@/utils';
 import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
 import { useAuth } from '@/hooks'
 import Link from 'next/link'
+import AdminDashboard from '@/src/components/features/admin/AdminDashboard'
 
 export default function Home() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -98,6 +99,11 @@ export default function Home() {
       {/* Блок для авторизованных пользователей */}
       {isAuthenticated && user && (
         <div className="mb-8">
+          {/* Дашборд для администраторов */}
+          {user.role === 'admin' && (
+            <AdminDashboard />
+          )}
+
           {user.role === 'customer' && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
               <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">
@@ -151,17 +157,20 @@ export default function Home() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Календарь */}
-        <div className="lg:col-span-2">
-          <Calendar />
-        </div>
+      {/* Показываем календарь и новости только для не-администраторов */}
+      {!(isAuthenticated && user && user.role === 'admin') && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Календарь */}
+          <div className="lg:col-span-2">
+            <Calendar />
+          </div>
 
-        {/* Новости компании */}
-        <div className="lg:col-span-1">
-          <NewsWidget />
+          {/* Новости компании */}
+          <div className="lg:col-span-1">
+            <NewsWidget />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Модальное окно регистрации */}
       <RegistrationModal

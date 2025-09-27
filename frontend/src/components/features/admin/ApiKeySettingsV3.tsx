@@ -6,7 +6,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
 import { Key, Construction } from 'lucide-react';
 
-export const ApiKeySettingsV3: React.FC = () => {
+const ApiKeySettingsV3: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -29,3 +29,4 @@ export const ApiKeySettingsV3: React.FC = () => {
     </Card>
   );
 };
+export default ApiKeySettingsV3;

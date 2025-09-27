@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false)
         setHasInitialized(true)
       }
-    }, 3000) // 3 секунды таймаут
+    }, 1000) // 1 секунда таймаут (уменьшено)
 
     return () => clearTimeout(timeout)
   }, [hasInitialized])
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Force timeout reached, completing initialization')
       setIsLoading(false)
       setHasInitialized(true)
-    }, 5000) // 5 секунд принудительный таймаут
+    }, 2000) // 2 секунды принудительный таймаут (уменьшено)
 
     return () => clearTimeout(forceTimeout)
   }, [])
@@ -106,12 +106,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('API URL for token validation:', apiUrl)
       console.log('Making request to:', apiUrl)
       
-      // Добавляем таймаут для запроса
+      // Добавляем таймаут для запроса (сокращенный)
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 секунд таймаут
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 секунды таймаут
       
       const response = await axios.get(apiUrl, {
-        signal: controller.signal
+        signal: controller.signal,
+        timeout: 3000 // Дополнительный таймаут axios
       })
       
       clearTimeout(timeoutId)

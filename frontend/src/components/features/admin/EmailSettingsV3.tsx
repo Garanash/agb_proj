@@ -53,7 +53,7 @@ interface TestEmailData {
   body: string;
 }
 
-export const EmailSettingsV3: React.FC = () => {
+const EmailSettingsV3: React.FC = () => {
   const [emailSettings, setEmailSettings] = useState<EmailSettings[]>([]);
   const [selectedSettings, setSelectedSettings] = useState<EmailSettings | null>(null);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
@@ -718,3 +718,4 @@ export const EmailSettingsV3: React.FC = () => {
     </div>
   );
 };
+export default EmailSettingsV3;

@@ -54,7 +54,7 @@ class RoleBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
     display_name: str = Field(..., min_length=2, max_length=100)
     description: Optional[str] = None
-    color: Optional[str] = Field(None, regex=r'^#[0-9A-Fa-f]{6}$')
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     is_active: bool = True
 
 
@@ -65,7 +65,7 @@ class RoleCreate(RoleBase):
 class RoleUpdate(BaseModel):
     display_name: Optional[str] = Field(None, min_length=2, max_length=100)
     description: Optional[str] = None
-    color: Optional[str] = Field(None, regex=r'^#[0-9A-Fa-f]{6}$')
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     is_active: Optional[bool] = None
     permissions: Optional[List[RolePermissionCreate]] = None
 
@@ -221,7 +221,7 @@ class ApiKeySettingsResponse(ApiKeySettingsBase):
 class NotificationBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     message: str = Field(..., min_length=1)
-    notification_type: str = Field(..., regex=r'^(info|warning|error|success)$')
+    notification_type: str = Field(..., pattern=r'^(info|warning|error|success)$')
     target_users: Optional[List[int]] = None
     target_roles: Optional[List[int]] = None
     is_system_wide: bool = False
@@ -236,7 +236,7 @@ class NotificationCreate(NotificationBase):
 class NotificationUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     message: Optional[str] = Field(None, min_length=1)
-    notification_type: Optional[str] = Field(None, regex=r'^(info|warning|error|success)$')
+    notification_type: Optional[str] = Field(None, pattern=r'^(info|warning|error|success)$')
     target_users: Optional[List[int]] = None
     target_roles: Optional[List[int]] = None
     is_system_wide: Optional[bool] = None
@@ -259,7 +259,7 @@ class SystemSettingBase(BaseModel):
     category: str = Field(..., min_length=1, max_length=50)
     key: str = Field(..., min_length=1, max_length=100)
     value: Optional[str] = None
-    data_type: str = Field("string", regex=r'^(string|int|bool|json)$')
+    data_type: str = Field("string", pattern=r'^(string|int|bool|json)$')
     is_encrypted: bool = False
     is_public: bool = False
     description: Optional[str] = None
@@ -320,3 +320,146 @@ class ErrorResponse(BaseModel):
     success: bool = False
     error: str
     details: Optional[Dict[str, Any]] = None
+
+
+# Схемы для логирования
+class SystemLogResponse(BaseModel):
+    id: int
+    level: str
+    message: str
+    module: Optional[str]
+    function: Optional[str]
+    line_number: Optional[int]
+    user_id: Optional[int]
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    request_id: Optional[str]
+    extra_data: Optional[Dict[str, Any]]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LoginLogResponse(BaseModel):
+    id: int
+    user_id: int
+    username: str
+    ip_address: str
+    user_agent: Optional[str]
+    success: bool
+    failure_reason: Optional[str]
+    session_id: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class SecurityEventResponse(BaseModel):
+    id: int
+    event_type: str
+    severity: str
+    description: str
+    user_id: Optional[int]
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    additional_data: Optional[Dict[str, Any]]
+    resolved: bool
+    resolved_by: Optional[int]
+    resolved_at: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class LogFilterRequest(BaseModel):
+    level: Optional[str] = None
+    module: Optional[str] = None
+    user_id: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    search: Optional[str] = None
+
+
+class LogStatsResponse(BaseModel):
+    period_days: int
+    system_logs_by_level: Dict[str, int]
+    login_stats: Dict[str, int]
+    security_events_by_severity: Dict[str, int]
+    daily_activity: Dict[str, int]
+
+
+# Схемы для мониторинга
+class SystemHealthResponse(BaseModel):
+    status: str  # healthy, warning, critical
+    timestamp: datetime
+    cpu_usage: float
+    memory_usage: float
+    disk_usage: float
+    total_users: int
+    recent_logins: int
+    error_count_last_hour: int
+    uptime: str
+
+
+class SystemMetricsResponse(BaseModel):
+    id: int
+    metric_name: str
+    metric_value: float
+    metric_unit: Optional[str]
+    tags: Optional[Dict[str, Any]]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PerformanceMetricsResponse(BaseModel):
+    period_hours: int
+    metrics: Dict[str, List[Dict[str, Any]]]
+    current_cpu: float
+    current_memory: float
+    current_disk: float
+
+
+class DatabaseStatsResponse(BaseModel):
+    database_size: str
+    active_connections: int
+    tables_stats: Dict[str, int]
+    last_backup: Optional[datetime]
+    health_status: str
+
+
+# Схемы для резервного копирования
+class BackupLogResponse(BaseModel):
+    id: int
+    backup_type: str
+    status: str
+    file_path: Optional[str]
+    file_size: Optional[int]
+    duration_seconds: Optional[int]
+    error_message: Optional[str]
+    created_by: Optional[int]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class BackupCreateRequest(BaseModel):
+    backup_type: str  # DATABASE, FILES, FULL
+    include_files: bool = True
+    compression: bool = True
+    created_by: int
+
+
+class BackupStatsResponse(BaseModel):
+    total_backups: int
+    successful_backups: int
+    failed_backups: int
+    success_rate: float
+    type_stats: Dict[str, int]
+    last_backup_date: Optional[datetime]
+    total_size_bytes: int

@@ -21,11 +21,12 @@ try:
 except ImportError:
     pass
 
-try:
-    from .v3.router import router as v3_router
-    api_router.include_router(v3_router, prefix="/v3")
-except ImportError:
-    pass
+# API v3 - временно отключено из-за проблем с моделями
+# try:
+#     from .v3.router import api_router as v3_router
+#     api_router.include_router(v3_router, prefix="/v3")
+# except ImportError:
+#     pass
 
 # Простые эндпоинты для тестирования
 @api_router.get("/v1/ping")

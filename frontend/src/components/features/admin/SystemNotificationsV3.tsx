@@ -6,7 +6,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
 import { Bell, Construction } from 'lucide-react';
 
-export const SystemNotificationsV3: React.FC = () => {
+const SystemNotificationsV3: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -29,3 +29,4 @@ export const SystemNotificationsV3: React.FC = () => {
     </Card>
   );
 };
+export default SystemNotificationsV3;
