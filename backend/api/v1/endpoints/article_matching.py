@@ -3434,6 +3434,67 @@ async def find_partial_article_match(contractor_article: str, description: str, 
         print(f"Error in find_partial_article_match: {e}")
         return None
 
+async def check_existing_match(search_name: str, search_article: str, user_id: int, db: AsyncSession) -> Optional[dict]:
+    """Проверить существующее сопоставление в FoundMatch"""
+    try:
+        from models import FoundMatch
+        from sqlalchemy.future import select
+        
+        # Нормализуем поисковый запрос для точного сопоставления
+        normalized_search = get_normalized_text(search_name.lower().strip())
+        
+        # Ищем точное совпадение по нормализованному тексту
+        result = await db.execute(
+            select(FoundMatch)
+            .where(
+                FoundMatch.user_id == user_id,
+                (FoundMatch.is_user_confirmed == True) | (FoundMatch.is_auto_confirmed == True)  # Подтвержденные или автоматически подтвержденные
+            )
+            .order_by(FoundMatch.confirmed_at.desc())
+        )
+        existing_matches = result.scalars().all()
+        
+        for match in existing_matches:
+            # Нормализуем сохраненное наименование
+            normalized_existing = get_normalized_text(match.search_name.lower().strip())
+            
+            # Проверяем точное совпадение по нормализованному тексту
+            if normalized_search == normalized_existing:
+                print(f"🔍 Найдено существующее сопоставление: '{match.search_name}' -> '{match.matched_name}'")
+                return {
+                    'id': match.id,
+                    'search_name': match.search_name,
+                    'search_article': match.search_article,
+                    'matched_name': match.matched_name,
+                    'matched_article': match.matched_article,
+                    'bl_article': match.bl_article,
+                    'article_1c': match.article_1c,
+                    'confidence': 100.0,  # Для существующих сопоставлений всегда 100%
+                    'match_type': 'existing_confirmed',
+                    'is_existing': True
+                }
+            
+            # Дополнительная проверка по артикулу, если есть
+            if search_article and match.search_article and search_article.strip() == match.search_article.strip():
+                print(f"🔍 Найдено существующее сопоставление по артикулу: '{search_article}' -> '{match.matched_article}'")
+                return {
+                    'id': match.id,
+                    'search_name': match.search_name,
+                    'search_article': match.search_article,
+                    'matched_name': match.matched_name,
+                    'matched_article': match.matched_article,
+                    'bl_article': match.bl_article,
+                    'article_1c': match.article_1c,
+                    'confidence': 100.0,
+                    'match_type': 'existing_confirmed',
+                    'is_existing': True
+                }
+        
+        return None
+    except Exception as e:
+        print(f"Error in check_existing_match: {e}")
+        return None
+
 @router.post("/ai-process/", response_model=AIMatchingResponse)
 async def process_ai_request(
     message: str = Form(...),
@@ -3752,6 +3813,45 @@ async def auto_match_excel_data(
                 matched_row = row.copy()
                 print(f"DEBUG: Обрабатываем строку: '{row.наименование}'")
                 
+                # СНАЧАЛА проверяем существующие сопоставления
+                existing_match = None
+                if row.наименование:
+                    print(f"🔍 ПРОВЕРЯЕМ СУЩЕСТВУЮЩИЕ СОПОСТАВЛЕНИЯ ДЛЯ: '{row.наименование}'")
+                    try:
+                        existing_match = await check_existing_match(
+                            search_name=row.наименование,
+                            search_article=row.запрашиваемый_артикул,
+                            user_id=current_user.id,
+                            db=db
+                        )
+                        print(f"🔍 РЕЗУЛЬТАТ ПРОВЕРКИ: {existing_match is not None}")
+                        if existing_match:
+                            print(f"🔍 НАЙДЕНО СУЩЕСТВУЮЩЕЕ: {existing_match['search_name']} -> {existing_match['matched_name']}")
+                    except Exception as e:
+                        print(f"❌ ОШИБКА В check_existing_match: {e}")
+                        import traceback
+                        traceback.print_exc()
+                
+                if existing_match:
+                    print(f"✅ Найдено существующее сопоставление: '{existing_match['search_name']}' -> '{existing_match['matched_name']}'")
+                    # Используем существующее сопоставление
+                    matched_row.наш_артикул = existing_match['matched_article']
+                    matched_row.артикул_bl = existing_match['bl_article']
+                    matched_row.номер_1с = existing_match['article_1c']
+                    matched_row.статус_сопоставления = "matched"  # Зеленый статус
+                    matched_row.уверенность = 100  # 100% уверенность
+                    matched_row.варианты_подбора = [{
+                        'наименование': existing_match['matched_name'],
+                        'наш_артикул': existing_match['matched_article'],
+                        'артикул_bl': existing_match['bl_article'],
+                        'номер_1с': existing_match['article_1c'],
+                        'уверенность': 100,
+                        'тип_совпадения': 'existing_confirmed'
+                    }]
+                    matched_data.append(matched_row)
+                    statistics["matched"] += 1
+                    continue
+                
                 # Поиск по наименованию (70% совпадение)
                 if row.наименование:
                     print(f"DEBUG: Поиск по наименованию: '{row.наименование}'")
@@ -3800,7 +3900,7 @@ async def auto_match_excel_data(
                                 })
                                 print(f"DEBUG: Найдено нормализованное совпадение: '{item.name}' (схожесть: {similarity:.2f})")
                     
-                    # 3. Дополнительный поиск по ключевым словам
+                    # 3. Улучшенный поиск по ключевым словам и категориям
                     search_words = search_text.split()
                     if len(search_words) > 1:  # Если есть несколько слов
                         for item in name_items:
@@ -3808,6 +3908,7 @@ async def auto_match_excel_data(
                             word_matches = 0
                             total_words = len(search_words)
                             
+                            # Ищем совпадения по словам
                             for word in search_words:
                                 if word in item_name:
                                     word_matches += 1
@@ -3819,7 +3920,7 @@ async def auto_match_excel_data(
                                 is_duplicate = any(
                                     match['item'].id == item.id for match in matches
                                 )
-                                if not is_duplicate and word_similarity >= 0.3:
+                                if not is_duplicate and word_similarity >= 0.2:  # Снижаем порог до 20%
                                     matches.append({
                                         'item': item,
                                         'similarity': word_similarity,
@@ -3828,13 +3929,93 @@ async def auto_match_excel_data(
                                     })
                                     print(f"DEBUG: Найдено совпадение по ключевым словам: '{item.name}' (схожесть: {word_similarity:.2f})")
                     
+                    # 4. Поиск по категориям и типам товаров
+                    category_keywords = {
+                        'смазка': ['смазка', 'grease', 'масло', 'lubricant'],
+                        'химия': ['химия', 'химический', 'chemical', 'полимер', 'polymer'],
+                        'инструмент': ['инструмент', 'tool', 'ключ', 'wrench'],
+                        'крепеж': ['болт', 'гайка', 'винт', 'bolt', 'nut', 'screw'],
+                        'уплотнение': ['уплотнение', 'seal', 'кольцо', 'ring', 'прокладка']
+                    }
+                    
+                    # Определяем категорию поиска
+                    search_category = None
+                    for category, keywords in category_keywords.items():
+                        for keyword in keywords:
+                            if keyword in search_text:
+                                search_category = category
+                                break
+                        if search_category:
+                            break
+                    
+                    # Если определили категорию, ищем товары этой категории
+                    if search_category:
+                        print(f"DEBUG: Определена категория: {search_category}")
+                        for item in name_items:
+                            item_name = item.name.lower()
+                            
+                            # Проверяем, содержит ли товар ключевые слова категории
+                            category_match = False
+                            for keyword in category_keywords[search_category]:
+                                if keyword in item_name:
+                                    category_match = True
+                                    break
+                            
+                            if category_match:
+                                # Проверяем, что это не дубликат
+                                is_duplicate = any(
+                                    match['item'].id == item.id for match in matches
+                                )
+                                if not is_duplicate:
+                                    # Вычисляем схожесть на основе общих слов
+                                    common_words = 0
+                                    for word in search_words:
+                                        if word in item_name:
+                                            common_words += 1
+                                    
+                                    if common_words > 0:
+                                        category_similarity = common_words / len(search_words) * 0.5  # Базовая схожесть 50%
+                                        
+                                        matches.append({
+                                            'item': item,
+                                            'similarity': category_similarity,
+                                            'confidence': int(category_similarity * 100),
+                                            'match_type': 'category'
+                                        })
+                                        print(f"DEBUG: Найдено совпадение по категории: '{item.name}' (схожесть: {category_similarity:.2f})")
+                    
+                    # 5. Поиск по частичным совпадениям (если ничего не найдено)
+                    if not matches:
+                        print("DEBUG: Поиск частичных совпадений...")
+                        for item in name_items:
+                            item_name = item.name.lower()
+                            
+                            # Ищем хотя бы одно слово из поиска
+                            for word in search_words:
+                                if len(word) > 3 and word in item_name:  # Только слова длиннее 3 символов
+                                    # Проверяем, что это не дубликат
+                                    is_duplicate = any(
+                                        match['item'].id == item.id for match in matches
+                                    )
+                                    if not is_duplicate:
+                                        partial_similarity = len(word) / len(search_text) * 0.3  # Базовая схожесть 30%
+                                        
+                                        matches.append({
+                                            'item': item,
+                                            'similarity': partial_similarity,
+                                            'confidence': int(partial_similarity * 100),
+                                            'match_type': 'partial'
+                                        })
+                                        print(f"DEBUG: Найдено частичное совпадение: '{item.name}' (слово: '{word}', схожесть: {partial_similarity:.2f})")
+                                        break  # Найдено одно совпадение, переходим к следующему товару
+                    
                     # Сортируем по убыванию схожести
                     matches.sort(key=lambda x: x['similarity'], reverse=True)
                     
                     if matches:
-                        # Берем лучший вариант для основных полей (только если схожесть >= 70%)
+                        # Берем лучший вариант для основных полей (только если схожесть >= 50%)
                         best_match = matches[0]
-                        if best_match['similarity'] >= 0.7:
+                        if best_match['similarity'] >= 0.5:  # Снижаем порог до 50%
                             matched_row.наш_артикул = best_match['item'].agb_article
                             matched_row.артикул_bl = best_match['item'].bl_article
                             matched_row.номер_1с = best_match['item'].code_1c
@@ -3844,7 +4025,7 @@ async def auto_match_excel_data(
                             matched_row.статус_сопоставления = "partial"
                             matched_row.уверенность = best_match['confidence']
                         
-                        # Добавляем ВСЕ варианты в поле вариантов (топ 10)
+                        # Добавляем ВСЕ варианты в поле вариантов (топ 15)
                         matched_row.варианты_подбора = [
                             {
                                 'наименование': match['item'].name,
@@ -3854,7 +4035,7 @@ async def auto_match_excel_data(
                                 'уверенность': match['confidence'],
                                 'тип_совпадения': match['match_type']
                             }
-                            for match in matches[:10]  # Показываем максимум 10 вариантов
+                            for match in matches[:15]  # Показываем максимум 15 вариантов
                         ]
                         
                         matched_data.append(matched_row)
@@ -3874,6 +4055,35 @@ async def auto_match_excel_data(
                 # Поиск по артикулу (100% совпадение)
                 elif row.запрашиваемый_артикул:
                     print(f"DEBUG: Поиск по артикулу: '{row.запрашиваемый_артикул}'")
+                    
+                    # СНАЧАЛА проверяем существующие сопоставления по артикулу
+                    existing_match = await check_existing_match(
+                        search_name=row.наименование or "",
+                        search_article=row.запрашиваемый_артикул,
+                        user_id=current_user.id,
+                        db=db
+                    )
+                    
+                    if existing_match:
+                        print(f"✅ Найдено существующее сопоставление по артикулу: '{existing_match['search_article']}' -> '{existing_match['matched_article']}'")
+                        # Используем существующее сопоставление
+                        matched_row.наш_артикул = existing_match['matched_article']
+                        matched_row.артикул_bl = existing_match['bl_article']
+                        matched_row.номер_1с = existing_match['article_1c']
+                        matched_row.статус_сопоставления = "matched"  # Зеленый статус
+                        matched_row.уверенность = 100  # 100% уверенность
+                        matched_row.варианты_подбора = [{
+                            'наименование': existing_match['matched_name'],
+                            'наш_артикул': existing_match['matched_article'],
+                            'артикул_bl': existing_match['bl_article'],
+                            'номер_1с': existing_match['article_1c'],
+                            'уверенность': 100,
+                            'тип_совпадения': 'existing_confirmed'
+                        }]
+                        matched_data.append(matched_row)
+                        statistics["matched"] += 1
+                        continue
+                    
                     # Поиск в нашей базе по артикулу АГБ
                     agb_query = select(MatchingNomenclature).where(
                         MatchingNomenclature.agb_article == row.запрашиваемый_артикул
@@ -3903,32 +4113,6 @@ async def auto_match_excel_data(
                         }]
                         matched_data.append(matched_row)
                         statistics["matched"] += 1
-                        
-                        # Сохраняем 100% совпадение автоматически
-                        try:
-                            from models import FoundMatch
-                            from datetime import datetime
-                            
-                            found_match = FoundMatch(
-                                user_id=current_user.id,
-                                search_name=row.наименование or "",
-                                search_article=row.запрашиваемый_артикул,
-                                quantity=row.количество,
-                                unit=row.единица_измерения,
-                                matched_name=agb_item.name,
-                                matched_article=agb_item.agb_article,
-                                bl_article=agb_item.bl_article,
-                                article_1c=agb_item.code_1c,
-                                cost=None,  # Пока не заполняем
-                                confidence=100.0,
-                                match_type="exact_article",
-                                is_auto_confirmed=True,
-                                is_user_confirmed=False,
-                                confirmed_at=datetime.now()
-                            )
-                            db.add(found_match)
-                        except Exception as e:
-                            print(f"Ошибка при сохранении 100% совпадения: {e}")
                     elif bl_item:
                         matched_row.наш_артикул = bl_item.agb_article
                         matched_row.артикул_bl = bl_item.bl_article
@@ -3944,32 +4128,6 @@ async def auto_match_excel_data(
                         }]
                         matched_data.append(matched_row)
                         statistics["matched"] += 1
-                        
-                        # Сохраняем 100% совпадение автоматически
-                        try:
-                            from models import FoundMatch
-                            from datetime import datetime
-                            
-                            found_match = FoundMatch(
-                                user_id=current_user.id,
-                                search_name=row.наименование or "",
-                                search_article=row.запрашиваемый_артикул,
-                                quantity=row.количество,
-                                unit=row.единица_измерения,
-                                matched_name=bl_item.name,
-                                matched_article=bl_item.agb_article,
-                                bl_article=bl_item.bl_article,
-                                article_1c=bl_item.code_1c,
-                                cost=None,  # Пока не заполняем
-                                confidence=100.0,
-                                match_type="exact_bl_article",
-                                is_auto_confirmed=True,
-                                is_user_confirmed=False,
-                                confirmed_at=datetime.now()
-                            )
-                            db.add(found_match)
-                        except Exception as e:
-                            print(f"Ошибка при сохранении 100% совпадения: {e}")
                     else:
                         matched_row.статус_сопоставления = "unmatched"
                         matched_row.варианты_подбора = []
@@ -3981,11 +4139,7 @@ async def auto_match_excel_data(
                     matched_data.append(matched_row)
                     statistics["unmatched"] += 1
         
-        # Сохраняем все изменения в базе данных
-        try:
-            await db.commit()
-        except Exception as e:
-            print(f"Ошибка при сохранении в базу данных: {e}")
+        # НЕ сохраняем автоматически - только при явном подтверждении пользователя
         
         return ExcelMatchResponse(
             success=True,
