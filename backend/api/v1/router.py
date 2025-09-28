@@ -148,6 +148,165 @@ try:
 except ImportError:
     pass
 
+# Временно отключено из-за проблем с моделями v3
+# try:
+#     from .endpoints.simple_api import router as simple_api_router
+#     api_router.include_router(simple_api_router, prefix="/search", tags=["🔍 Простой поиск"])
+# except ImportError:
+#     pass
+
+# Простой эндпоинт поиска
+@api_router.post("/search/")
+async def simple_search_endpoint(request_data: dict):
+    """Простой эндпоинт поиска"""
+    try:
+        search_text = request_data.get("search_text", "")
+        if not search_text:
+            return {"error": "Не указан текст для поиска"}
+        
+        # Простой поиск по базе данных
+        from database import AsyncSessionLocal
+        from models import MatchingNomenclature
+        from sqlalchemy import select, or_
+        import re
+        
+        async with AsyncSessionLocal() as db:
+            # Ищем по артикулу
+            query = select(MatchingNomenclature).where(
+                MatchingNomenclature.is_active == True,
+                or_(
+                    MatchingNomenclature.agb_article.ilike(f"%{search_text}%"),
+                    MatchingNomenclature.bl_article.ilike(f"%{search_text}%"),
+                    MatchingNomenclature.code_1c.ilike(f"%{search_text}%"),
+                    MatchingNomenclature.name.ilike(f"%{search_text}%")
+                )
+            ).limit(10)
+            
+            result = await db.execute(query)
+            items = result.scalars().all()
+            
+            matches = []
+            for item in items:
+                confidence = 0
+                match_reason = ""
+                
+                if item.agb_article and search_text.lower() in item.agb_article.lower():
+                    confidence = 100
+                    match_reason = "Точное совпадение по артикулу АГБ"
+                elif item.bl_article and search_text.lower() in item.bl_article.lower():
+                    confidence = 95
+                    match_reason = "Точное совпадение по артикулу BL"
+                elif item.code_1c and search_text.lower() in item.code_1c.lower():
+                    confidence = 90
+                    match_reason = "Точное совпадение по коду 1С"
+                elif item.name and search_text.lower() in item.name.lower():
+                    confidence = 80
+                    match_reason = "Совпадение по названию"
+                
+                if confidence > 0:
+                    matches.append({
+                        "agb_article": item.agb_article,
+                        "bl_article": item.bl_article,
+                        "name": item.name,
+                        "code_1c": item.code_1c,
+                        "confidence": confidence,
+                        "match_reason": match_reason,
+                        "is_existing": False
+                    })
+            
+            return {
+                "search_type": "simple_search",
+                "matches": matches
+            }
+            
+    except Exception as e:
+        return {"error": f"Ошибка поиска: {str(e)}"}
+
+# Эндпоинт поиска артикулов (совместимость с v3 API)
+@api_router.post("/article-search/search")
+async def article_search_endpoint(request_data: dict):
+    """Эндпоинт поиска артикулов (совместимость с v3 API)"""
+    try:
+        articles = request_data.get("articles", [])
+        if not articles:
+            return {"error": "Не указаны артикулы для поиска"}
+        
+        # Простой поиск по базе данных
+        from database import AsyncSessionLocal
+        from models import MatchingNomenclature
+        from sqlalchemy import select, or_
+        
+        search_results = []
+        
+        async with AsyncSessionLocal() as db:
+            for article in articles:
+                # Ищем по артикулу
+                query = select(MatchingNomenclature).where(
+                    MatchingNomenclature.is_active == True,
+                    or_(
+                        MatchingNomenclature.agb_article.ilike(f"%{article}%"),
+                        MatchingNomenclature.bl_article.ilike(f"%{article}%"),
+                        MatchingNomenclature.code_1c.ilike(f"%{article}%"),
+                        MatchingNomenclature.name.ilike(f"%{article}%")
+                    )
+                ).limit(10)
+                
+                result = await db.execute(query)
+                items = result.scalars().all()
+                
+                matches = []
+                for item in items:
+                    confidence = 0
+                    match_reason = ""
+                    
+                    if item.agb_article and article.lower() in item.agb_article.lower():
+                        confidence = 100
+                        match_reason = "Точное совпадение по артикулу АГБ"
+                    elif item.bl_article and article.lower() in item.bl_article.lower():
+                        confidence = 95
+                        match_reason = "Точное совпадение по артикулу BL"
+                    elif item.code_1c and article.lower() in item.code_1c.lower():
+                        confidence = 90
+                        match_reason = "Точное совпадение по коду 1С"
+                    elif item.name and article.lower() in item.name.lower():
+                        confidence = 80
+                        match_reason = "Совпадение по названию"
+                    
+                    if confidence > 0:
+                        matches.append({
+                            "agb_article": item.agb_article,
+                            "bl_article": item.bl_article,
+                            "name": item.name,
+                            "code_1c": item.code_1c,
+                            "confidence": confidence,
+                            "match_reason": match_reason
+                        })
+                
+                search_results.append({
+                    "article": article,
+                    "matches": matches
+                })
+        
+        # Возвращаем ответ в формате, ожидаемом фронтендом
+        return {
+            "id": 1,
+            "request_name": request_data.get("request_name", "Поиск"),
+            "articles": articles,
+            "status": "completed",
+            "total_articles": len(articles),
+            "found_articles": len([r for r in search_results if r["matches"]]),
+            "total_suppliers": 0,
+            "created_at": datetime.now().isoformat(),
+            "results": search_results
+        }
+            
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Ошибка в article_search_endpoint: {str(e)}")
+        print(f"Traceback: {error_details}")
+        return {"error": f"Ошибка поиска: {str(e)}"}
+
 @api_router.get("/ping")
 async def ping():
     """Простая проверка доступности API"""

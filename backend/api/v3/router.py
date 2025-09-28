@@ -10,7 +10,13 @@ from .endpoints import (
     system_notifications,
     logging,
     monitoring,
-    backup
+    backup,
+    email_management,
+    role_permissions,
+    analytics_billing,
+    integrations,
+    notifications,
+    article_search
 )
 
 api_router = APIRouter(tags=["v3"])
@@ -23,6 +29,12 @@ api_router.include_router(system_notifications.router, prefix="/notifications", 
 api_router.include_router(logging.router, prefix="/logs", tags=["logging"])
 api_router.include_router(monitoring.router, prefix="/monitoring", tags=["monitoring"])
 api_router.include_router(backup.router, prefix="/backup", tags=["backup"])
+api_router.include_router(email_management.router, prefix="/email", tags=["email-management"])
+api_router.include_router(role_permissions.router, prefix="/permissions", tags=["role-permissions"])
+api_router.include_router(analytics_billing.router, prefix="/analytics", tags=["analytics-billing"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(article_search.router, prefix="/article-search", tags=["article-search"])
 
 @api_router.get("/health")
 async def health_check():

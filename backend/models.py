@@ -859,16 +859,144 @@ class FoundMatch(Base):
     user = relationship("User")
 
 
+# Модели для поиска поставщиков артикулов
+
+class Supplier(Base):
+    """Поставщики артикулов"""
+    __tablename__ = "suppliers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    company_name = Column(String, nullable=False, index=True)  # Название компании
+    contact_person = Column(String, nullable=True)  # Контактное лицо
+    email = Column(String, nullable=True, index=True)  # Email поставщика
+    phone = Column(String, nullable=True)  # Телефон
+    website = Column(String, nullable=True)  # Сайт компании
+    address = Column(String, nullable=True)  # Адрес
+    country = Column(String, nullable=True)  # Страна
+    city = Column(String, nullable=True)  # Город
+    
+    # Валидация данных
+    email_validated = Column(Boolean, default=False)  # Проверен ли email
+    website_validated = Column(Boolean, default=False)  # Проверен ли сайт
+    whois_data = Column(JSON, nullable=True)  # Данные whois
+    
+    # Метаданные
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_checked = Column(DateTime(timezone=True), nullable=True)  # Последняя проверка
+    
+    # Связи
+    articles = relationship("SupplierArticle", back_populates="supplier", lazy="selectin")
+
+
+class SupplierArticle(Base):
+    """Артикулы поставщиков"""
+    __tablename__ = "supplier_articles"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    article_code = Column(String, nullable=False, index=True)  # Артикул поставщика
+    article_name = Column(String, nullable=False)  # Наименование артикула
+    description = Column(Text, nullable=True)  # Описание
+    price = Column(Float, nullable=True)  # Цена
+    currency = Column(String, default="RUB")  # Валюта
+    unit = Column(String, default="шт")  # Единица измерения
+    min_order_quantity = Column(Integer, nullable=True)  # Минимальный заказ
+    availability = Column(String, nullable=True)  # Наличие (в наличии, под заказ, etc.)
+    
+    # Связь с нашей номенклатурой
+    agb_article = Column(String, nullable=True)  # Наш артикул АГБ
+    bl_article = Column(String, nullable=True)  # Артикул BL
+    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
+    
+    # Метаданные
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_price_update = Column(DateTime(timezone=True), nullable=True)  # Последнее обновление цены
+    
+    # Связи
+    supplier = relationship("Supplier", back_populates="articles", lazy="selectin")
+    nomenclature = relationship("VEDNomenclature", lazy="selectin")
+
+
+class ArticleSearchRequest(Base):
+    """Запросы на поиск артикулов"""
+    __tablename__ = "article_search_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    request_name = Column(String, nullable=True)  # Название запроса
+    articles = Column(JSON, nullable=False)  # Список артикулов для поиска
+    status = Column(String, default="pending")  # pending, processing, completed, failed
+    
+    # Результаты поиска
+    total_articles = Column(Integer, default=0)  # Общее количество артикулов
+    found_articles = Column(Integer, default=0)  # Найдено артикулов
+    total_suppliers = Column(Integer, default=0)  # Найдено поставщиков
+    
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Связи
+    user = relationship("User", lazy="selectin")
+    results = relationship("ArticleSearchResult", back_populates="request", lazy="selectin")
+
+
+class ArticleSearchResult(Base):
+    """Результаты поиска артикулов"""
+    __tablename__ = "article_search_results"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("article_search_requests.id"), nullable=False)
+    article_code = Column(String, nullable=False)  # Искомый артикул
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    supplier_article_id = Column(Integer, ForeignKey("supplier_articles.id"), nullable=False)
+    
+    # Результаты поиска
+    confidence_score = Column(Float, default=0.0)  # Уверенность в совпадении (0-100)
+    match_type = Column(String, nullable=True)  # exact, similar, ai_found
+    ai_analysis = Column(Text, nullable=True)  # Анализ ИИ
+    
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Связи
+    request = relationship("ArticleSearchRequest", back_populates="results", lazy="selectin")
+    supplier = relationship("Supplier", lazy="selectin")
+    supplier_article = relationship("SupplierArticle", lazy="selectin")
+
+
+class SupplierValidationLog(Base):
+    """Лог валидации поставщиков"""
+    __tablename__ = "supplier_validation_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
+    validation_type = Column(String, nullable=False)  # email, website, whois
+    status = Column(String, nullable=False)  # success, failed, warning
+    message = Column(Text, nullable=True)  # Сообщение о результате
+    details = Column(JSON, nullable=True)  # Дополнительные детали
+    
+    # Метаданные
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Связи
+    supplier = relationship("Supplier", lazy="selectin")
+
+
 # Импортируем модели v3 для включения в базу данных
-# Временно отключено из-за проблем с relationships
-# try:
-#     from api.v3.models import (
-#         Role as RoleV3, RolePermission as RolePermissionV3,
-#         UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
-#         SystemNotification, UserActivity, SystemSettings,
-#         SystemLog, LoginLog, SystemMetrics, SecurityEvent, BackupLog
-#     )
-# except ImportError:
-#     pass
+try:
+    from api.v3.models import (
+        Role as RoleV3, RolePermission as RolePermissionV3,
+        UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
+        SystemNotification, UserActivity, SystemSettings,
+        SystemLog, LoginLog, SystemMetrics, SecurityEvent, BackupLog
+    )
+except ImportError:
+    pass
 
 

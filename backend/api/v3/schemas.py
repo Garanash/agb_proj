@@ -184,6 +184,166 @@ class EmailSettingsResponse(EmailSettingsBase):
         from_attributes = True
 
 
+# Схемы для тестирования email
+class EmailTestRequest(BaseModel):
+    to_email: EmailStr
+    subject: Optional[str] = None
+    body: Optional[str] = None
+
+
+class EmailTestResponse(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    details: Optional[str] = None
+    code: Optional[str] = None
+    server: Optional[str] = None
+    port: Optional[int] = None
+    tls: Optional[bool] = None
+    ssl: Optional[bool] = None
+    to: Optional[str] = None
+    subject: Optional[str] = None
+
+
+class EmailStatsResponse(BaseModel):
+    settings_id: int
+    period_days: int
+    total_emails_sent: int
+    successful_emails: int
+    failed_emails: int
+    last_used: Optional[datetime] = None
+    average_response_time: float
+
+
+# Схемы для аналитики и биллинга
+class ApiUsageStats(BaseModel):
+    user_id: int
+    period_start: datetime
+    period_end: datetime
+    total_requests: int
+    unique_users: int
+    daily_requests: List[Dict[str, Any]]
+    top_endpoints: List[Dict[str, Any]]
+    status_breakdown: List[Dict[str, Any]]
+    billing_info: Dict[str, Any]
+
+
+class BillingInfo(BaseModel):
+    user_id: int
+    current_plan: str
+    monthly_requests: int
+    cost_breakdown: Dict[str, Any]
+    payment_history: List[Dict[str, Any]]
+    next_billing_date: datetime
+    balance: int  # В копейках
+
+
+class ApiCostBreakdown(BaseModel):
+    period_start: datetime
+    period_end: datetime
+    total_cost: int  # В копейках
+    total_cost_in_rubles: float
+    endpoint_costs: List[Dict[str, Any]]
+    plan: str
+    cost_per_request: float
+
+
+# Схемы для интеграций
+class IntegrationCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    type: str = Field(..., min_length=2, max_length=50)
+    config: Dict[str, Any]
+    is_active: bool = True
+
+
+class IntegrationUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    config: Optional[Dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
+class IntegrationResponse(BaseModel):
+    id: int
+    name: str
+    type: str
+    is_active: bool
+    config: Dict[str, Any]
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+
+class IntegrationTestResult(BaseModel):
+    success: bool
+    message: Optional[str] = None
+    error: Optional[str] = None
+    details: Optional[str] = None
+    bot_info: Optional[Dict[str, Any]] = None
+    status_code: Optional[int] = None
+    response: Optional[str] = None
+
+
+class WebhookConfig(BaseModel):
+    url: str
+    method: str = "POST"
+    headers: Optional[Dict[str, str]] = None
+    auth_type: Optional[str] = None  # bearer, basic, none
+    auth_token: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+
+# Схемы для уведомлений
+class NotificationCreate(BaseModel):
+    user_id: int
+    title: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=1000)
+    type: str = Field(default="info", pattern="^(info|warning|error|success|test)$")
+    data: Optional[Dict[str, Any]] = None
+    channels: List[str] = Field(default=["email", "in_app"])
+
+
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    message: str
+    type: str
+    data: Dict[str, Any]
+    channels: List[str]
+    status: str
+    created_at: datetime
+    sent_at: Optional[datetime] = None
+
+
+class NotificationUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    message: Optional[str] = Field(None, min_length=1, max_length=1000)
+    type: Optional[str] = Field(None, pattern="^(info|warning|error|success|test)$")
+    data: Optional[Dict[str, Any]] = None
+    channels: Optional[List[str]] = None
+    status: Optional[str] = Field(None, pattern="^(pending|sent|failed)$")
+
+
+class NotificationTemplate(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    title_template: str = Field(..., min_length=1, max_length=200)
+    message_template: str = Field(..., min_length=1, max_length=1000)
+    type: str = Field(default="info", pattern="^(info|warning|error|success)$")
+    channels: List[str] = Field(default=["email"])
+    variables: List[str] = Field(default=[])
+    description: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class NotificationStats(BaseModel):
+    period_days: int
+    total_activities: int
+    notifications_sent: int
+    success_rate: float
+
+
 # Схемы для API ключей
 class ApiKeySettingsBase(BaseModel):
     service_name: str = Field(..., min_length=2, max_length=50)

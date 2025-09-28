@@ -21,7 +21,8 @@ import {
   TableCellsIcon,
   WrenchScrewdriverIcon,
   BookOpenIcon,
-  ShieldCheckIcon as ShieldIcon
+  ShieldCheckIcon as ShieldIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from '@/hooks'
@@ -60,6 +61,12 @@ const navigation: NavigationItem[] = [
     href: '/article-matching',
     icon: TableCellsIcon,
     roles: ['ved_passport', 'admin']
+  },
+  {
+    name: 'Поиск поставщиков',
+    href: '/article-search',
+    icon: MagnifyingGlassIcon,
+    roles: ['admin', 'manager', 'ved_passport']
   },
   {
     name: 'Управление пользователями',

@@ -3,10 +3,10 @@
 import React from 'react'
 import { useAuth } from '@/hooks'
 import { useRouter } from 'next/navigation'
-import { CogIcon } from '@heroicons/react/24/outline'
-import SystemSettingsPanel from '@/src/components/features/admin/SystemSettingsPanel'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import ArticleSearchManager from '../../src/components/features/admin/ArticleSearchManager'
 
-export default function AdminSettingsPage() {
+export default function ArticleSearchPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -15,7 +15,9 @@ export default function AdminSettingsPage() {
     return null
   }
 
-  if (user && user.role !== 'admin') {
+  // Проверяем права доступа
+  const allowedRoles = ['admin', 'manager', 'ved_passport']
+  if (user && !allowedRoles.includes(user.role)) {
     router.push('/dashboard')
     return null
   }
@@ -26,10 +28,10 @@ export default function AdminSettingsPage() {
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <CogIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+            <MagnifyingGlassIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Настройки системы</h1>
-              <p className="text-gray-600 dark:text-gray-300">Управление всеми настройками платформы</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Поиск поставщиков артикулов</h1>
+              <p className="text-gray-600 dark:text-gray-300">Поиск поставщиков через ИИ с валидацией контактов</p>
             </div>
           </div>
           <button
@@ -42,7 +44,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="p-6">
-        <SystemSettingsPanel />
+        <ArticleSearchManager />
       </div>
     </div>
   )

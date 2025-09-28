@@ -32,18 +32,25 @@ def normalize_russian_text(text: str) -> str:
     # Сохраняем числа и специальные символы
     numbers_and_special = re.findall(r'\d+|[^\w\s]', text)
     
-    # Разбиваем текст на слова
-    words = re.findall(r'\b[а-яА-Я]+\b', text)
+    # Разбиваем текст на слова (включая английские слова)
+    words = re.findall(r'\b[а-яА-Яa-zA-Z]+\b', text)
     
     # Нормализуем каждое слово
     normalized_words = []
     for word in words:
-        # Получаем все возможные разборы слова
-        parsed = morph.parse(word)
-        if parsed:
-            # Берем наиболее вероятный разбор
-            normal_form = parsed[0].normal_form
-            normalized_words.append(normal_form)
+        # Если слово содержит только латинские буквы, оставляем как есть
+        if re.match(r'^[a-zA-Z]+$', word):
+            normalized_words.append(word.lower())
+        else:
+            # Нормализуем русские слова
+            parsed = morph.parse(word)
+            if parsed:
+                # Берем наиболее вероятный разбор
+                normal_form = parsed[0].normal_form
+                normalized_words.append(normal_form)
+            else:
+                # Если не удалось разобрать, оставляем как есть
+                normalized_words.append(word.lower())
     
     # Собираем текст обратно, включая числа и специальные символы
     result = ' '.join(normalized_words + numbers_and_special)
@@ -494,7 +501,7 @@ def parse_item_string(item_string: str) -> dict:
     article_patterns = [
         r'([A-ZА-Я]{2,6}[-_]\d{6,8})',    # ОХКУ-000184, BL-123456
         r'([A-ZА-Я]{2,6}\d{6,8})',        # ОХКУ000184, BL123456
-        r'(\d{6,8})',                      # 123456
+        r'(\d{4,8})',                      # 1234-12345678 (включая 5-значные)
         r'([A-ZА-Я]{2,6}[-_]\d{3,8})',    # ОХКУ-184, BL-123
         r'([A-ZА-Я]{3,6}[-_]\d{4,6})',    # BL-1234, ОХКУ-1234
         r'(\d{4,6}[-_][A-ZА-Я]{2,4})',    # 1234-BL, 123456-АГБ
@@ -668,6 +675,7 @@ async def search_nomenclature(
 
 async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
     """Умный поиск через AI - парсит строку и ищет по компонентам"""
+    print(f"🚀 smart_search_with_ai вызвана с: '{search_text}'")
     try:
         # Нормализуем поисковый запрос
         normalized_text = get_normalized_text(search_text)
@@ -739,7 +747,18 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
             ])
         
         if parsed_item['description']:
-            conditions.append(MatchingNomenclature.name.ilike(f"%{parsed_item['description']}%"))
+            # Ищем по оригинальному названию и нормализованному
+            normalized_desc = get_normalized_text(parsed_item['description'])
+            conditions.extend([
+                MatchingNomenclature.name.ilike(f"%{parsed_item['description']}%"),
+                MatchingNomenclature.name.ilike(f"%{normalized_desc}%")
+            ])
+            
+            # Также ищем по отдельным словам из описания
+            desc_words = parsed_item['description'].split()
+            for word in desc_words:
+                if len(word) > 2:  # Игнорируем короткие слова
+                    conditions.append(MatchingNomenclature.name.ilike(f"%{word}%"))
         
         if conditions:
             query = query.where(or_(*conditions)).limit(20)
@@ -793,6 +812,10 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
                 "search_type": "database_match",
                 "matches": matches
             }
+        
+        print(f"❌ Совпадений в базе не найдено. Условия поиска: {len(conditions)}")
+        for i, condition in enumerate(conditions):
+            print(f"  Условие {i+1}: {condition}")
 
         print(f"❌ Совпадений в базе не найдено, используем ИИ")
         
@@ -2283,11 +2306,18 @@ async def smart_search_endpoint(
         if not search_text:
             raise HTTPException(status_code=400, detail="Не указан текст для поиска")
         
-        print(f"Выполняем умный поиск для: {search_text}")
+        print(f"🚀 smart_search_endpoint вызван с: '{search_text}'")
         
-        # Выполняем умный поиск
-        result = await smart_search_with_ai(search_text, db)
+        # Используем простой поиск вместо сложного ИИ
+        try:
+            from .simple_search import simple_smart_search
+            result = await simple_smart_search(search_text, db)
+        except ImportError as e:
+            print(f"❌ Ошибка импорта: {e}")
+            # Fallback к старому методу
+            result = await smart_search_with_ai(search_text, db)
         
+        print(f"✅ Результат поиска: {result}")
         return result
         
     except Exception as e:

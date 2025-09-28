@@ -128,8 +128,8 @@ class ApiKeySettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_used = Column(DateTime(timezone=True), nullable=True)
     
-    # Связи
-    creator = relationship("User")
+    # Связи (временно отключено из-за проблем с ForeignKey)
+    # creator = relationship("User", foreign_keys=[created_by])
 
 
 class SystemNotification(Base):
@@ -149,8 +149,8 @@ class SystemNotification(Base):
     created_by = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Связи
-    creator = relationship("User")
+    # Связи (временно отключено из-за проблем с ForeignKey)
+    # creator = relationship("User", foreign_keys=[created_by])
 
 
 class UserActivity(Base):

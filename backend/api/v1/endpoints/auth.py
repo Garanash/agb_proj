@@ -294,8 +294,15 @@ async def change_password(
     db: AsyncSession = Depends(get_db)
 ):
     """Смена пароля пользователя"""
+    print(f"🔍 Смена пароля для пользователя: {current_user.username}")
+    print(f"🔍 Полученные данные: old_password='{password_data.old_password[:3]}...', new_password='{password_data.new_password[:3]}...'")
+    
     # Проверяем старый пароль
-    if not verify_password(password_data.old_password, current_user.hashed_password):
+    old_password_valid = verify_password(password_data.old_password, current_user.hashed_password)
+    print(f"🔍 Проверка старого пароля: {old_password_valid}")
+    
+    if not old_password_valid:
+        print(f"❌ Неверный старый пароль для пользователя {current_user.username}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Неверный текущий пароль"
@@ -304,10 +311,14 @@ async def change_password(
     # Проверяем новый пароль
     from utils.password_generator import validate_password_strength
     is_valid, errors = validate_password_strength(password_data.new_password)
+    print(f"🔍 Валидация нового пароля: valid={is_valid}, errors={errors}")
+    
     if not is_valid:
+        error_message = f"Новый пароль не соответствует требованиям: {'; '.join(errors)}"
+        print(f"❌ {error_message}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Новый пароль не соответствует требованиям: {'; '.join(errors)}"
+            detail=error_message
         )
     
     # Обновляем пароль
@@ -315,5 +326,6 @@ async def change_password(
     current_user.is_password_changed = True  # Отмечаем, что пароль был изменен
     
     await db.commit()
+    print(f"✅ Пароль успешно изменен для пользователя {current_user.username}")
     
     return {"message": "Пароль успешно изменен"}

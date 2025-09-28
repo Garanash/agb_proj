@@ -9,7 +9,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import json
 
-from ...database import get_db
+from database import get_db
 from ..models import SystemLog, LoginLog, SecurityEvent
 from ..schemas import (
     SystemLogResponse, LoginLogResponse, SecurityEventResponse,

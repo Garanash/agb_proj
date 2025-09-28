@@ -11,7 +11,7 @@ import psutil
 import os
 import json
 
-from ...database import get_db
+from database import get_db
 from ..models import SystemMetrics, SystemLog, LoginLog
 from ..schemas import (
     SystemMetricsResponse, SystemHealthResponse, 

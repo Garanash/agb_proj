@@ -12,7 +12,7 @@ import subprocess
 import shutil
 import json
 
-from ...database import get_db
+from database import get_db
 from ..models import BackupLog
 from ..schemas import BackupLogResponse, BackupCreateRequest, BackupStatsResponse
 from ..utils import PermissionManager, ActivityLogger
