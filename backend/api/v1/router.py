@@ -101,6 +101,24 @@ except ImportError:
     pass
 
 try:
+    from .endpoints.chat_rooms import router as chat_rooms_router
+    api_router.include_router(chat_rooms_router, prefix="/chat", tags=["💬 Чат"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.chat_unread import router as chat_unread_router
+    api_router.include_router(chat_unread_router, prefix="/chat", tags=["💬 Чат"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.chat_ws import router as chat_ws_router
+    api_router.include_router(chat_ws_router, prefix="/chat", tags=["💬 Чат"])
+except ImportError:
+    pass
+
+try:
     from .endpoints.chat_folders import router as chat_folders_router
     api_router.include_router(chat_folders_router, prefix="/chat-folders", tags=["📁 Папки чата"])
 except ImportError:

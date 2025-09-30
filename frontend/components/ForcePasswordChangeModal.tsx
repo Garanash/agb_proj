@@ -90,7 +90,7 @@ const ForcePasswordChangeModal: React.FC<ForcePasswordChangeModalProps> = ({
 
     try {
       await axios.post(`${getApiUrl()}/api/v1/auth/change-password`, {
-        old_password: formData.old_password,
+        current_password: formData.old_password,
         new_password: formData.new_password
       })
       

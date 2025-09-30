@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
+from sqlalchemy import text
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -13,9 +14,14 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Создаем таблицы если их нет
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Проверяем подключение к базе данных
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+            print("✅ Подключение к базе данных успешно установлено")
+    except Exception as e:
+        print(f"❌ Ошибка подключения к базе данных: {e}")
+        raise
 
     # Инициализируем данные если их нет
     if os.getenv("AUTO_INIT_DATA", "false").lower() == "true":
@@ -65,6 +71,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=3600,  # Кэшируем CORS ответы на 1 час
+    allow_origin_regex=None  # Отключаем регулярные выражения для безопасности
 )
 
 # Добавляем middleware для логирования CORS ошибок
@@ -92,25 +100,36 @@ async def cors_logging_middleware(request, call_next):
     
     return response
 
-# Подключение версионированного API
-from api.router import api_router
-
-# Подключаем версионированный API
-app.include_router(api_router, prefix="/api")
-
 # Подключаем роутеры v1 напрямую
-try:
-    from api.v1.router import api_router as v1_router
-    app.include_router(v1_router, prefix="/api/v1")
-except ImportError:
-    pass
+from api.v1.endpoints.auth import router as auth_router
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["🔐 Аутентификация"])
 
-# Подключаем роутеры v2 напрямую
-try:
-    from api.v2.router import api_router as v2_router
-    app.include_router(v2_router, prefix="/api/v2")
-except ImportError:
-    pass
+from api.v1.endpoints.users import router as users_router
+app.include_router(users_router, prefix="/api/v1/users", tags=["👥 Пользователи"])
+
+from api.v1.endpoints.chat import router as chat_router
+app.include_router(chat_router, prefix="/api/v1/chat", tags=["💬 Чат"])
+
+from api.v1.endpoints.chat_rooms import router as chat_rooms_router
+app.include_router(chat_rooms_router, prefix="/api/v1/chat", tags=["💬 Чат"])
+
+from api.v1.endpoints.chat_unread import router as chat_unread_router
+app.include_router(chat_unread_router, prefix="/api/v1/chat", tags=["💬 Чат"])
+
+from api.v1.endpoints.chat_ws import router as chat_ws_router
+app.include_router(chat_ws_router, prefix="/api/v1/chat", tags=["💬 Чат"])
+
+from api.v1.endpoints.chat_folders import router as chat_folders_router
+app.include_router(chat_folders_router, prefix="/api/v1/chat-folders", tags=["📁 Папки чата"])
+
+from api.v1.endpoints.news import router as news_router
+app.include_router(news_router, prefix="/api/v1/news", tags=["📰 Новости"])
+
+from api.v1.endpoints.events import router as events_router
+app.include_router(events_router, prefix="/api/v1/events", tags=["📅 События"])
+
+from api.v1.endpoints.article_matching import router as article_matching_router
+app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
 
 # Добавляем middleware для обработки больших запросов
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
