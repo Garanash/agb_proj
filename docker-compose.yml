@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-agb_felix_prod}
       POSTGRES_USER: ${POSTGRES_USER:-felix_prod_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-default_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -64,13 +64,13 @@ services:
     env_file:
       - config/env/production.env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://felix_prod_user:default_password@postgres:5432/agb_felix_prod}
+      - SECRET_KEY=${SECRET_KEY:-default_secret_key_change_in_production}
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Администратор}
       - ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-Системы}
       - PYTHONWARNINGS=ignore:Unverified HTTPS request
@@ -103,7 +103,7 @@ services:
     env_file:
       - config/env/production.env
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost/api}
       - NODE_ENV=production
     depends_on:
       backend:
@@ -161,10 +161,10 @@ services:
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=${N8N_DB_NAME:-n8n_prod}
       - DB_POSTGRESDB_USER=${N8N_DB_USER:-n8n_prod_user}
-      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD:-n8n_default_password}
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-n8n_admin_password}
       - EXECUTIONS_PROCESS=main
       - EXECUTIONS_MODE=regular
       - QUEUE_BULL_REDIS_HOST=redis
