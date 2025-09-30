@@ -235,6 +235,8 @@ class ChatRoom(Base):
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
     folders = relationship("ChatRoomFolder", lazy="selectin")
+    participants = relationship("ChatParticipant", back_populates="chat_room", lazy="selectin")
+    messages = relationship("ChatMessage", back_populates="room", lazy="selectin")
 
 class ChatMessage(Base):
     """Сообщения в чате"""

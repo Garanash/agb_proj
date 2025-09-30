@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -8,6 +9,8 @@ from database import get_db
 from models import News, User, UserRole
 from ..schemas import News as NewsSchema, NewsCreate, NewsUpdate
 from .auth import get_current_user, get_current_user_optional
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 router = APIRouter()
 
@@ -23,15 +26,15 @@ def check_admin_or_manager(current_user: User):
 
 @router.get("/list", response_model=List[NewsSchema])
 async def get_news(
-    request: Request,
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
+    token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка новостей"""
     # Админы и менеджеры видят все новости, обычные пользователи только опубликованные
-    current_user = await get_current_user_optional(request, db)
+    current_user = await get_current_user_optional(token, db)
 
     if current_user and current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
         query = select(News).order_by(desc(News.created_at))
@@ -67,26 +70,26 @@ async def get_news(
 # Редирект роуты для совместимости с frontend
 @router.get("/", response_model=List[NewsSchema])
 async def get_news_root(
-    request: Request,
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
+    token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка новостей с query параметрами"""
-    return await get_news(request, skip, limit, category, db)
+    return await get_news(skip, limit, category, token, db)
 
 
 @router.get("", response_model=List[NewsSchema])
 async def get_news_no_slash(
-    request: Request,
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
+    token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ):
     """Получение списка новостей без trailing slash для совместимости"""
-    return await get_news(request, skip, limit, category, db)
+    return await get_news(skip, limit, category, token, db)
 
 
 @router.get("/my/", response_model=List[NewsSchema])

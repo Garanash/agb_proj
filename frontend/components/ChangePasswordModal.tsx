@@ -89,7 +89,7 @@ export default function ChangePasswordModal({
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
         body: JSON.stringify({
-          old_password: formData.oldPassword,
+          current_password: formData.oldPassword,
           new_password: formData.newPassword
         })
       })
