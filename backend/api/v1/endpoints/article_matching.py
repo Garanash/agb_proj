@@ -899,8 +899,42 @@ async def smart_search_with_ai(search_text: str, db: AsyncSession) -> dict:
                         except json.JSONDecodeError:
                             pass
             
-            # Если ИИ не нашел ничего, возвращаем пустой результат
-            return {"search_type": "not_found", "matches": []}
+            # Если ИИ не нашел ничего, анализируем наименование и повторяем поиск
+            print(f"🔄 ИИ не нашел совпадений, анализируем наименование для улучшения запроса")
+            
+            # Анализируем наименование через ИИ
+            ai_analysis = await analyze_item_with_ai(search_text, db)
+            
+            if ai_analysis.get("enhanced_queries"):
+                print(f"🔍 Пробуем улучшенные запросы: {ai_analysis['enhanced_queries']}")
+                
+                # Пробуем каждый улучшенный запрос
+                for enhanced_query in ai_analysis["enhanced_queries"][:3]:  # Берем максимум 3 запроса
+                    print(f"🔍 Пробуем запрос: '{enhanced_query}'")
+                    
+                    # Повторяем поиск с улучшенным запросом
+                    retry_result = await smart_search_with_ai(enhanced_query, db)
+                    
+                    if retry_result.get("matches"):
+                        print(f"✅ Улучшенный запрос дал результат: {len(retry_result['matches'])} совпадений")
+                        # Добавляем информацию об улучшенном запросе
+                        for match in retry_result["matches"]:
+                            match["enhanced_query"] = enhanced_query
+                            match["original_query"] = search_text
+                            match["ai_analysis"] = ai_analysis.get("analysis", "")
+                        
+                        return {
+                            "search_type": "enhanced_ai_match",
+                            "matches": retry_result["matches"],
+                            "ai_analysis": ai_analysis
+                        }
+            
+            # Если и улучшенные запросы не дали результата, возвращаем пустой результат с анализом
+            return {
+                "search_type": "not_found_with_analysis", 
+                "matches": [],
+                "ai_analysis": ai_analysis
+            }
             
         except Exception as e:
             print(f"❌ Ошибка ИИ поиска: {e}")
@@ -2674,9 +2708,24 @@ async def perform_background_matching(request_id: int):
                         db.add(mapping)
                         matched_count += 1
                         
-                        print(f"  ✅ Найдено: {best_match.get('agb_article', '')} | {best_match.get('name', '')} | {best_match.get('confidence', 0)}%")
+                        # Логируем информацию о типе поиска
+                        search_type = ai_result.get("search_type", "unknown")
+                        if search_type == "enhanced_ai_match":
+                            print(f"  ✅ Найдено (улучшенный ИИ): {best_match.get('agb_article', '')} | {best_match.get('name', '')} | {best_match.get('confidence', 0)}%")
+                            print(f"      Исходный запрос: {best_match.get('original_query', '')}")
+                            print(f"      Улучшенный запрос: {best_match.get('enhanced_query', '')}")
+                        else:
+                            print(f"  ✅ Найдено ({search_type}): {best_match.get('agb_article', '')} | {best_match.get('name', '')} | {best_match.get('confidence', 0)}%")
                     else:
-                        print(f"  ❌ Не найдено соответствий")
+                        # Если совпадений не найдено, но есть анализ ИИ, логируем его
+                        if ai_result.get("ai_analysis"):
+                            analysis = ai_result["ai_analysis"]
+                            print(f"  ❌ Не найдено соответствий")
+                            print(f"      Анализ ИИ: {analysis.get('analysis', 'Нет анализа')}")
+                            print(f"      Категория: {analysis.get('category', 'Неизвестно')}")
+                            print(f"      Ключевые слова: {', '.join(analysis.get('keywords', []))}")
+                        else:
+                            print(f"  ❌ Не найдено соответствий")
                         
                 except Exception as e:
                     print(f"  ⚠️ Ошибка при сопоставлении: {str(e)}")
@@ -3113,6 +3162,90 @@ async def extract_text_from_file(file_path: str, filename: str) -> str:
         return await extract_text_from_image(file_path)
     else:
         raise Exception(f"Неподдерживаемый тип файла: {ext}")
+
+async def analyze_item_with_ai(item_description: str, db: AsyncSession) -> dict:
+    """Анализирует наименование товара через нейросеть для улучшения поискового запроса"""
+    print(f"🤖 Анализируем наименование через ИИ: '{item_description}'")
+    
+    try:
+        # Получаем API ключ
+        api_key = await get_api_key(db)
+        if not api_key:
+            print("❌ API ключ не найден")
+            return {"enhanced_query": item_description, "analysis": "API ключ не найден"}
+        
+        # Создаем промпт для анализа наименования
+        prompt = f"""Проанализируй это наименование товара и предложи улучшенные варианты поискового запроса для поиска в базе данных товаров:
+
+Исходное наименование: "{item_description}"
+
+ЗАДАЧА:
+1. Определи, что это за товар (категория, тип, назначение)
+2. Выдели ключевые слова для поиска
+3. Предложи синонимы и альтернативные названия
+4. Укажи возможные артикулы или коды, которые могут быть в этом товаре
+
+ФОРМАТ ОТВЕТА (JSON):
+{{
+    "category": "категория товара",
+    "keywords": ["ключевое", "слово1", "слово2"],
+    "synonyms": ["синоним1", "синоним2"],
+    "enhanced_queries": [
+        "улучшенный запрос 1",
+        "улучшенный запрос 2",
+        "улучшенный запрос 3"
+    ],
+    "possible_articles": ["возможный", "артикул"],
+    "analysis": "краткий анализ товара"
+}}
+
+Верни ТОЛЬКО JSON без дополнительного текста."""
+
+        # Отправляем запрос к ИИ
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 1000
+            }
+            
+            async with session.post("https://api.polza.com/v1/chat/completions", headers=headers, json=data) as response:
+                if response.status in [200, 201]:
+                    result = await response.json()
+                    ai_response = result["choices"][0]["message"]["content"]
+                    
+                    # Парсим JSON ответ
+                    import json
+                    try:
+                        if "```json" in ai_response:
+                            json_start = ai_response.find("```json") + 7
+                            json_end = ai_response.find("```", json_start)
+                            ai_response = ai_response[json_start:json_end].strip()
+                        elif "```" in ai_response:
+                            json_start = ai_response.find("```") + 3
+                            json_end = ai_response.find("```", json_start)
+                            ai_response = ai_response[json_start:json_end].strip()
+
+                        analysis = json.loads(ai_response)
+                        print(f"✅ ИИ анализ завершен: {analysis.get('category', 'неизвестно')}")
+                        return analysis
+                    except json.JSONDecodeError as e:
+                        print(f"❌ Ошибка парсинга JSON от ИИ: {e}")
+                        return {"enhanced_query": item_description, "analysis": "Ошибка парсинга ответа ИИ"}
+                else:
+                    print(f"❌ Ошибка API ИИ: {response.status}")
+                    return {"enhanced_query": item_description, "analysis": f"Ошибка API: {response.status}"}
+    
+    except Exception as e:
+        print(f"❌ Ошибка анализа ИИ: {e}")
+        return {"enhanced_query": item_description, "analysis": f"Ошибка: {str(e)}"}
+
 
 async def get_ai_response(text: str, api_key: str, provider: str) -> str:
     """Получить ответ от ИИ"""
@@ -3856,6 +3989,45 @@ async def auto_match_excel_data(
                 if row.наименование:
                     print(f"DEBUG: Поиск по наименованию: '{row.наименование}'")
                     search_text = row.наименование.lower().strip()
+                    
+                    # Сначала пробуем умный поиск с ИИ
+                    print(f"🤖 Пробуем умный поиск с ИИ для: '{row.наименование}'")
+                    ai_result = await smart_search_with_ai(row.наименование, db)
+                    
+                    if ai_result.get("matches"):
+                        print(f"✅ ИИ нашел {len(ai_result['matches'])} совпадений")
+                        # Используем результаты ИИ
+                        best_match = ai_result["matches"][0]
+                        matched_row.наш_артикул = best_match.get("agb_article", "")
+                        matched_row.артикул_bl = best_match.get("bl_article", "")
+                        matched_row.номер_1с = best_match.get("code_1c", "")
+                        matched_row.статус_сопоставления = "matched"
+                        matched_row.уверенность = best_match.get("confidence", 0)
+                        
+                        # Создаем варианты подбора из результатов ИИ
+                        variants = []
+                        for match in ai_result["matches"][:5]:  # Берем максимум 5 вариантов
+                            variants.append({
+                                'наименование': match.get("name", ""),
+                                'наш_артикул': match.get("agb_article", ""),
+                                'артикул_bl': match.get("bl_article", ""),
+                                'номер_1с': match.get("code_1c", ""),
+                                'уверенность': match.get("confidence", 0),
+                                'тип_совпадения': ai_result.get("search_type", "ai_match")
+                            })
+                        
+                        matched_row.варианты_подбора = variants
+                        matched_data.append(matched_row)
+                        statistics["matched"] += 1
+                        continue
+                    else:
+                        print(f"❌ ИИ не нашел совпадений, используем традиционный поиск")
+                        # Если ИИ не нашел совпадений, но есть анализ, логируем его
+                        if ai_result.get("ai_analysis"):
+                            analysis = ai_result["ai_analysis"]
+                            print(f"📊 Анализ ИИ: {analysis.get('analysis', 'Нет анализа')}")
+                            print(f"📊 Категория: {analysis.get('category', 'Неизвестно')}")
+                            print(f"📊 Ключевые слова: {', '.join(analysis.get('keywords', []))}")
                     
                     # Собираем ВСЕ варианты с их реальной схожестью
                     matches = []

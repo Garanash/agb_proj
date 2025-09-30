@@ -32,7 +32,18 @@ interface ExcelRow {
     номер_1с?: string
     уверенность: number
     тип_совпадения?: string
+    enhanced_query?: string
+    original_query?: string
+    ai_analysis?: string
   }>
+  ai_analysis?: {
+    category?: string
+    keywords?: string[]
+    synonyms?: string[]
+    enhanced_queries?: string[]
+    analysis?: string
+  }
+  search_type?: string
 }
 
 interface ExcelDataTableProps {
@@ -354,9 +365,20 @@ export default function ExcelDataTable({
     return row?.варианты_подбора?.[selectedIndex] || null
   }
 
-  const getStatusIcon = (status?: string) => {
+  const getStatusIcon = (status?: string, searchType?: string) => {
     switch (status) {
-      case 'matched': return <CheckCircleIcon className="h-5 w-5 text-green-500" />
+      case 'matched': 
+        if (searchType === 'enhanced_ai_match') {
+          return (
+            <div className="flex items-center space-x-1">
+              <CheckCircleIcon className="h-5 w-5 text-green-500" />
+              <span className="text-xs text-blue-600 dark:text-blue-400" title="Найдено с помощью улучшенного ИИ поиска">
+                🤖
+              </span>
+            </div>
+          )
+        }
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />
       case 'unmatched': return <XCircleIcon className="h-5 w-5 text-red-500" />
       default: return <div className="h-5 w-5 rounded-full bg-yellow-400" />
     }
@@ -481,7 +503,7 @@ export default function ExcelDataTable({
               {/* Статус */}
               <div className="p-2 border-r border-gray-200 dark:border-gray-700 flex items-center justify-center">
                 <div className="flex items-center">
-                  {getStatusIcon(row.статус_сопоставления)}
+                  {getStatusIcon(row.статус_сопоставления, row.search_type)}
                 </div>
               </div>
 
@@ -771,6 +793,11 @@ export default function ExcelDataTable({
                       {variant.тип_совпадения && (
                         <div className="text-blue-600 dark:text-blue-400 text-xs">
                           {variant.тип_совпадения}
+                        </div>
+                      )}
+                      {variant.enhanced_query && (
+                        <div className="text-purple-600 dark:text-purple-400 text-xs" title={`Улучшенный запрос: ${variant.enhanced_query}`}>
+                          🤖 ИИ
                         </div>
                       )}
                       <div className="flex gap-1 mt-1">
