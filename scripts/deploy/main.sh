@@ -1,8 +1,11 @@
 #!/bin/bash
-set -e
 
-# 🚀 AGB Project - Главный скрипт развертывания
-# Унифицированный скрипт для всех типов развертывания
+# Скрипт для деплоя AGB проекта
+# Использование: ./deploy.sh [environment] [action]
+# environment: dev, prod (по умолчанию: prod)
+# action: build, up, down, restart, logs (по умолчанию: up)
+
+set -e
 
 # Цвета для вывода
 RED='\033[0;31m'
@@ -13,274 +16,175 @@ NC='\033[0m' # No Color
 
 # Функция для вывода сообщений
 log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
+    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
 }
 
-warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
+success() {
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅${NC} $1"
+}
+
+warning() {
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️${NC} $1"
 }
 
 error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌${NC} $1"
+}
+
+# Параметры
+ENVIRONMENT=${1:-prod}
+ACTION=${2:-up}
+
+# Проверка параметров
+if [[ ! "$ENVIRONMENT" =~ ^(dev|prod)$ ]]; then
+    error "Неверное окружение. Используйте: dev или prod"
     exit 1
-}
+fi
 
-# Функция показа помощи
-show_help() {
-    cat << EOF
-🚀 AGB Project - Система развертывания
+if [[ ! "$ACTION" =~ ^(build|up|down|restart|logs|status)$ ]]; then
+    error "Неверное действие. Используйте: build, up, down, restart, logs, status"
+    exit 1
+fi
 
-Использование: $0 [КОМАНДА] [ОПЦИИ]
+# Определение файла конфигурации
+if [ "$ENVIRONMENT" = "dev" ]; then
+    COMPOSE_FILE="docker-compose.dev.yml"
+    log "Используется конфигурация для разработки"
+else
+    COMPOSE_FILE="docker-compose.yml"
+    log "Используется конфигурация для продакшна"
+fi
 
-КОМАНДЫ:
-    dev         Развертывание для разработки
-    prod        Production развертывание
-    test        Тестовое развертывание
-    stop        Остановка всех сервисов
-    restart     Перезапуск сервисов
-    status      Показать статус сервисов
-    logs        Показать логи
-    cleanup     Очистка Docker ресурсов
-    health      Проверка здоровья системы
+# Проверка существования файла конфигурации
+if [ ! -f "$COMPOSE_FILE" ]; then
+    error "Файл конфигурации $COMPOSE_FILE не найден"
+    exit 1
+fi
 
-ОПЦИИ:
-    --fresh     Свежее развертывание (с очисткой)
-    --no-cache  Сборка без кэша
-    --verbose   Подробный вывод
-    --help      Показать эту справку
-
-ПРИМЕРЫ:
-    $0 dev --fresh          # Свежее развертывание для разработки
-    $0 prod --no-cache      # Production без кэша
-    $0 test                 # Тестовое развертывание
-    $0 status               # Статус сервисов
-    $0 logs frontend        # Логи фронтенда
-
-EOF
-}
-
-# Проверка зависимостей
-check_dependencies() {
-    log "Проверка зависимостей..."
-    
+# Функция для проверки Docker
+check_docker() {
     if ! command -v docker &> /dev/null; then
-        error "Docker не установлен. Установите Docker и попробуйте снова."
+        error "Docker не установлен"
+        exit 1
     fi
     
     if ! command -v docker-compose &> /dev/null; then
-        error "Docker Compose не установлен. Установите Docker Compose и попробуйте снова."
+        error "Docker Compose не установлен"
+        exit 1
     fi
     
-    log "✅ Все зависимости установлены"
-}
-
-# Проверка конфигурации
-check_config() {
-    local env_file="config/env/.env"
-    
-    if [ ! -f "$env_file" ]; then
-        warn "Файл .env не найден. Создаем из примера..."
-        if [ -f "config/env/production.env.example" ]; then
-            cp config/env/production.env.example "$env_file"
-            log "✅ Создан файл .env из примера"
-        else
-            error "Файл .env не найден и нет примера для создания"
-        fi
-    fi
-    
-    log "✅ Конфигурация проверена"
-}
-
-# Создание необходимых директорий
-create_directories() {
-    log "Создание необходимых директорий..."
-    
-    mkdir -p data/uploads/{documents,portfolio,profiles}
-    mkdir -p infrastructure/ssl
-    mkdir -p logs
-    
-    log "✅ Директории созданы"
-}
-
-# Очистка Docker ресурсов
-cleanup_docker() {
-    log "Очистка Docker ресурсов..."
-    
-    # Останавливаем контейнеры
-    docker-compose -f config/docker/docker-compose.yml down 2>/dev/null || true
-    docker-compose -f config/docker/docker-compose.prod.yml down 2>/dev/null || true
-    
-    # Удаляем неиспользуемые ресурсы
-    docker system prune -f
-    docker volume prune -f
-    
-    log "✅ Docker ресурсы очищены"
-}
-
-# Развертывание для разработки
-deploy_dev() {
-    log "🚀 Развертывание для разработки..."
-    
-    check_dependencies
-    check_config
-    create_directories
-    
-    if [ "$1" = "--fresh" ]; then
-        cleanup_docker
-    fi
-    
-    docker-compose -f config/docker/docker-compose.yml up -d --build
-    
-    log "✅ Развертывание для разработки завершено"
-    log "🌐 Frontend: http://localhost:3000"
-    log "🌐 Backend: http://localhost:8000"
-    log "🌐 API Docs: http://localhost:8000/docs"
-}
-
-# Production развертывание
-deploy_prod() {
-    log "🏭 Production развертывание..."
-    
-    check_dependencies
-    check_config
-    create_directories
-    
-    if [ "$1" = "--fresh" ]; then
-        cleanup_docker
-    fi
-    
-    docker-compose -f config/docker/docker-compose.prod.yml up -d --build
-    
-    log "✅ Production развертывание завершено"
-    log "🌐 Приложение доступно по адресу: http://localhost"
-}
-
-# Тестовое развертывание
-deploy_test() {
-    log "🧪 Тестовое развертывание..."
-    
-    check_dependencies
-    check_config
-    create_directories
-    
-    # Используем production конфигурацию для тестов
-    docker-compose -f config/docker/docker-compose.prod.yml up -d --build
-    
-    # Запускаем тесты
-    ./scripts/setup/test-deployment.sh
-    
-    log "✅ Тестовое развертывание завершено"
-}
-
-# Остановка сервисов
-stop_services() {
-    log "⏹️ Остановка сервисов..."
-    
-    docker-compose -f config/docker/docker-compose.yml down 2>/dev/null || true
-    docker-compose -f config/docker/docker-compose.prod.yml down 2>/dev/null || true
-    
-    log "✅ Сервисы остановлены"
-}
-
-# Показать статус
-show_status() {
-    log "📊 Статус сервисов:"
-    
-    echo ""
-    echo "=== Docker Compose Services ==="
-    docker-compose -f config/docker/docker-compose.yml ps 2>/dev/null || echo "Нет активных сервисов разработки"
-    
-    echo ""
-    echo "=== Production Services ==="
-    docker-compose -f config/docker/docker-compose.prod.yml ps 2>/dev/null || echo "Нет активных production сервисов"
-    
-    echo ""
-    echo "=== Docker System ==="
-    docker system df
-}
-
-# Показать логи
-show_logs() {
-    local service=${1:-""}
-    
-    if [ -n "$service" ]; then
-        log "📋 Логи сервиса: $service"
-        docker-compose -f config/docker/docker-compose.yml logs -f "$service" 2>/dev/null || \
-        docker-compose -f config/docker/docker-compose.prod.yml logs -f "$service" 2>/dev/null || \
-        error "Сервис '$service' не найден"
-    else
-        log "📋 Логи всех сервисов:"
-        docker-compose -f config/docker/docker-compose.yml logs -f 2>/dev/null || \
-        docker-compose -f config/docker/docker-compose.prod.yml logs -f 2>/dev/null || \
-        error "Нет активных сервисов"
-    fi
-}
-
-# Проверка здоровья системы
-check_health() {
-    log "🏥 Проверка здоровья системы..."
-    
-    # Проверяем Docker
     if ! docker info &> /dev/null; then
-        error "Docker не запущен"
+        error "Docker не запущен или нет прав доступа"
+        exit 1
     fi
-    
-    # Проверяем сервисы
-    local services=("frontend" "backend" "postgres" "nginx")
-    for service in "${services[@]}"; do
-        if docker ps --format "table {{.Names}}" | grep -q "$service"; then
-            log "✅ $service: запущен"
-        else
-            warn "❌ $service: не запущен"
-        fi
-    done
-    
-    log "✅ Проверка здоровья завершена"
 }
 
-# Главная функция
-main() {
-    local command=${1:-"help"}
-    local option=${2:-""}
+# Функция для проверки переменных окружения
+check_env() {
+    if [ "$ENVIRONMENT" = "prod" ]; then
+        if [ ! -f "config/env/production.env" ]; then
+            warning "Файл config/env/production.env не найден"
+            log "Создайте файл конфигурации на основе config/env/production.env.example"
+        fi
+    fi
+}
+
+# Функция для сборки образов
+build_images() {
+    log "Сборка Docker образов..."
+    docker-compose -f $COMPOSE_FILE build --no-cache
+    success "Образы собраны успешно"
+}
+
+# Функция для запуска сервисов
+start_services() {
+    log "Запуск сервисов..."
+    docker-compose -f $COMPOSE_FILE up -d
+    success "Сервисы запущены"
     
-    case $command in
-        "dev")
-            deploy_dev "$option"
+    # Ожидание готовности сервисов
+    log "Ожидание готовности сервисов..."
+    sleep 10
+    
+    # Проверка статуса
+    docker-compose -f $COMPOSE_FILE ps
+}
+
+# Функция для остановки сервисов
+stop_services() {
+    log "Остановка сервисов..."
+    docker-compose -f $COMPOSE_FILE down
+    success "Сервисы остановлены"
+}
+
+# Функция для перезапуска сервисов
+restart_services() {
+    log "Перезапуск сервисов..."
+    docker-compose -f $COMPOSE_FILE restart
+    success "Сервисы перезапущены"
+}
+
+# Функция для просмотра логов
+show_logs() {
+    log "Просмотр логов..."
+    docker-compose -f $COMPOSE_FILE logs -f
+}
+
+# Функция для проверки статуса
+show_status() {
+    log "Статус сервисов:"
+    docker-compose -f $COMPOSE_FILE ps
+}
+
+# Функция для очистки
+cleanup() {
+    log "Очистка неиспользуемых ресурсов..."
+    docker system prune -f
+    success "Очистка завершена"
+}
+
+# Основная логика
+main() {
+    log "🚀 Запуск деплоя AGB проекта"
+    log "Окружение: $ENVIRONMENT"
+    log "Действие: $ACTION"
+    
+    check_docker
+    check_env
+    
+    case $ACTION in
+        "build")
+            build_images
             ;;
-        "prod")
-            deploy_prod "$option"
+        "up")
+            build_images
+            start_services
             ;;
-        "test")
-            deploy_test "$option"
-            ;;
-        "stop")
+        "down")
             stop_services
             ;;
         "restart")
-            stop_services
-            sleep 2
-            deploy_dev "$option"
+            restart_services
+            ;;
+        "logs")
+            show_logs
             ;;
         "status")
             show_status
             ;;
-        "logs")
-            show_logs "$option"
-            ;;
-        "cleanup")
-            cleanup_docker
-            ;;
-        "health")
-            check_health
-            ;;
-        "help"|"--help"|"-h")
-            show_help
-            ;;
-        *)
-            error "Неизвестная команда: $command. Используйте --help для справки."
-            ;;
     esac
+    
+    success "Деплой завершен успешно!"
+    
+    if [ "$ACTION" = "up" ]; then
+        log "🌐 Приложение доступно по адресу: http://localhost"
+        log "📊 Статус сервисов: docker-compose ps"
+        log "📝 Логи: docker-compose logs -f"
+    fi
 }
+
+# Обработка сигналов
+trap 'error "Деплой прерван"; exit 1' INT TERM
 
 # Запуск
 main "$@"

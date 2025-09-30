@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест дашборда администратора</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Тест дашборда администратора</h1>
+        
+        <div id="loading" class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Загрузка данных...</p>
+        </div>
+        
+        <div id="dashboard" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Всего пользователей</h3>
+                    <p id="totalUsers" class="text-3xl font-bold text-blue-600">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Активные пользователи</h3>
+                    <p id="activeUsers" class="text-3xl font-bold text-green-600">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Всего событий</h3>
+                    <p id="totalEvents" class="text-3xl font-bold text-purple-600">-</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-lg font-semibold text-gray-700">Всего новостей</h3>
+                    <p id="totalNews" class="text-3xl font-bold text-orange-600">-</p>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-xl font-semibold mb-4">Последняя активность</h3>
+                <div id="recentActivity" class="space-y-2">
+                    <!-- Активность будет загружена здесь -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="error" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <p id="errorMessage">Произошла ошибка при загрузке данных</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                // Сначала авторизуемся
+                const loginResponse = await fetch('http://localhost:8000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    throw new Error('Ошибка авторизации');
+                }
+
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+
+                // Загружаем статистику
+                const statsResponse = await fetch('http://localhost:8000/api/v1/admin/dashboard/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!statsResponse.ok) {
+                    throw new Error(`Ошибка получения статистики: ${statsResponse.status}`);
+                }
+
+                const statsData = await statsResponse.json();
+
+                // Загружаем активность
+                const activityResponse = await fetch('http://localhost:8000/api/v1/admin/dashboard/activity?limit=5', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!activityResponse.ok) {
+                    throw new Error(`Ошибка получения активности: ${activityResponse.status}`);
+                }
+
+                const activityData = await activityResponse.json();
+
+                // Отображаем данные
+                document.getElementById('totalUsers').textContent = statsData.total_users;
+                document.getElementById('activeUsers').textContent = statsData.active_users;
+                document.getElementById('totalEvents').textContent = statsData.total_events;
+                document.getElementById('totalNews').textContent = statsData.total_news;
+
+                // Отображаем активность
+                const activityContainer = document.getElementById('recentActivity');
+                activityContainer.innerHTML = '';
+                
+                activityData.forEach(activity => {
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-medium">${activity.user}</span>
+                            <span class="text-gray-600"> - ${activity.action}</span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            ${activity.timestamp}
+                        </div>
+                    `;
+                    activityContainer.appendChild(div);
+                });
+
+                // Показываем дашборд
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('error').classList.remove('hidden');
+            }
+        }
+
+        // Загружаем дашборд при загрузке страницы
+        window.addEventListener('load', loadDashboard);
+    </script>
+</body>
+</html>

@@ -1,3 +1,18 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Tests
+tests/
+test_*.py
+*_test.py
+
 # Python
 __pycache__/
 *.py[cod]
@@ -84,38 +99,20 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Uploads
+# Uploads (will be mounted as volume)
 uploads/
-data/uploads/
 
-# Docker volumes
-postgres_data/
-redis_data/
-uploads_data/
-n8n_data/
-n8n_custom/
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
 
-# Environment files
-config/env/production.env
-config/env/development.env
-config/local.env
+# Scripts
+scripts/
+deploy.sh
+restart_services.sh
+clear-cache-and-rebuild.sh
+quick-deploy.sh
 
-# SSL certificates
-infrastructure/ssl/
-*.pem
-*.key
-*.crt
-
-# Backup files
-*.bak
-*.backup
-
-# Test files (keep in tests/ folder)
-test_*.py
-*_test.py
-debug_*.py
-
-# Documentation (keep in docs/ folder)
-*.md
-!README.md
-!docs/*.md
+# Makefile
+Makefile*
