@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 
@@ -28,12 +28,12 @@ class TelegramBotService:
         self.dispatchers: Dict[str, Dispatcher] = {}
         self.database_url = os.getenv(
             "DATABASE_URL",
-            "postgresql+asyncpg://felix_user:felix_password@postgres:5432/agb_felix"
+            "postgresql://felix_user:felix_password@postgres:5432/agb_felix"
         )
 
-        # Создаем асинхронный engine для бота
-        self.engine = create_async_engine(self.database_url, echo=False)
-        self.async_session = sessionmaker(self.engine, class_=AsyncSession, expire_on_commit=False)
+        # Создаем синхронный engine для бота
+        self.engine = create_engine(self.database_url, echo=False)
+        self.session = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
 
     async def init_bots(self):
         """Инициализация всех активных ботов"""
@@ -59,9 +59,9 @@ class TelegramBotService:
             logger.error(f"❌ Ошибка инициализации основного бота: {e}")
 
         # Также инициализируем ботов из БД
-        async with self.async_session() as session:
+        with self.session() as session:
             from sqlalchemy import select
-            result = await session.execute(
+            result = session.execute(
                 select(TelegramBot).where(TelegramBot.is_active == True)
             )
             bots = result.scalars().all()
@@ -95,7 +95,7 @@ class TelegramBotService:
         async def handle_message(message: Message):
             """Обработка входящих сообщений"""
             try:
-                async with self.async_session() as session:
+                with self.session() as session:
                     await self.process_message(message, session)
             except Exception as e:
                 logger.error(f"Ошибка обработки сообщения: {e}")
@@ -104,12 +104,12 @@ class TelegramBotService:
         async def handle_callback(callback: CallbackQuery):
             """Обработка нажатий на inline кнопки"""
             try:
-                async with self.async_session() as session:
+                with self.session() as session:
                     await self.process_callback(callback, session)
             except Exception as e:
                 logger.error(f"Ошибка обработки callback: {e}")
 
-    async def process_message(self, message: Message, session: AsyncSession):
+    async def process_message(self, message: Message, session):
         """Обработка входящего сообщения"""
         chat_id = message.chat.id
         text = message.text or ""
@@ -133,7 +133,7 @@ class TelegramBotService:
                 "Неизвестная команда. Используйте /help для получения справки."
             )
 
-    async def process_callback(self, callback: CallbackQuery, session: AsyncSession):
+    async def process_callback(self, callback: CallbackQuery, session):
         """Обработка нажатия на inline кнопку"""
         callback_data = callback.data
 
@@ -143,7 +143,7 @@ class TelegramBotService:
         else:
             await callback.answer("Неизвестная команда")
 
-    async def handle_start_command(self, message: Message, session: AsyncSession):
+    async def handle_start_command(self, message: Message, session):
         """Обработка команды /start"""
         welcome_text = """
 🤖 <b>Привет! Я бот для работы с заявками на ремонт.</b>
@@ -165,7 +165,7 @@ class TelegramBotService:
 
         await message.reply(welcome_text, reply_markup=keyboard)
 
-    async def handle_help_command(self, message: Message, session: AsyncSession):
+    async def handle_help_command(self, message: Message, session):
         """Обработка команды /help"""
         help_text = """
 <b>Справка по командам:</b>
@@ -186,11 +186,11 @@ class TelegramBotService:
 
         await message.reply(help_text)
 
-    async def handle_requests_command(self, message: Message, session: AsyncSession):
+    async def handle_requests_command(self, message: Message, session):
         """Обработка команды /requests"""
         # Получаем активные заявки
         from sqlalchemy import select
-        result = await session.execute(
+        result = session.execute(
             select(RepairRequest).where(RepairRequest.status == "active").limit(10)
         )
         requests = result.scalars().all()
@@ -216,13 +216,13 @@ class TelegramBotService:
 
         await message.reply(response_text, reply_markup=keyboard)
 
-    async def handle_response_callback(self, callback: CallbackQuery, request_id: int, session: AsyncSession):
+    async def handle_response_callback(self, callback: CallbackQuery, request_id: int, session):
         """Обработка отклика на заявку"""
         user = callback.from_user
 
         # Находим пользователя в системе
         from sqlalchemy import select
-        result = await session.execute(
+        result = session.execute(
             select(TelegramUser).where(TelegramUser.telegram_id == user.id)
         )
         telegram_user = result.scalars().first()
@@ -232,7 +232,7 @@ class TelegramBotService:
             return
 
         # Проверяем, не откликался ли уже пользователь
-        result = await session.execute(
+        result = session.execute(
             select(ContractorResponse).where(
                 ContractorResponse.request_id == request_id,
                 ContractorResponse.contractor_id == telegram_user.user_id
@@ -249,7 +249,7 @@ class TelegramBotService:
         from sqlalchemy import select
         
         # Находим профиль исполнителя
-        result = await session.execute(
+        result = session.execute(
             select(ContractorProfile).where(ContractorProfile.user_id == telegram_user.user_id)
         )
         contractor_profile = result.scalars().first()
@@ -266,7 +266,7 @@ class TelegramBotService:
         )
 
         session.add(new_response)
-        await session.commit()
+        session.commit()
 
         await callback.answer("✅ Ваш отклик принят! Мы свяжемся с вами в ближайшее время.")
 
@@ -278,11 +278,11 @@ class TelegramBotService:
                 text="✅ <b>Отклик успешно отправлен!</b>\n\nМы передали вашу заявку заказчику. Ожидайте связи."
             )
 
-    async def send_new_request_notification(self, request_id: int, session: AsyncSession):
+    async def send_new_request_notification(self, request_id: int, session):
         """Отправка уведомления о новой заявке всем исполнителям"""
         # Получаем заявку
         from sqlalchemy import select
-        result = await session.execute(
+        result = session.execute(
             select(RepairRequest).where(RepairRequest.id == request_id)
         )
         request = result.scalars().first()
@@ -291,7 +291,7 @@ class TelegramBotService:
             return
 
         # Получаем всех исполнителей с Telegram
-        result = await session.execute(
+        result = session.execute(
             select(TelegramUser).join(User).where(User.role == UserRole.CONTRACTOR)
         )
         contractors = result.scalars().all()
@@ -341,13 +341,13 @@ class TelegramBotService:
                 except Exception as e:
                     logger.error(f"Ошибка отправки уведомления: {e}")
 
-        await session.commit()
+        session.commit()
 
-    async def send_request_to_contractors(self, request_id: int, session: AsyncSession):
+    async def send_request_to_contractors(self, request_id: int, session):
         """Отправка заявки всем исполнителям в бот"""
         # Получаем заявку
         from sqlalchemy import select
-        result = await session.execute(
+        result = session.execute(
             select(RepairRequest).where(RepairRequest.id == request_id)
         )
         request = result.scalars().first()
@@ -357,7 +357,7 @@ class TelegramBotService:
             return
 
         # Получаем всех исполнителей с Telegram
-        result = await session.execute(
+        result = session.execute(
             select(TelegramUser).join(User).where(User.role == UserRole.CONTRACTOR)
         )
         contractors = result.scalars().all()
@@ -418,14 +418,14 @@ class TelegramBotService:
                 except Exception as e:
                     logger.error(f"Ошибка отправки заявки исполнителю {contractor.telegram_id}: {e}")
 
-        await session.commit()
+        session.commit()
         logger.info(f"Заявка {request_id} отправлена {len(contractors)} исполнителям")
 
-    async def save_telegram_user(self, session: AsyncSession, user, chat_id: int):
+    async def save_telegram_user(self, session, user, chat_id: int):
         """Сохранение информации о Telegram пользователе"""
         from sqlalchemy import select
 
-        result = await session.execute(
+        result = session.execute(
             select(TelegramUser).where(TelegramUser.telegram_id == user.id)
         )
         existing_user = result.scalars().first()
@@ -440,7 +440,7 @@ class TelegramBotService:
                 last_name=user.last_name
             )
             session.add(telegram_user)
-            await session.commit()
+            session.commit()
 
     async def start_polling(self):
         """Запуск polling для всех ботов"""
@@ -483,13 +483,13 @@ async def start_telegram_service():
 
 async def notify_new_request(request_id: int):
     """Отправка уведомления о новой заявке (вызывается из основного приложения)"""
-    async with telegram_service.async_session() as session:
+    with telegram_service.session() as session:
         await telegram_service.send_new_request_notification(request_id, session)
 
 
 async def send_request_to_bot(request_id: int):
     """Отправка заявки в бот всем исполнителям (вызывается из основного приложения)"""
-    async with telegram_service.async_session() as session:
+    with telegram_service.session() as session:
         await telegram_service.send_request_to_contractors(request_id, session)
 
 
