@@ -1,26 +1,24 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://felix_dev_user:dev_password_123@localhost:15432/agb_felix_dev")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://felix_dev_user:dev_password_123@localhost:15432/agb_felix_dev")
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_engine(DATABASE_URL, echo=False)
 
-AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-def async_session():
-    """Возвращает асинхронную сессию для работы с БД"""
-    return AsyncSessionLocal()
+def get_session():
+    """Возвращает сессию для работы с БД"""
+    return SessionLocal()
