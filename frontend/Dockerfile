@@ -4,7 +4,7 @@ FROM node:20.11.1-alpine
 WORKDIR /app
 
 # Устанавливаем системные зависимости
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 # Копируем package.json и package-lock.json
 COPY package*.json ./
