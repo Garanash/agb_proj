@@ -570,13 +570,13 @@ const NotificationsManager: React.FC = () => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
               const templateData = {
-                name: formData.get('name'),
-                title_template: formData.get('title_template'),
-                message_template: formData.get('message_template'),
-                type: formData.get('type'),
+                name: formData.get('name') as string || '',
+                title_template: formData.get('title_template') as string || '',
+                message_template: formData.get('message_template') as string || '',
+                type: formData.get('type') as string || '',
                 channels: formData.getAll('channels') as string[],
                 variables: formData.get('variables')?.toString().split(',').map(v => v.trim()).filter(v => v) || [],
-                description: formData.get('description')
+                description: formData.get('description') as string || ''
               }
               
               if (editingTemplate) {

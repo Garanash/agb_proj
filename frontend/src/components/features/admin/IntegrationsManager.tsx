@@ -346,8 +346,8 @@ const IntegrationsManager: React.FC = () => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
               const integrationData = {
-                name: formData.get('name'),
-                type: formData.get('type'),
+                name: formData.get('name') as string || '',
+                type: formData.get('type') as string || '',
                 is_active: formData.get('is_active') === 'on',
                 config: JSON.parse(formData.get('config') as string || '{}')
               }

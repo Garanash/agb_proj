@@ -155,7 +155,7 @@ const SimpleDashboardPage = () => {
             {Object.entries(data.role_stats).map(([role, count]) => (
               <div key={role} className="text-center p-4 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 capitalize">{role}</p>
-                <p className="text-2xl font-bold text-gray-900">{count}</p>
+                <p className="text-2xl font-bold text-gray-900">{count as number}</p>
               </div>
             ))}
           </div>

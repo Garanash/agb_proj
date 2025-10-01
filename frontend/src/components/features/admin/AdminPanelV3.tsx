@@ -63,8 +63,8 @@ const AdminPanelV3: React.FC = () => {
 
   const getHealthBadge = (health: string) => {
     const variants = {
-      healthy: { variant: 'success' as const, text: 'Здорово' },
-      warning: { variant: 'warning' as const, text: 'Предупреждение' },
+      healthy: { variant: 'default' as const, text: 'Здорово' },
+      warning: { variant: 'secondary' as const, text: 'Предупреждение' },
       error: { variant: 'destructive' as const, text: 'Ошибка' }
     };
     
@@ -239,11 +239,11 @@ const AdminPanelV3: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">База данных:</span>
-                  <Badge variant="success">Подключена</Badge>
+                  <Badge variant="default">Подключена</Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Email сервис:</span>
-                  <Badge variant="warning">Не настроен</Badge>
+                  <Badge variant="secondary">Не настроен</Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium">Последнее обновление:</span>

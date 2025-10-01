@@ -485,10 +485,10 @@ const RolePermissionsManager: React.FC = () => {
               e.preventDefault()
               const formData = new FormData(e.target as HTMLFormElement)
               const roleData = {
-                name: formData.get('name'),
-                display_name: formData.get('display_name'),
-                description: formData.get('description'),
-                color: formData.get('color'),
+                name: formData.get('name') as string || '',
+                display_name: formData.get('display_name') as string || '',
+                description: formData.get('description') as string || '',
+                color: formData.get('color') as string || '',
                 is_active: formData.get('is_active') === 'on'
               }
               

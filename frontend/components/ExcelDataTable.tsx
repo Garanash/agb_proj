@@ -72,7 +72,8 @@ export default function ExcelDataTable({
   const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const [selectedCell, setSelectedCell] = useState<{ rowId: string; field: string } | null>(null)
-  const inputRef = useRef<HTMLInputElement | HTMLSelectElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const selectRef = useRef<HTMLSelectElement>(null)
   const [selectedVariant, setSelectedVariant] = useState<{rowId: string, variantIndex: number} | null>(null)
   const [showVariantModal, setShowVariantModal] = useState(false)
   const [selectedVariants, setSelectedVariants] = useState<{[rowId: string]: number}>({})
@@ -606,7 +607,7 @@ export default function ExcelDataTable({
               >
                 {editingCell?.rowId === row.id && editingCell?.field === 'единица_измерения' ? (
                   <select
-                    ref={inputRef}
+                    ref={selectRef}
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     onKeyDown={handleKeyPress}

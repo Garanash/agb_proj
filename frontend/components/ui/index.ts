@@ -22,3 +22,15 @@ export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 export { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select'
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './table'
 export { Alert, AlertDescription } from './alert'
+export { Checkbox } from './checkbox'
+export { Switch } from './switch'
+export { Textarea } from './textarea'
+export { 
+  Form, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormControl, 
+  FormDescription, 
+  FormMessage 
+} from './form'
