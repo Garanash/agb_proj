@@ -65,7 +65,7 @@ interface Role {
 
 const UserManagementV3: React.FC = () => {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<UserV3[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedUser, setSelectedUser] = useState<UserV3 | null>(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
@@ -153,7 +153,7 @@ const UserManagementV3: React.FC = () => {
       `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesRole = roleFilter === 'all' || 
-      user.roles.some(ur => ur.role.id.toString() === roleFilter);
+      user.roles.some((ur: any) => ur.role.id.toString() === roleFilter);
     
     const matchesStatus = statusFilter === 'all' || 
       (statusFilter === 'active' && user.isActive) ||
@@ -222,7 +222,7 @@ const UserManagementV3: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+            <UserCheck className="h-5 w-5" />
             Управление пользователями
           </CardTitle>
           <CardDescription>
@@ -240,29 +240,27 @@ const UserManagementV3: React.FC = () => {
                 className="pl-10"
               />
             </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Фильтр по роли" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все роли</SelectItem>
-                {roles.map(role => (
-                  <SelectItem key={role.id} value={role.id.toString()}>
-                    {role.displayName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Статус" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все</SelectItem>
-                <SelectItem value="active">Активные</SelectItem>
-                <SelectItem value="inactive">Неактивные</SelectItem>
-              </SelectContent>
-            </Select>
+            <select 
+              value={roleFilter} 
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="flex h-10 w-48 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="all">Все роли</option>
+              {roles.map(role => (
+                <option key={role.id} value={role.id.toString()}>
+                  {role.displayName}
+                </option>
+              ))}
+            </select>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex h-10 w-40 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="all">Все</option>
+              <option value="active">Активные</option>
+              <option value="inactive">Неактивные</option>
+            </select>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
               Добавить
@@ -311,7 +309,7 @@ const UserManagementV3: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {user.roles.filter(ur => ur.isActive).map(userRole => (
+                        {user.roles.filter((ur: any) => ur.isActive).map((userRole: any) => (
                           <div key={userRole.id}>
                             {getRoleBadge(userRole.role)}
                           </div>
@@ -346,11 +344,11 @@ const UserManagementV3: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Badge variant={user.isActive ? 'success' : 'secondary'}>
+                        <Badge variant={user.isActive ? 'default' : 'secondary'}>
                           {user.isActive ? 'Активен' : 'Неактивен'}
                         </Badge>
                         {!user.isPasswordChanged && (
-                          <Badge variant="warning" className="text-xs">
+                          <Badge variant="destructive" className="text-xs">
                             Пароль не изменен
                           </Badge>
                         )}
@@ -507,7 +505,7 @@ const UserManagementV3: React.FC = () => {
                     </div>
                     <div className="text-center p-3 border rounded-lg">
                       <div className="text-2xl font-bold">
-                        <Badge variant={selectedUser.isActive ? 'success' : 'secondary'}>
+                        <Badge variant={selectedUser.isActive ? 'default' : 'secondary'}>
                           {selectedUser.isActive ? 'Активен' : 'Неактивен'}
                         </Badge>
                       </div>
