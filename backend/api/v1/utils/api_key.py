@@ -25,3 +25,6 @@ async def get_api_key(db: AsyncSession) -> str:
         print(f"❌ Ошибка получения API ключа: {str(e)}")
         return None
 
+
+
+
