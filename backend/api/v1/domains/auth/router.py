@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from typing import Optional
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import jwt
 
 from ...shared.constants import APITags, Security
@@ -17,12 +18,23 @@ router = APIRouter()
 security = HTTPBearer()
 
 
-@router.post("/login", response_model=APIResponse, tags=[APITags.AUTH])
-async def login(
-    username: str,
+class LoginRequest(BaseModel):
+    username: str
     password: str
-):
+
+
+@router.options("/login")
+async def login_options():
+    """Обработка preflight запроса для login"""
+    return {}
+
+
+@router.post("/login", response_model=APIResponse, tags=[APITags.AUTH])
+async def login(request: LoginRequest):
     """Вход в систему"""
+    
+    username = request.username
+    password = request.password
     
     # Валидация входных данных
     if not username or not password:

@@ -32,3 +32,19 @@ class FileTypes:
     ARCHIVE = "archive"
     AUDIO = "audio"
     VIDEO = "video"
+
+# API Теги
+class APITags:
+    AUTH = "Аутентификация"
+    USERS = "Пользователи"
+    DEPARTMENTS = "Отделы"
+    NEWS = "Новости"
+    EVENTS = "События"
+    VED = "ВЭД Паспорта"
+    CHAT = "Чат"
+    REPAIR = "Ремонт"
+
+# Настройки безопасности
+class Security:
+    PASSWORD_MIN_LENGTH = 6
+    TOKEN_EXPIRE_MINUTES = ACCESS_TOKEN_EXPIRE_MINUTES

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
@@ -32,15 +32,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 @router.post("/login")
-async def login(
+def login(
     login_data: LoginData,
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Вход в систему"""
     print(f"👤 Попытка входа для пользователя: {login_data.username}")
     
     # Ищем пользователя
-    result = await db.execute(
+    result = db.execute(
         select(User).where(User.username == login_data.username)
     )
     user = result.scalar_one_or_none()
@@ -91,7 +91,7 @@ async def login(
     }
 
 @router.get("/me")
-async def read_users_me(current_user: User = Depends(get_current_user)):
+def read_users_me(current_user: User = Depends(get_current_user)):
     """Получение информации о текущем пользователе"""
     return {
         "id": current_user.id,
@@ -118,14 +118,14 @@ class ChangePasswordData(BaseModel):
     new_password: str
 
 @router.post("/change-password")
-async def change_password(
+def change_password(
     password_data: ChangePasswordData,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Смена пароля"""
     # Получаем пользователя из токена
-    current_user = await get_current_user_optional(token, db)
+    current_user = get_current_user_optional(token, db)
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -145,14 +145,14 @@ async def change_password(
     
     # Обновляем пароль в базе данных
     current_user.hashed_password = new_hashed_password
-    await db.commit()
+    db.commit()
     print(f"✅ Пароль успешно изменен для пользователя {current_user.username}")
     
     return {"message": "Пароль успешно изменен"}
 
-async def get_current_user_optional(
+def get_current_user_optional(
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ) -> Optional[User]:
     """Получение текущего пользователя (опционально)"""
     try:
@@ -163,7 +163,7 @@ async def get_current_user_optional(
     except JWTError:
         return None
     
-    result = await db.execute(
+    result = db.execute(
         select(User).where(User.username == username)
     )
     return result.scalar_one_or_none()
