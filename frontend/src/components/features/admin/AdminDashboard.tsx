@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks';
-import { getApiUrl } from '@/utils';
+import { getApiEndpoint } from '@/utils';
 
 interface SystemStats {
   totalUsers: number;
@@ -131,7 +131,7 @@ const AdminDashboard: React.FC = () => {
       }
 
       // Получаем статистику дашборда
-      const statsResponse = await fetch(`${getApiUrl()}/api/v1/admin/dashboard/stats`, {
+      const statsResponse = await fetch(getApiEndpoint('/admin/dashboard/stats'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -145,7 +145,7 @@ const AdminDashboard: React.FC = () => {
       const statsData: DashboardData = await statsResponse.json();
 
       // Получаем последнюю активность
-      const activityResponse = await fetch(`${getApiUrl()}/api/v1/admin/dashboard/activity?limit=5`, {
+      const activityResponse = await fetch(getApiEndpoint('/admin/dashboard/activity?limit=5'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

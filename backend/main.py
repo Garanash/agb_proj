@@ -26,21 +26,25 @@ async def lifespan(app: FastAPI):
     # Инициализируем данные если их нет
     if os.getenv("AUTO_INIT_DATA", "false").lower() == "true":
         try:
-            from scripts.init_data import init_database_data
             from database import SessionLocal
+            from models import User
             
             def check_and_init():
                 try:
                     with SessionLocal() as db:
-                        init_database_data(db)
-                    print("✅ Данные инициализированы успешно")
+                        # Проверяем, есть ли уже пользователи
+                        admin = db.query(User).filter(User.username == "admin").first()
+                        if not admin:
+                            print("⚠️ Администратор не найден. Запустите: python3 scripts/create_admin.py")
+                        else:
+                            print("✅ Данные уже инициализированы")
                 except Exception as e:
-                    print(f"⚠️ Ошибка инициализации данных: {e}")
+                    print(f"⚠️ Ошибка проверки данных: {e}")
             
-            # Запускаем инициализацию
+            # Запускаем проверку
             check_and_init()
         except Exception as e:
-            print(f"⚠️ Ошибка запуска инициализации: {e}")
+            print(f"⚠️ Ошибка запуска проверки: {e}")
 
     yield
 
@@ -126,6 +130,9 @@ app.include_router(events_router, prefix="/api/v1/events", tags=["📅 Собы�
 
 from api.v1.endpoints.article_matching import router as article_matching_router
 app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
+
+from api.v1.endpoints.dashboard import router as dashboard_router
+app.include_router(dashboard_router, prefix="/api/v1", tags=["📊 Дашборд"])
 
 # Добавляем middleware для обработки больших запросов
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
