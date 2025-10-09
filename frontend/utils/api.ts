@@ -44,7 +44,12 @@ export const getApiEndpoint = (endpoint: string, version: string = DEFAULT_API_V
     return `${baseUrl}/api${cleanEndpoint}`;
   }
   
-  return `${baseUrl}/api/v1${cleanEndpoint}`;
+  // Если baseUrl уже содержит /api, не добавляем его повторно
+  if (baseUrl.includes('/api')) {
+    return `${baseUrl}/${version}${cleanEndpoint}`;
+  }
+  
+  return `${baseUrl}/api/${version}${cleanEndpoint}`;
 };
 
 // Полный URL для WebSocket
