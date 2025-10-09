@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 from sqlalchemy import desc
 from typing import List, Optional
@@ -30,23 +30,21 @@ async def get_news(
     limit: int = 10,
     category: Optional[str] = None,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка новостей"""
     # Админы и менеджеры видят все новости, обычные пользователи только опубликованные
-    current_user = await get_current_user_optional(token, db)
+    current_user = get_current_user_optional(token, db)
 
     if current_user and current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
-        query = select(News).order_by(desc(News.created_at))
+        query = db.query(News).order_by(desc(News.created_at))
     else:
-        query = select(News).where(News.is_published == True).order_by(desc(News.created_at))
+        query = db.query(News).filter(News.is_published == True).order_by(desc(News.created_at))
 
     if category:
-        query = query.where(News.category == category)
+        query = query.filter(News.category == category)
 
-    query = query.offset(skip).limit(limit)
-    result = await db.execute(query)
-    news = result.scalars().all()
+    news = query.offset(skip).limit(limit).all()
 
     # Преобразуем datetime в строки для корректной сериализации
     news_list = []
@@ -74,7 +72,7 @@ async def get_news_root(
     limit: int = 10,
     category: Optional[str] = None,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка новостей с query параметрами"""
     return await get_news(skip, limit, category, token, db)
@@ -86,7 +84,7 @@ async def get_news_no_slash(
     limit: int = 10,
     category: Optional[str] = None,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка новостей без trailing slash для совместимости"""
     return await get_news(skip, limit, category, token, db)
@@ -97,7 +95,7 @@ async def get_my_news_slash(
     skip: int = 0,
     limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Редирект на /my для совместимости с trailing slash"""
     return await get_my_news(skip, limit, current_user, db)
@@ -108,17 +106,16 @@ async def get_my_news_slash(
 async def create_news_root(
     news_data: NewsCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Редирект на /create для совместимости с frontend POST /api/news/"""
     return await create_news(news_data, current_user, db)
 
 
 @router.get("/{news_id}", response_model=NewsSchema)
-async def get_news_item(news_id: int, db: AsyncSession = Depends(get_db)):
+async def get_news_item(news_id: int, db: Session = Depends(get_db)):
     """Получение конкретной новости"""
-    result = await db.execute(select(News).where(News.id == news_id, News.is_published == True))
-    news = result.scalar_one_or_none()
+    news = db.query(News).filter(News.id == news_id, News.is_published == True).first()
     
     if not news:
         raise HTTPException(status_code=404, detail="Новость не найдена")
@@ -130,7 +127,7 @@ async def get_news_item(news_id: int, db: AsyncSession = Depends(get_db)):
 async def create_news(
     news_data: NewsCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание новости (только для администраторов и менеджеров)"""
     check_admin_or_manager(current_user)
@@ -156,11 +153,10 @@ async def update_news(
     news_id: int,
     news_data: NewsUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Обновление новости"""
-    result = await db.execute(select(News).where(News.id == news_id))
-    news = result.scalar_one_or_none()
+    news = db.query(News).filter(News.id == news_id).first()
     
     if not news:
         raise HTTPException(status_code=404, detail="Новость не найдена")
@@ -187,11 +183,10 @@ async def update_news(
 async def delete_news(
     news_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление новости"""
-    result = await db.execute(select(News).where(News.id == news_id))
-    news = result.scalar_one_or_none()
+    news = db.query(News).filter(News.id == news_id).first()
     
     if not news:
         raise HTTPException(status_code=404, detail="Новость не найдена")
@@ -214,16 +209,9 @@ async def get_my_news(
     skip: int = 0,
     limit: int = 10,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение новостей текущего пользователя"""
-    result = await db.execute(
-        select(News)
-        .where(News.author_id == current_user.id)
-        .order_by(desc(News.created_at))
-        .offset(skip)
-        .limit(limit)
-    )
-    news = result.scalars().all()
+    news = db.query(News).filter(News.author_id == current_user.id).order_by(desc(News.created_at)).offset(skip).limit(limit).all()
     
     return news

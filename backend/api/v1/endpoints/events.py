@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from datetime import datetime, date
@@ -19,36 +19,33 @@ async def get_events(
     end_date: Optional[date] = Query(None, description="Конечная дата фильтра"),
     event_type: Optional[str] = Query(None, description="Тип события"),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка событий с фильтрацией"""
     # Базовый запрос для активных событий
-    query = select(Event).where(Event.is_active == True).options(
-        selectinload(Event.participants).selectinload(EventParticipant.user)
-    )
+    query = db.query(Event).filter(Event.is_active == True)
     
     # Фильтруем события: показываем только общие события или события, где пользователь является участником
     # Общие события (is_public=True) или события, где пользователь является участником
-    query = query.where(
+    query = query.filter(
         (Event.is_public == True) | 
         (Event.id.in_(
-            select(EventParticipant.event_id).where(EventParticipant.user_id == current_user.id)
+            db.query(EventParticipant.event_id).filter(EventParticipant.user_id == current_user.id)
         ))
     )
     
     if start_date:
-        query = query.where(Event.start_date >= datetime.combine(start_date, datetime.min.time()))
+        query = query.filter(Event.start_date >= datetime.combine(start_date, datetime.min.time()))
     
     if end_date:
-        query = query.where(Event.end_date <= datetime.combine(end_date, datetime.max.time()))
+        query = query.filter(Event.end_date <= datetime.combine(end_date, datetime.max.time()))
     
     if event_type:
-        query = query.where(Event.event_type == event_type)
+        query = query.filter(Event.event_type == event_type)
     
     query = query.order_by(Event.start_date)
     
-    result = await db.execute(query)
-    events = result.scalars().all()
+    events = query.all()
     
     # Сериализуем события в правильный формат
     events_list = []
@@ -94,7 +91,7 @@ async def get_events(
 async def create_event(
     event_data: EventCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание нового события"""
     # Проверяем права: только администраторы и менеджеры могут создавать события
@@ -209,7 +206,7 @@ async def create_event(
 async def get_event(
     event_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение события по ID"""
     result = await db.execute(
@@ -264,7 +261,7 @@ async def update_event(
     event_id: int,
     event_data: EventUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Обновление события"""
     result = await db.execute(
@@ -397,7 +394,7 @@ async def update_event(
 async def delete_event(
     event_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление события (мягкое удаление)"""
     result = await db.execute(

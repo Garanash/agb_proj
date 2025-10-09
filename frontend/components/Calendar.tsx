@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiEndpoint } from '@/utils';
 import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '@/utils'
@@ -68,11 +68,17 @@ const Calendar: React.FC = () => {
       const startOfMonth = moment(currentDate).startOf('month').format('YYYY-MM-DD')
       const endOfMonth = moment(currentDate).endOf('month').format('YYYY-MM-DD')
       
-      const response = await axios.get(`${getApiUrl()}/api/v1/events/`, {
+      // Получаем токен из localStorage
+      const token = localStorage.getItem('auth_token')
+      
+      const response = await axios.get(getApiEndpoint('/events/'), {
         params: {
           start_date: startOfMonth,
           end_date: endOfMonth
-        }
+        },
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {}
       })
       setEvents(response.data)
     } catch (error) {

@@ -29,8 +29,7 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    result = db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
+    user = db.query(User).filter(User.username == username).first()
     
     if user is None:
         raise credentials_exception
@@ -46,8 +45,7 @@ def get_current_user_ws(token: str, db: Session) -> User:
     except JWTError:
         raise HTTPException(status_code=401)
     
-    result = db.execute(select(User).where(User.username == username))
-    user = result.scalar_one_or_none()
+    user = db.query(User).filter(User.username == username).first()
     
     if user is None:
         raise HTTPException(status_code=401)

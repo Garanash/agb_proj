@@ -5,7 +5,6 @@ import { getApiUrl } from '@/utils';
 import { Calendar, NewsWidget, PageLayout, RegistrationModal } from '@/components'
 import { useAuth } from '@/hooks'
 import Link from 'next/link'
-import AdminDashboard from '@/src/components/features/admin/AdminDashboard'
 
 export default function Home() {
   const { user, isAuthenticated, isLoading } = useAuth()
@@ -99,9 +98,22 @@ export default function Home() {
       {/* Блок для авторизованных пользователей */}
       {isAuthenticated && user && (
         <div className="mb-8">
-          {/* Дашборд для администраторов */}
+          {/* Ссылка на админ-панель для администраторов */}
           {user.role === 'admin' && (
-            <AdminDashboard />
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-red-900 dark:text-red-300 mb-2">
+                🔧 Административная панель
+              </h3>
+              <p className="text-red-800 dark:text-red-200 mb-4">
+                Управление системой, пользователями и настройками
+              </p>
+              <Link
+                href="/admin"
+                className="inline-block bg-red-600 text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Перейти в админ-панель
+              </Link>
+            </div>
           )}
 
           {user.role === 'customer' && (
@@ -157,20 +169,18 @@ export default function Home() {
         </div>
       )}
 
-      {/* Показываем календарь и новости только для не-администраторов */}
-      {!(isAuthenticated && user && user.role === 'admin') && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Календарь */}
-          <div className="lg:col-span-2">
-            <Calendar />
-          </div>
-
-          {/* Новости компании */}
-          <div className="lg:col-span-1">
-            <NewsWidget />
-          </div>
+      {/* Календарь и новости для всех пользователей */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Календарь */}
+        <div className="lg:col-span-2">
+          <Calendar />
         </div>
-      )}
+
+        {/* Новости компании */}
+        <div className="lg:col-span-1">
+          <NewsWidget />
+        </div>
+      </div>
 
       {/* Модальное окно регистрации */}
       <RegistrationModal
