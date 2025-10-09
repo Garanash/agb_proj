@@ -16,8 +16,8 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     # Проверяем подключение к базе данных
     try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
             print("✅ Подключение к базе данных успешно установлено")
     except Exception as e:
         print(f"❌ Ошибка подключения к базе данных: {e}")
@@ -27,18 +27,18 @@ async def lifespan(app: FastAPI):
     if os.getenv("AUTO_INIT_DATA", "false").lower() == "true":
         try:
             from scripts.init_data import init_database_data
-            from database import AsyncSessionLocal
+            from database import SessionLocal
             
-            async def check_and_init():
+            def check_and_init():
                 try:
-                    async with AsyncSessionLocal() as db:
-                        await init_database_data(db)
+                    with SessionLocal() as db:
+                        init_database_data(db)
                     print("✅ Данные инициализированы успешно")
                 except Exception as e:
                     print(f"⚠️ Ошибка инициализации данных: {e}")
             
-            # Запускаем инициализацию в фоне
-            asyncio.create_task(check_and_init())
+            # Запускаем инициализацию
+            check_and_init()
         except Exception as e:
             print(f"⚠️ Ошибка запуска инициализации: {e}")
 
