@@ -47,6 +47,18 @@ def get_current_user_ws(token: str, db: Session) -> User:
     
     user = db.query(User).filter(User.username == username).first()
     
-    if user is None:
-        raise HTTPException(status_code=401)
+def get_current_user_optional(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Получение текущего пользователя (опционально)"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+    
+    user = db.query(User).filter(User.username == username).first()
     return user

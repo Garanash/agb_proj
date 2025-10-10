@@ -107,6 +107,12 @@ app.include_router(auth_router, prefix="/api/v1/auth", tags=["🔐 Аутент�
 from api.v1.endpoints.users import router as users_router
 app.include_router(users_router, prefix="/api/v1/users", tags=["👥 Пользователи"])
 
+from api.v1.endpoints.departments import router as departments_router
+app.include_router(departments_router, prefix="/api/v1/departments", tags=["🏢 Отделы"])
+
+from api.v1.endpoints.company_employees import router as company_employees_router
+app.include_router(company_employees_router, prefix="/api/v1/company-employees", tags=["👥 Сотрудники"])
+
 from api.v1.endpoints.chat import router as chat_router
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 
@@ -128,8 +134,8 @@ app.include_router(news_router, prefix="/api/v1/news", tags=["📰 Новост�
 from api.v1.endpoints.events import router as events_router
 app.include_router(events_router, prefix="/api/v1/events", tags=["📅 События"])
 
-from api.v1.endpoints.article_matching import router as article_matching_router
-app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
+# from api.v1.endpoints.article_matching import router as article_matching_router
+# app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
 
 from api.v1.endpoints.dashboard import router as dashboard_router
 app.include_router(dashboard_router, prefix="/api/v1", tags=["📊 Дашборд"])

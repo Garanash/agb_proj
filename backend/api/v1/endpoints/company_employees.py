@@ -1,211 +1,339 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+from pydantic import BaseModel
 
 from database import get_db
-from models import CompanyEmployee, Department, User, UserRole
-from ..schemas import CompanyEmployee as CompanyEmployeeSchema, CompanyEmployeeList, CompanyEmployeeCreateResponse, CompanyEmployeeCreate, CompanyEmployeeUpdate, EmployeeReorderRequest
+from models import CompanyEmployee, User, UserRole
 from .auth import get_current_user
 
 router = APIRouter()
 
 
-@router.post("/", response_model=CompanyEmployeeCreateResponse)
-async def create_company_employee(
-    employee_data: CompanyEmployeeCreate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Создание нового сотрудника компании"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Недостаточно прав")
-    
-    # Проверяем существование отдела
-    result = await db.execute(select(Department).where(Department.id == employee_data.department_id))
-    department = result.scalar_one_or_none()
-    if not department:
-        raise HTTPException(status_code=404, detail="Отдел не найден")
-    
-    # Создаем сотрудника
-    employee_dict = employee_data.dict()
-    print(f"🔍 Создаем сотрудника с данными: {employee_dict}")
-    db_employee = CompanyEmployee(**employee_dict)
-    db.add(db_employee)
-    await db.commit()
-    await db.refresh(db_employee)
-    print(f"✅ Сотрудник создан: ID={db_employee.id}, department_id={db_employee.department_id}, is_active={db_employee.is_active}")
-    
-    # Возвращаем созданного сотрудника в правильном формате
-    return CompanyEmployeeCreateResponse(
-        success=True,
-        message="Сотрудник успешно создан",
-        data=db_employee
-    )
+class EmployeeResponse(BaseModel):
+    id: int
+    first_name: str
+    last_name: str
+    position: str
+    department_id: int
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: bool
+    sort_order: int
+    created_at: Optional[str] = None
 
 
-@router.get("/", response_model=CompanyEmployeeList)
-async def get_company_employees(
-    department_id: int = None,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+class EmployeeListResponse(BaseModel):
+    employees: List[EmployeeResponse]
+
+
+class EmployeeCreate(BaseModel):
+    first_name: str
+    last_name: str
+    position: str
+    department_id: int
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class EmployeeUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    position: Optional[str] = None
+    department_id: Optional[int] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class EmployeeReorderItem(BaseModel):
+    id: int
+    sort_order: int
+
+
+class EmployeeReorderRequest(BaseModel):
+    employees: List[EmployeeReorderItem]
+
+
+@router.get("/", response_model=EmployeeListResponse)
+def get_employees(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
 ):
     """Получение списка сотрудников компании"""
-    query = select(CompanyEmployee).where(CompanyEmployee.is_active == True)
-    
-    if department_id:
-        query = query.where(CompanyEmployee.department_id == department_id)
-    
-    # Сортируем по sort_order, затем по id
-    query = query.order_by(CompanyEmployee.sort_order.asc(), CompanyEmployee.id.asc())
-    
-    # Не загружаем связанные данные для списка, чтобы избежать циклических ссылок
-    
-    result = await db.execute(query)
-    employees = result.scalars().all()
-    
-    # Сериализуем сотрудников
-    employees_list = []
-    for emp in employees:
-        emp_dict = {
-            "id": emp.id,
-            "first_name": emp.first_name,
-            "last_name": emp.last_name,
-            "middle_name": emp.middle_name,
-            "department_id": emp.department_id,
-            "position": emp.position,
-            "email": emp.email,
-            "phone": emp.phone,
-            "is_active": emp.is_active,
-            "sort_order": emp.sort_order,
-            "created_at": emp.created_at.isoformat(),
-            "updated_at": emp.updated_at.isoformat() if emp.updated_at else None
-        }
-        print(f"🔍 Сотрудник в API: ID={emp.id}, department_id={emp.department_id}, is_active={emp.is_active}")
-        employees_list.append(emp_dict)
-    
-    return CompanyEmployeeList(
-        employees=employees_list,
-        total=len(employees_list)
-    )
+    try:
+        # Используем raw SQL для получения сотрудников
+        query = """
+            SELECT id, first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at 
+            FROM company_employees 
+            WHERE is_active = true 
+            ORDER BY sort_order ASC, id ASC 
+            LIMIT %s OFFSET %s
+        """
+        
+        result = db.execute(text(query), [limit, skip]).fetchall()
+        
+        employees_list = []
+        for row in result:
+            employee_dict = {
+                "id": row[0],
+                "first_name": row[1],
+                "last_name": row[2],
+                "position": row[3],
+                "department_id": row[4],
+                "email": row[5],
+                "phone": row[6],
+                "is_active": row[7],
+                "sort_order": row[8],
+                "created_at": row[9].isoformat() if row[9] else None
+            }
+            employees_list.append(employee_dict)
+        
+        return EmployeeListResponse(employees=employees_list)
+    except Exception as e:
+        print(f"Ошибка в get_employees: {e}")
+        return EmployeeListResponse(employees=[])
 
 
-@router.get("/{employee_id}", response_model=CompanyEmployeeSchema)
-async def get_company_employee(
-    employee_id: int,
+@router.get("/count")
+def count_employees(db: Session = Depends(get_db)):
+    """Подсчет сотрудников в базе"""
+    try:
+        count = db.execute(text("SELECT COUNT(*) FROM company_employees")).scalar()
+        return {"count": count}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/", response_model=EmployeeResponse)
+def create_employee(
+    employee_data: EmployeeCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
-    """Получение сотрудника компании по ID"""
-    from sqlalchemy.orm import selectinload
-    
-    result = await db.execute(
-        select(CompanyEmployee)
-        .where(CompanyEmployee.id == employee_id)
-        .options(selectinload(CompanyEmployee.department))
-    )
-    employee = result.scalar_one_or_none()
-    if not employee:
-        raise HTTPException(status_code=404, detail="Сотрудник не найден")
-    
-    return employee
+    """Создание нового сотрудника"""
+    try:
+        # Проверяем права пользователя
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для создания сотрудников"
+            )
+        
+        # Получаем следующий sort_order
+        max_order_result = db.execute(text("SELECT MAX(sort_order) FROM company_employees")).scalar()
+        next_order = (max_order_result or 0) + 1
+        
+        # Создаем сотрудника
+        insert_query = """
+            INSERT INTO company_employees (first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at
+        """
+        
+        result = db.execute(text(insert_query), [
+            employee_data.first_name,
+            employee_data.last_name,
+            employee_data.position,
+            employee_data.department_id,
+            employee_data.email,
+            employee_data.phone,
+            True,  # is_active
+            next_order,
+            datetime.now()
+        ]).fetchone()
+        
+        db.commit()
+        
+        return EmployeeResponse(
+            id=result[0],
+            first_name=result[1],
+            last_name=result[2],
+            position=result[3],
+            department_id=result[4],
+            email=result[5],
+            phone=result[6],
+            is_active=result[7],
+            sort_order=result[8],
+            created_at=result[9].isoformat() if result[9] else None
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"Ошибка в create_employee: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при создании сотрудника: {str(e)}"
+        )
+
+
+@router.put("/{employee_id}", response_model=EmployeeResponse)
+def update_employee(
+    employee_id: int,
+    employee_data: EmployeeUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Обновление сотрудника"""
+    try:
+        # Проверяем права пользователя
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для обновления сотрудников"
+            )
+        
+        # Проверяем существование сотрудника
+        check_query = "SELECT id FROM company_employees WHERE id = %s"
+        existing = db.execute(text(check_query), [employee_id]).fetchone()
+        
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Сотрудник не найден"
+            )
+        
+        # Строим запрос обновления
+        update_fields = []
+        params = []
+        
+        if employee_data.first_name is not None:
+            update_fields.append("first_name = %s")
+            params.append(employee_data.first_name)
+        
+        if employee_data.last_name is not None:
+            update_fields.append("last_name = %s")
+            params.append(employee_data.last_name)
+        
+        if employee_data.position is not None:
+            update_fields.append("position = %s")
+            params.append(employee_data.position)
+        
+        if employee_data.department_id is not None:
+            update_fields.append("department_id = %s")
+            params.append(employee_data.department_id)
+        
+        if employee_data.email is not None:
+            update_fields.append("email = %s")
+            params.append(employee_data.email)
+        
+        if employee_data.phone is not None:
+            update_fields.append("phone = %s")
+            params.append(employee_data.phone)
+        
+        if employee_data.is_active is not None:
+            update_fields.append("is_active = %s")
+            params.append(employee_data.is_active)
+        
+        if not update_fields:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Нет данных для обновления"
+            )
+        
+        update_query = f"""
+            UPDATE company_employees 
+            SET {', '.join(update_fields)}, updated_at = %s
+            WHERE id = %s
+            RETURNING id, first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at
+        """
+        
+        params.extend([datetime.now(), employee_id])
+        result = db.execute(text(update_query), params).fetchone()
+        
+        db.commit()
+        
+        return EmployeeResponse(
+            id=result[0],
+            first_name=result[1],
+            last_name=result[2],
+            position=result[3],
+            department_id=result[4],
+            email=result[5],
+            phone=result[6],
+            is_active=result[7],
+            sort_order=result[8],
+            created_at=result[9].isoformat() if result[9] else None
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"Ошибка в update_employee: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при обновлении сотрудника: {str(e)}"
+        )
 
 
 @router.put("/reorder-employees")
-async def reorder_employees(
-    employees: List[dict],
+def reorder_employees(
+    reorder_data: EmployeeReorderRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Изменение порядка сотрудников"""
-    print(f"🔍 Получен запрос на переупорядочивание сотрудников: {employees}")
-    print(f"🔍 Количество сотрудников: {len(employees)}")
-    
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Недостаточно прав")
-    
     try:
-        for emp_order in employees:
-            emp_id = emp_order.get("id")
-            sort_order = emp_order.get("sort_order")
-            print(f"🔍 Обновляем сотрудника {emp_id} с порядком {sort_order}")
-            
-            if emp_id and sort_order is not None:
-                result = await db.execute(
-                    select(CompanyEmployee).where(CompanyEmployee.id == emp_id)
-                )
-                employee = result.scalar_one_or_none()
-                
-                if employee:
-                    employee.sort_order = sort_order
-                    db.add(employee)
-                    print(f"✅ Сотрудник {emp_id} обновлен")
-                else:
-                    print(f"❌ Сотрудник {emp_id} не найден")
+        # Проверяем права пользователя
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для изменения порядка сотрудников"
+            )
         
-        await db.commit()
-        print("✅ Все сотрудники успешно обновлены")
-        return {"message": "Порядок сотрудников успешно обновлен"}
-    
+        # Обновляем порядок для каждого сотрудника
+        for employee in reorder_data.employees:
+            update_query = "UPDATE company_employees SET sort_order = %s WHERE id = %s"
+            db.execute(text(update_query), [employee.sort_order, employee.id])
+        
+        db.commit()
+        
+        return {"message": "Порядок сотрудников обновлен успешно"}
     except Exception as e:
-        await db.rollback()
-        print(f"❌ Ошибка при обновлении порядка: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении порядка: {str(e)}")
-
-
-@router.put("/{employee_id}", response_model=CompanyEmployeeCreateResponse)
-async def update_company_employee(
-    employee_id: int,
-    employee_update: CompanyEmployeeUpdate,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Обновление сотрудника компании"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Недостаточно прав")
-    
-    result = await db.execute(select(CompanyEmployee).where(CompanyEmployee.id == employee_id))
-    employee = result.scalar_one_or_none()
-    if not employee:
-        raise HTTPException(status_code=404, detail="Сотрудник не найден")
-    
-    # Если меняется отдел, проверяем его существование
-    if employee_update.department_id:
-        result = await db.execute(select(Department).where(Department.id == employee_update.department_id))
-        department = result.scalar_one_or_none()
-        if not department:
-            raise HTTPException(status_code=404, detail="Отдел не найден")
-    
-    for field, value in employee_update.dict(exclude_unset=True).items():
-        setattr(employee, field, value)
-    
-    await db.commit()
-    await db.refresh(employee)
-    
-    # Возвращаем обновленного сотрудника в правильном формате
-    return CompanyEmployeeCreateResponse(
-        success=True,
-        message="Сотрудник успешно обновлен",
-        data=employee
-    )
+        db.rollback()
+        print(f"Ошибка в reorder_employees: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при изменении порядка сотрудников: {str(e)}"
+        )
 
 
 @router.delete("/{employee_id}")
-async def delete_company_employee(
+def delete_employee(
     employee_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
-    """Удаление сотрудника компании"""
-    if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(status_code=403, detail="Недостаточно прав")
-    
-    result = await db.execute(select(CompanyEmployee).where(CompanyEmployee.id == employee_id))
-    employee = result.scalar_one_or_none()
-    if not employee:
-        raise HTTPException(status_code=404, detail="Сотрудник не найден")
-    
-    await db.delete(employee)
-    await db.commit()
-    
-    return {"message": "Сотрудник удален"}
+    """Удаление сотрудника (мягкое удаление)"""
+    try:
+        # Проверяем права пользователя
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для удаления сотрудников"
+            )
+        
+        # Проверяем существование сотрудника
+        check_query = "SELECT id FROM company_employees WHERE id = %s"
+        existing = db.execute(text(check_query), [employee_id]).fetchone()
+        
+        if not existing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Сотрудник не найден"
+            )
+        
+        # Мягкое удаление (устанавливаем is_active = false)
+        delete_query = "UPDATE company_employees SET is_active = false, updated_at = %s WHERE id = %s"
+        db.execute(text(delete_query), [datetime.now(), employee_id])
+        
+        db.commit()
+        
+        return {"message": "Сотрудник удален успешно"}
+    except Exception as e:
+        db.rollback()
+        print(f"Ошибка в delete_employee: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при удалении сотрудника: {str(e)}"
+        )

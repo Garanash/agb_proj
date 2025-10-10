@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from sqlalchemy.future import select
-from sqlalchemy import desc
+from sqlalchemy import text
 from typing import List, Optional
 
 from database import get_db
 from models import News, User, UserRole
 from ..schemas import News as NewsSchema, NewsCreate, NewsUpdate
-from .auth import get_current_user, get_current_user_optional
+from ..dependencies import get_current_user_optional
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
@@ -24,8 +23,127 @@ def check_admin_or_manager(current_user: User):
         )
 
 
+@router.get("/raw")
+def get_raw_news(db: Session = Depends(get_db)):
+    """Получение новостей через raw SQL"""
+    try:
+        result = db.execute(text("SELECT id, title, content, category, is_published, created_at FROM news LIMIT 5")).fetchall()
+        
+        news_list = []
+        for row in result:
+            news_dict = {
+                "id": row[0],
+                "title": row[1],
+                "content": row[2],
+                "category": row[3],
+                "is_published": row[4],
+                "created_at": row[5].isoformat() if row[5] else None
+            }
+            news_list.append(news_dict)
+        
+        return news_list
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.get("/users-structure")
+def get_users_structure(db: Session = Depends(get_db)):
+    """Получение структуры таблицы users"""
+    try:
+        result = db.execute(text("""
+            SELECT column_name, data_type, is_nullable 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            ORDER BY ordinal_position
+        """)).fetchall()
+        
+        columns = []
+        for row in result:
+            columns.append({
+                "name": row[0],
+                "type": row[1],
+                "nullable": row[2]
+            })
+        
+        return {"columns": columns}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.get("/users-count")
+def count_users(db: Session = Depends(get_db)):
+    """Подсчет пользователей в базе"""
+    try:
+        count = db.execute(text("SELECT COUNT(*) FROM users")).scalar()
+        return {"count": count}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.get("/count")
+def count_news(db: Session = Depends(get_db)):
+    """Подсчет новостей в базе"""
+    try:
+        count = db.execute(text("SELECT COUNT(*) FROM news")).scalar()
+        return {"count": count}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.get("/tables")
+def check_tables(db: Session = Depends(get_db)):
+    """Проверка существующих таблиц"""
+    try:
+        # Получаем список таблиц
+        result = db.execute(text("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        """)).fetchall()
+        
+        tables = [row[0] for row in result]
+        return {"tables": tables}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    """Проверка здоровья endpoint"""
+    try:
+        # Простая проверка подключения к базе
+        result = db.execute(text("SELECT 1")).scalar()
+        return {"status": "ok", "database": "connected", "result": result}
+    except Exception as e:
+        return {"status": "error", "database": "disconnected", "error": str(e)}
+
+
+@router.get("/test", response_model=List[NewsSchema])
+def test_news(db: Session = Depends(get_db)):
+    """Тестовый endpoint для проверки новостей без авторизации"""
+    try:
+        news = db.query(News).limit(5).all()
+        
+        news_list = []
+        for item in news:
+            news_dict = {
+                "id": item.id,
+                "title": item.title,
+                "content": item.content,
+                "category": item.category,
+                "is_published": item.is_published,
+                "created_at": item.created_at.isoformat() if item.created_at else None
+            }
+            news_list.append(news_dict)
+        
+        return news_list
+    except Exception as e:
+        print(f"Ошибка в test_news: {e}")
+        return []
+
+
 @router.get("/list", response_model=List[NewsSchema])
-async def get_news(
+def get_news(
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
@@ -33,185 +151,70 @@ async def get_news(
     db: Session = Depends(get_db)
 ):
     """Получение списка новостей"""
-    # Админы и менеджеры видят все новости, обычные пользователи только опубликованные
-    current_user = get_current_user_optional(token, db)
+    try:
+        # Используем raw SQL для получения новостей
+        query = "SELECT id, title, content, category, is_published, created_at FROM news"
+        params = []
+        
+        if category:
+            query += " WHERE category = %s"
+            params.append(category)
+        
+        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+        params.extend([limit, skip])
+        
+        result = db.execute(text(query), params).fetchall()
+        
+        news_list = []
+        for row in result:
+            news_dict = {
+                "id": row[0],
+                "title": row[1],
+                "content": row[2],
+                "category": row[3],
+                "is_published": row[4],
+                "created_at": row[5].isoformat() if row[5] else None
+            }
+            news_list.append(news_dict)
+        
+        return news_list
+    except Exception as e:
+        print(f"Ошибка в get_news: {e}")
+        return []
 
-    if current_user and current_user.role in [UserRole.ADMIN, UserRole.MANAGER]:
-        query = db.query(News).order_by(desc(News.created_at))
-    else:
-        query = db.query(News).filter(News.is_published == True).order_by(desc(News.created_at))
 
-    if category:
-        query = query.filter(News.category == category)
-
-    news = query.offset(skip).limit(limit).all()
-
-    # Преобразуем datetime в строки для корректной сериализации
-    news_list = []
-    for item in news:
-        news_dict = {
-            "id": item.id,
-            "title": item.title,
-            "content": item.content,
-            "category": item.category,
-            "author_id": item.author_id,
-            "author_name": item.author_name,
-            "is_published": item.is_published,
-            "created_at": item.created_at.isoformat(),
-            "updated_at": item.updated_at.isoformat() if item.updated_at else None
-        }
-        news_list.append(news_dict)
-
-    return news_list
-
-
-# Редирект роуты для совместимости с frontend
 @router.get("/", response_model=List[NewsSchema])
-async def get_news_root(
+def get_news_root(
     skip: int = 0,
     limit: int = 10,
     category: Optional[str] = None,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    """Получение списка новостей с query параметрами"""
-    return await get_news(skip, limit, category, token, db)
-
-
-@router.get("", response_model=List[NewsSchema])
-async def get_news_no_slash(
-    skip: int = 0,
-    limit: int = 10,
-    category: Optional[str] = None,
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
-):
-    """Получение списка новостей без trailing slash для совместимости"""
-    return await get_news(skip, limit, category, token, db)
-
-
-@router.get("/my/", response_model=List[NewsSchema])
-async def get_my_news_slash(
-    skip: int = 0,
-    limit: int = 10,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Редирект на /my для совместимости с trailing slash"""
-    return await get_my_news(skip, limit, current_user, db)
-
-
-# POST роуты для совместимости с frontend
-@router.post("/", response_model=NewsSchema, status_code=status.HTTP_201_CREATED)
-async def create_news_root(
-    news_data: NewsCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Редирект на /create для совместимости с frontend POST /api/news/"""
-    return await create_news(news_data, current_user, db)
+    """Получение списка новостей (корневой endpoint)"""
+    return get_news(skip, limit, category, token, db)
 
 
 @router.get("/{news_id}", response_model=NewsSchema)
-async def get_news_item(news_id: int, db: Session = Depends(get_db)):
-    """Получение конкретной новости"""
-    news = db.query(News).filter(News.id == news_id, News.is_published == True).first()
-    
-    if not news:
-        raise HTTPException(status_code=404, detail="Новость не найдена")
-    
-    return news
-
-
-@router.post("/create", response_model=NewsSchema, status_code=status.HTTP_201_CREATED)
-async def create_news(
-    news_data: NewsCreate,
-    current_user: User = Depends(get_current_user),
+def get_news_by_id(
+    news_id: int,
     db: Session = Depends(get_db)
 ):
-    """Создание новости (только для администраторов и менеджеров)"""
-    check_admin_or_manager(current_user)
+    """Получение новости по ID"""
+    news = db.query(News).filter(News.id == news_id).first()
     
-    news = News(
-        title=news_data.title,
-        content=news_data.content,
-        category=news_data.category,
-        author_id=current_user.id,
-        author_name=f"{current_user.last_name} {current_user.first_name}",
-        is_published=news_data.is_published
+    if not news:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Новость не найдена"
+        )
+    
+    return NewsSchema(
+        id=news.id,
+        title=news.title,
+        content=news.content,
+        category=news.category,
+        is_published=news.is_published,
+        created_at=news.created_at.isoformat() if news.created_at else None,
+        updated_at=news.updated_at.isoformat() if news.updated_at else None
     )
-    
-    db.add(news)
-    await db.commit()
-    await db.refresh(news)
-    
-    return news
-
-
-@router.put("/{news_id}", response_model=NewsSchema)
-async def update_news(
-    news_id: int,
-    news_data: NewsUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Обновление новости"""
-    news = db.query(News).filter(News.id == news_id).first()
-    
-    if not news:
-        raise HTTPException(status_code=404, detail="Новость не найдена")
-    
-    # Проверяем права: автор может редактировать свои новости, админы и менеджеры - любые
-    if news.author_id != current_user.id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав для редактирования этой новости"
-        )
-    
-    # Обновляем поля
-    update_data = news_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(news, field, value)
-    
-    await db.commit()
-    await db.refresh(news)
-    
-    return news
-
-
-@router.delete("/{news_id}")
-async def delete_news(
-    news_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Удаление новости"""
-    news = db.query(News).filter(News.id == news_id).first()
-    
-    if not news:
-        raise HTTPException(status_code=404, detail="Новость не найдена")
-    
-    # Проверяем права: автор может удалять свои новости, админы и менеджеры - любые
-    if news.author_id != current_user.id and current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав для удаления этой новости"
-        )
-    
-    await db.delete(news)
-    await db.commit()
-    
-    return {"message": "Новость успешно удалена"}
-
-
-@router.get("/my/", response_model=List[NewsSchema])
-async def get_my_news(
-    skip: int = 0,
-    limit: int = 10,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Получение новостей текущего пользователя"""
-    news = db.query(News).filter(News.author_id == current_user.id).order_by(desc(News.created_at)).offset(skip).limit(limit).all()
-    
-    return news
