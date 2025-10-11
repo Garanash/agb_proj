@@ -47,6 +47,10 @@ def get_current_user_ws(token: str, db: Session) -> User:
     
     user = db.query(User).filter(User.username == username).first()
     
+    if user is None:
+        raise HTTPException(status_code=401)
+    return user
+    
 def get_current_user_optional(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

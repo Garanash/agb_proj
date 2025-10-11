@@ -7,7 +7,7 @@ from typing import List
 from database import get_db
 from models import User
 from ..schemas import UserResponse as UserSchema, UserCreate, UserUpdate, PasswordReset, AdminPasswordReset
-from .auth import get_current_user
+from ..dependencies import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -15,7 +15,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-@router.get("/list", response_model=List[UserSchema])
+@router.get("/list")
 def read_users(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -25,42 +25,37 @@ def read_users(
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
-        # Используем raw SQL для получения пользователей
-        query = """
-            SELECT id, username, email, first_name, last_name, middle_name, role, is_active, 
-                   avatar_url, phone, department_id, position, created_at, updated_at, is_password_changed
-            FROM users 
-            WHERE is_active = true 
-            ORDER BY created_at DESC
-        """
+        # Используем обычный SQLAlchemy запрос
+        users = db.query(User).filter(User.is_active == True).all()
         
-        result = db.execute(text(query)).fetchall()
-        
+        # Преобразуем в список словарей для правильной сериализации
         users_list = []
-        for row in result:
+        for user in users:
             user_dict = {
-                "id": row[0],
-                "username": row[1],
-                "email": row[2],
-                "first_name": row[3],
-                "last_name": row[4],
-                "middle_name": row[5],
-                "role": row[6],
-                "is_active": row[7],
-                "avatar_url": row[8],
-                "phone": row[9],
-                "department_id": row[10],
-                "position": row[11],
-                "created_at": row[12].isoformat() if row[12] else None,
-                "updated_at": row[13].isoformat() if row[13] else None,
-                "is_password_changed": row[14]
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "middle_name": user.middle_name,
+                "role": user.role,
+                "is_active": user.is_active,
+                "is_password_changed": user.is_password_changed,
+                "phone": user.phone,
+                "department_id": user.department_id,
+                "position": user.position,
+                "avatar_url": user.avatar_url,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+                "updated_at": user.updated_at.isoformat() if user.updated_at else None
             }
             users_list.append(user_dict)
         
         return users_list
     except Exception as e:
-        print(f"Ошибка в read_users: {e}")
-        raise HTTPException(status_code=500, detail=f"Ошибка при получении пользователей: {str(e)}")
+        print(f"❌ Ошибка при получении пользователей: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера")
 
 @router.get("/deactivated/", response_model=List[UserSchema])
 def read_deactivated_users(

@@ -71,10 +71,10 @@ def get_employees(
             FROM company_employees 
             WHERE is_active = true 
             ORDER BY sort_order ASC, id ASC 
-            LIMIT %s OFFSET %s
+            LIMIT :limit OFFSET :skip
         """
         
-        result = db.execute(text(query), [limit, skip]).fetchall()
+        result = db.execute(text(query), {"limit": limit, "skip": skip}).fetchall()
         
         employees_list = []
         for row in result:
@@ -130,21 +130,21 @@ def create_employee(
         # Создаем сотрудника
         insert_query = """
             INSERT INTO company_employees (first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (:first_name, :last_name, :position, :department_id, :email, :phone, :is_active, :sort_order, :created_at)
             RETURNING id, first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at
         """
         
-        result = db.execute(text(insert_query), [
-            employee_data.first_name,
-            employee_data.last_name,
-            employee_data.position,
-            employee_data.department_id,
-            employee_data.email,
-            employee_data.phone,
-            True,  # is_active
-            next_order,
-            datetime.now()
-        ]).fetchone()
+        result = db.execute(text(insert_query), {
+            "first_name": employee_data.first_name,
+            "last_name": employee_data.last_name,
+            "position": employee_data.position,
+            "department_id": employee_data.department_id,
+            "email": employee_data.email,
+            "phone": employee_data.phone,
+            "is_active": True,
+            "sort_order": next_order,
+            "created_at": datetime.now()
+        }).fetchone()
         
         db.commit()
         
@@ -186,8 +186,8 @@ def update_employee(
             )
         
         # Проверяем существование сотрудника
-        check_query = "SELECT id FROM company_employees WHERE id = %s"
-        existing = db.execute(text(check_query), [employee_id]).fetchone()
+        check_query = "SELECT id FROM company_employees WHERE id = :employee_id"
+        existing = db.execute(text(check_query), {"employee_id": employee_id}).fetchone()
         
         if not existing:
             raise HTTPException(
@@ -197,35 +197,35 @@ def update_employee(
         
         # Строим запрос обновления
         update_fields = []
-        params = []
+        params = {}
         
         if employee_data.first_name is not None:
-            update_fields.append("first_name = %s")
-            params.append(employee_data.first_name)
+            update_fields.append("first_name = :first_name")
+            params["first_name"] = employee_data.first_name
         
         if employee_data.last_name is not None:
-            update_fields.append("last_name = %s")
-            params.append(employee_data.last_name)
+            update_fields.append("last_name = :last_name")
+            params["last_name"] = employee_data.last_name
         
         if employee_data.position is not None:
-            update_fields.append("position = %s")
-            params.append(employee_data.position)
+            update_fields.append("position = :position")
+            params["position"] = employee_data.position
         
         if employee_data.department_id is not None:
-            update_fields.append("department_id = %s")
-            params.append(employee_data.department_id)
+            update_fields.append("department_id = :department_id")
+            params["department_id"] = employee_data.department_id
         
         if employee_data.email is not None:
-            update_fields.append("email = %s")
-            params.append(employee_data.email)
+            update_fields.append("email = :email")
+            params["email"] = employee_data.email
         
         if employee_data.phone is not None:
-            update_fields.append("phone = %s")
-            params.append(employee_data.phone)
+            update_fields.append("phone = :phone")
+            params["phone"] = employee_data.phone
         
         if employee_data.is_active is not None:
-            update_fields.append("is_active = %s")
-            params.append(employee_data.is_active)
+            update_fields.append("is_active = :is_active")
+            params["is_active"] = employee_data.is_active
         
         if not update_fields:
             raise HTTPException(
@@ -235,12 +235,13 @@ def update_employee(
         
         update_query = f"""
             UPDATE company_employees 
-            SET {', '.join(update_fields)}, updated_at = %s
-            WHERE id = %s
+            SET {', '.join(update_fields)}, updated_at = :updated_at
+            WHERE id = :employee_id
             RETURNING id, first_name, last_name, position, department_id, email, phone, is_active, sort_order, created_at
         """
         
-        params.extend([datetime.now(), employee_id])
+        params["updated_at"] = datetime.now()
+        params["employee_id"] = employee_id
         result = db.execute(text(update_query), params).fetchone()
         
         db.commit()
@@ -283,8 +284,8 @@ def reorder_employees(
         
         # Обновляем порядок для каждого сотрудника
         for employee in reorder_data.employees:
-            update_query = "UPDATE company_employees SET sort_order = %s WHERE id = %s"
-            db.execute(text(update_query), [employee.sort_order, employee.id])
+            update_query = "UPDATE company_employees SET sort_order = :sort_order WHERE id = :employee_id"
+            db.execute(text(update_query), {"sort_order": employee.sort_order, "employee_id": employee.id})
         
         db.commit()
         
@@ -295,7 +296,7 @@ def reorder_employees(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при изменении порядка сотрудников: {str(e)}"
-        )
+    )
 
 
 @router.delete("/{employee_id}")
@@ -314,8 +315,8 @@ def delete_employee(
             )
         
         # Проверяем существование сотрудника
-        check_query = "SELECT id FROM company_employees WHERE id = %s"
-        existing = db.execute(text(check_query), [employee_id]).fetchone()
+        check_query = "SELECT id FROM company_employees WHERE id = :employee_id"
+        existing = db.execute(text(check_query), {"employee_id": employee_id}).fetchone()
         
         if not existing:
             raise HTTPException(
@@ -324,8 +325,8 @@ def delete_employee(
             )
         
         # Мягкое удаление (устанавливаем is_active = false)
-        delete_query = "UPDATE company_employees SET is_active = false, updated_at = %s WHERE id = %s"
-        db.execute(text(delete_query), [datetime.now(), employee_id])
+        delete_query = "UPDATE company_employees SET is_active = false, updated_at = :updated_at WHERE id = :employee_id"
+        db.execute(text(delete_query), {"updated_at": datetime.now(), "employee_id": employee_id})
         
         db.commit()
         

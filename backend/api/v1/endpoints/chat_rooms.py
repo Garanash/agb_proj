@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 from typing import List
@@ -24,10 +24,10 @@ router = APIRouter()
 @router.get("/rooms/", response_model=List[ChatRoomSchema])
 async def get_chat_rooms(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка чат-комнат пользователя"""
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom)
         .join(ChatParticipant)
         .where(ChatParticipant.user_id == current_user.id)
@@ -40,7 +40,7 @@ async def get_chat_rooms(
 async def create_chat_room(
     room_data: ChatRoomCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание новой чат-комнаты"""
     new_room = ChatRoom(
@@ -49,8 +49,8 @@ async def create_chat_room(
         created_by=current_user.id
     )
     db.add(new_room)
-    await db.commit()
-    await db.refresh(new_room)
+    db.commit()
+    db.refresh(new_room)
     
     # Добавляем создателя как участника и администратора
     participant = ChatParticipant(
@@ -59,7 +59,7 @@ async def create_chat_room(
         is_admin=True
     )
     db.add(participant)
-    await db.commit()
+    db.commit()
     
     return new_room
 
@@ -67,10 +67,10 @@ async def create_chat_room(
 async def get_chat_room(
     room_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение информации о чат-комнате"""
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom)
         .join(ChatParticipant)
         .where(
@@ -94,11 +94,11 @@ async def update_chat_room(
     room_id: int,
     room_data: ChatRoomUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Обновление чат-комнаты"""
     # Проверяем права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -113,7 +113,7 @@ async def update_chat_room(
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Обновляем комнату
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom).where(ChatRoom.id == room_id)
     )
     room = result.scalar_one_or_none()
@@ -125,19 +125,19 @@ async def update_chat_room(
     if room_data.description is not None:
         room.description = room_data.description
     
-    await db.commit()
-    await db.refresh(room)
+    db.commit()
+    db.refresh(room)
     return room
 
 @router.delete("/rooms/{room_id}")
 async def delete_chat_room(
     room_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление чат-комнаты"""
     # Проверяем права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -152,15 +152,15 @@ async def delete_chat_room(
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Удаляем комнату
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom).where(ChatRoom.id == room_id)
     )
     room = result.scalar_one_or_none()
     if not room:
         raise HTTPException(status_code=404, detail="Чат-комната не найдена")
     
-    await db.delete(room)
-    await db.commit()
+    db.delete(room)
+    db.commit()
     return {"message": "Чат-комната удалена"}
 
 @router.post("/rooms/{room_id}/participants", response_model=ChatParticipantSchema)
@@ -168,11 +168,11 @@ async def add_participant(
     room_id: int,
     participant_data: ChatParticipantCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Добавление участника в чат-комнату"""
     # Проверяем права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -187,7 +187,7 @@ async def add_participant(
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Проверяем, не добавлен ли уже участник
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -211,8 +211,8 @@ async def add_participant(
         is_admin=participant_data.is_admin
     )
     db.add(new_participant)
-    await db.commit()
-    await db.refresh(new_participant)
+    db.commit()
+    db.refresh(new_participant)
     return new_participant
 
 @router.delete("/rooms/{room_id}/participants/{participant_id}")
@@ -220,11 +220,11 @@ async def remove_participant(
     room_id: int,
     participant_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление участника из чат-комнаты"""
     # Проверяем права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -239,7 +239,7 @@ async def remove_participant(
         raise HTTPException(status_code=403, detail="Недостаточно прав")
     
     # Удаляем участника
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -252,19 +252,19 @@ async def remove_participant(
     if not participant:
         raise HTTPException(status_code=404, detail="Участник не найден")
     
-    await db.delete(participant)
-    await db.commit()
+    db.delete(participant)
+    db.commit()
     return {"message": "Участник удален"}
 
 @router.post("/rooms/{room_id}/mark-read")
 async def mark_messages_as_read(
     room_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Отметить все сообщения в чате как прочитанные"""
     # Проверяем, что пользователь является участником чата
-    result = await db.execute(
+    result = db.execute(
         select(ChatParticipant)
         .where(
             and_(
@@ -279,17 +279,52 @@ async def mark_messages_as_read(
     
     # Обновляем время последнего прочтения
     participant.last_read_at = datetime.utcnow()
-    await db.commit()
+    db.commit()
     
     return {"message": "Сообщения отмечены как прочитанные"}
+
+@router.post("/rooms/{room_id}/messages/", response_model=ChatMessageSchema)
+async def create_chat_message(
+    room_id: int,
+    message_data: ChatMessageCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Отправка сообщения в чат через HTTP API"""
+    # Проверяем, что пользователь является участником чата
+    result = db.execute(
+        select(ChatParticipant)
+        .where(
+            and_(
+                ChatParticipant.room_id == room_id,
+                ChatParticipant.user_id == current_user.id
+            )
+        )
+    )
+    participant = result.scalar_one_or_none()
+    if not participant:
+        raise HTTPException(status_code=404, detail="Чат не найден")
+    
+    # Создаем новое сообщение
+    new_message = ChatMessage(
+        room_id=room_id,
+        sender_id=current_user.id,
+        content=message_data.content,
+        is_edited=False
+    )
+    db.add(new_message)
+    db.commit()
+    db.refresh(new_message)
+    
+    return new_message
 
 @router.get("/bots/", response_model=List[ChatBotSchema])
 async def get_chat_bots(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка доступных чат-ботов"""
-    result = await db.execute(
+    result = db.execute(
         select(ChatBot)
         .where(ChatBot.is_active == True)
     )

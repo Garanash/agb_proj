@@ -14,9 +14,6 @@ class UserRole(str, enum.Enum):
     MANAGER = "manager"
     EMPLOYEE = "employee"
     VED_PASSPORT = "ved_passport"
-    CUSTOMER = "customer"  # Заказчик (компания)
-    CONTRACTOR = "contractor"  # Исполнитель (физлицо)
-    SERVICE_ENGINEER = "service_engineer"  # Сервисный инженер
 
 class NewsCategory(str, enum.Enum):
     GENERAL = "general"
@@ -29,20 +26,6 @@ class Permission(str, enum.Enum):
     WRITE = "write"
     DELETE = "delete"
     ADMIN = "admin"
-
-class RequestStatus(str, enum.Enum):
-    NEW = "new"  # Новая заявка
-    PROCESSING = "processing"  # В обработке (принята менеджером)
-    SENT_TO_BOT = "sent_to_bot"  # Отправлена в бот
-    ASSIGNED = "assigned"  # Назначен исполнитель
-    COMPLETED = "completed"  # Завершена
-    CANCELLED = "cancelled"  # Отменена
-
-class ResponseStatus(str, enum.Enum):
-    PENDING = "pending"  # Ожидает рассмотрения
-    ACCEPTED = "accepted"  # Принята менеджером
-    REJECTED = "rejected"  # Отклонена менеджером
-    ASSIGNED = "assigned"  # Исполнитель назначен на заявку
 
 class User(Base):
     """Пользователи системы"""
@@ -68,8 +51,6 @@ class User(Base):
 
     # Связи
     department = relationship("Department", foreign_keys=[department_id], back_populates="employees", lazy="selectin")
-    customer_profile = relationship("CustomerProfile", back_populates="user", lazy="selectin", uselist=False)
-    contractor_profile = relationship("ContractorProfile", back_populates="user", lazy="selectin", uselist=False)
     chat_sessions = relationship("AIChatSession", back_populates="user", lazy="selectin")
     
     @property
@@ -235,7 +216,7 @@ class ChatRoom(Base):
     # Связи
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
     folders = relationship("ChatRoomFolder", lazy="selectin")
-    participants = relationship("ChatParticipant", back_populates="chat_room", lazy="selectin")
+    participants = relationship("ChatParticipant", back_populates="room", lazy="selectin")
     messages = relationship("ChatMessage", back_populates="room", lazy="selectin")
 
 class ChatMessage(Base):
@@ -273,7 +254,6 @@ class ChatParticipant(Base):
     room = relationship("ChatRoom", lazy="selectin")
     user = relationship("User", lazy="selectin")
     bot = relationship("ChatBot", lazy="selectin")
-    chat_room = relationship("ChatRoom", foreign_keys=[room_id], lazy="selectin", overlaps="room")
 
 class ChatFolder(Base):
     """Папки для организации чатов"""
@@ -446,214 +426,6 @@ class PassportCounter(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
-# Новые модели для системы заказов и исполнителей
-
-class CustomerProfile(Base):
-    """Профиль заказчика (компания)"""
-    __tablename__ = "customer_profiles"
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-
-    # Данные компании
-    company_name = Column(String, nullable=False)
-    contact_person = Column(String, nullable=False)
-    phone = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    address = Column(String, nullable=True)
-    inn = Column(String, nullable=True)  # ИНН
-    kpp = Column(String, nullable=True)  # КПП
-    ogrn = Column(String, nullable=True)  # ОГРН
-
-    # Метаданные
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Связи
-    user = relationship("User", back_populates="customer_profile", lazy="selectin")
-    requests = relationship("RepairRequest", back_populates="customer", lazy="selectin")
-
-
-class ContractorProfile(Base):
-    """Профиль исполнителя (физлицо)"""
-    __tablename__ = "contractor_profiles"
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True)
-
-    # Личные данные (используем существующие поля)
-    last_name = Column(String, nullable=True, default=None)
-    first_name = Column(String, nullable=True, default=None)
-    patronymic = Column(String, nullable=True, default=None)
-    phone = Column(String, nullable=True, default=None)
-    email = Column(String, nullable=True, default=None)
-
-    # Профессиональная информация (JSON массив)
-    professional_info = Column(JSON, nullable=True, default=list)
-
-    # Образование (JSON массив)
-    education = Column(JSON, nullable=True, default=list)
-
-    # Банковские данные
-    bank_name = Column(String, nullable=True)
-    bank_account = Column(String, nullable=True)
-    bank_bik = Column(String, nullable=True)
-
-    # Контакты
-    telegram_username = Column(String, nullable=True)
-    website = Column(String, nullable=True)
-
-    # Общее описание
-    general_description = Column(String, nullable=True, default=None)
-
-    # Файлы
-    profile_photo_path = Column(String, nullable=True, default=None)  # Путь к фото профиля
-    portfolio_files = Column(JSON, nullable=True, default=list)  # Массив файлов портфолио
-    document_files = Column(JSON, nullable=True, default=list)  # Массив документов
-
-    # Метаданные
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Связи
-    user = relationship("User", back_populates="contractor_profile", lazy="selectin")
-    responses = relationship("ContractorResponse", back_populates="contractor", lazy="selectin")
-
-
-class RepairRequest(Base):
-    """Заявка на ремонт"""
-    __tablename__ = "repair_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customer_profiles.id"), nullable=False)
-
-    # Основная информация
-    title = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    urgency = Column(String, nullable=True)  # срочно, средне, не срочно
-    preferred_date = Column(DateTime, nullable=True)
-
-    # Местоположение
-    address = Column(String, nullable=True)
-    city = Column(String, nullable=True)
-    region = Column(String, nullable=True)
-
-    # Технические детали (заполняются сервисным инженером)
-    equipment_type = Column(String, nullable=True)
-    equipment_brand = Column(String, nullable=True)
-    equipment_model = Column(String, nullable=True)
-    problem_description = Column(String, nullable=True)
-    estimated_cost = Column(Integer, nullable=True)  # в рублях
-    
-    # Дополнительная информация от менеджера сервиса
-    manager_comment = Column(String, nullable=True)  # Комментарий менеджера
-    final_price = Column(Integer, nullable=True)  # Финальная цена заявки
-    sent_to_bot_at = Column(DateTime(timezone=True), nullable=True)  # Когда отправлена в бот
-
-    # Статусы
-    status = Column(String, default=RequestStatus.NEW)
-    service_engineer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    assigned_contractor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    # Метаданные
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    processed_at = Column(DateTime(timezone=True), nullable=True)  # Когда обработал инженер
-    assigned_at = Column(DateTime(timezone=True), nullable=True)  # Когда назначен исполнитель
-    completed_at = Column(DateTime(timezone=True), nullable=True)  # Когда завершена
-
-    # Связи
-    customer = relationship("CustomerProfile", back_populates="requests", lazy="selectin")
-    service_engineer = relationship("User", foreign_keys=[service_engineer_id], lazy="selectin")
-    assigned_contractor = relationship("User", foreign_keys=[assigned_contractor_id], lazy="selectin")
-    responses = relationship("ContractorResponse", back_populates="request", lazy="selectin")
-
-
-class ContractorResponse(Base):
-    """Отклик исполнителя на заявку"""
-    __tablename__ = "contractor_responses"
-
-    id = Column(Integer, primary_key=True, index=True)
-    request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=False)
-    contractor_id = Column(Integer, ForeignKey("contractor_profiles.id"), nullable=False)
-
-    # Отклик
-    proposed_cost = Column(Integer, nullable=True)  # Предлагаемая стоимость
-    estimated_days = Column(Integer, nullable=True)  # Ожидаемое время выполнения
-    comment = Column(String, nullable=True)  # Комментарий исполнителя
-
-    # Статус отклика
-    status = Column(String, default=ResponseStatus.PENDING)
-
-    # Метаданные
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    reviewed_at = Column(DateTime(timezone=True), nullable=True)  # Когда рассмотрел менеджер
-
-    # Связи
-    request = relationship("RepairRequest", back_populates="responses", lazy="selectin")
-    contractor = relationship("ContractorProfile", back_populates="responses", lazy="selectin")
-
-
-
-
-
-# Модели для Telegram бота
-class TelegramBot(Base):
-    """Настройки Telegram бота"""
-    __tablename__ = "telegram_bots"
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    token = Column(String, nullable=False, unique=True)
-    is_active = Column(Boolean, default=True)
-    webhook_url = Column(String, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-
-class TelegramUser(Base):
-    """Связь пользователей с Telegram"""
-    __tablename__ = "telegram_users"
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    telegram_id = Column(BigInteger, nullable=False, unique=True)
-    username = Column(String, nullable=True)
-    first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)
-    is_bot_user = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Связи
-    user = relationship("User", lazy="selectin")
-
-
-class TelegramNotification(Base):
-    """Уведомления в Telegram"""
-    __tablename__ = "telegram_notifications"
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_user_id = Column(Integer, ForeignKey("telegram_users.id"), nullable=False)
-    message_type = Column(String, nullable=False)  # 'new_request', 'response_received', etc.
-    message_text = Column(String, nullable=False)
-    message_id = Column(BigInteger, nullable=True)  # ID сообщения в Telegram
-    chat_id = Column(BigInteger, nullable=False)
-    repair_request_id = Column(Integer, ForeignKey("repair_requests.id"), nullable=True)
-    is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    # Связи
-    telegram_user = relationship("TelegramUser", lazy="selectin")
-    repair_request = relationship("RepairRequest", foreign_keys=[repair_request_id], lazy="selectin")
-
-
 # Модели для системы сопоставления артикулов
 
 class ArticleMapping(Base):
@@ -663,74 +435,11 @@ class ArticleMapping(Base):
     id = Column(Integer, primary_key=True, index=True)
     contractor_article = Column(String, nullable=False, index=True)  # Артикул контрагента
     contractor_description = Column(String, nullable=False)  # Описание контрагента
-    agb_article = Column(String, nullable=False)  # Артикул АГБ
-    agb_description = Column(String, nullable=False)  # Описание АГБ
-    bl_article = Column(String, nullable=True)  # Артикул BL (если есть)
-    bl_description = Column(String, nullable=True)  # Описание BL
-    match_confidence = Column(Integer, default=0)  # Уверенность сопоставления (0-100)
-    packaging_factor = Column(Integer, default=1)  # Коэффициент фасовки
-    recalculated_quantity = Column(Integer, default=0)  # Пересчитанное количество
-    unit = Column(String, nullable=False, default="шт")  # Единица измерения
-    is_active = Column(Boolean, default=True)
+    agb_article = Column(String, nullable=False, index=True)  # Наш артикул
+    agb_description = Column(String, nullable=False)  # Наше описание
+    confidence = Column(Float, default=0.0)  # Уверенность в сопоставлении (0-1)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Связи
-    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
-    nomenclature = relationship("VEDNomenclature", lazy="selectin")
-
-
-class ContractorRequest(Base):
-    """Заявки от контрагентов на сопоставление артикулов"""
-    __tablename__ = "contractor_requests"
-
-    id = Column(Integer, primary_key=True, index=True)
-    request_number = Column(String, nullable=False, unique=True, index=True)  # Номер заявки
-    contractor_name = Column(String, nullable=False)  # Название контрагента
-    request_date = Column(DateTime, nullable=False)  # Дата заявки
-    status = Column(String, default="new")  # new, processing, completed, cancelled
-    total_items = Column(Integer, default=0)  # Общее количество позиций
-    matched_items = Column(Integer, default=0)  # Количество сопоставленных позиций
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    processed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    processed_at = Column(DateTime(timezone=True), nullable=True)
-
-    # Связи
-    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
-    processor = relationship("User", foreign_keys=[processed_by], lazy="selectin")
-    items = relationship("ContractorRequestItem", back_populates="request", lazy="selectin")
-
-
-class ContractorRequestItem(Base):
-    """Позиции в заявке контрагента"""
-    __tablename__ = "contractor_request_items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    request_id = Column(Integer, ForeignKey("contractor_requests.id"), nullable=False)
-    line_number = Column(Integer, nullable=False)  # Номер строки в заявке
-    contractor_article = Column(String, nullable=False)  # Артикул контрагента
-    description = Column(String, nullable=False)  # Описание товара
-    unit = Column(String, nullable=False, default="шт")  # Единица измерения
-    quantity = Column(Integer, nullable=False)  # Количество
-    category = Column(String, nullable=True)  # Категория (например, "Для бурения")
-    
-    # Результаты сопоставления
-    matched_nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
-    agb_article = Column(String, nullable=True)  # Найденный артикул АГБ
-    bl_article = Column(String, nullable=True)  # Найденный артикул BL
-    packaging_factor = Column(Integer, default=1)  # Коэффициент фасовки
-    recalculated_quantity = Column(Integer, nullable=True)  # Пересчитанное количество
-    match_confidence = Column(Integer, default=0)  # Уверенность в сопоставлении (0-100)
-    match_status = Column(String, default="pending")  # pending, matched, unmatched, manual
-    
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Связи
-    request = relationship("ContractorRequest", back_populates="items", lazy="selectin")
-    matched_nomenclature = relationship("VEDNomenclature", lazy="selectin")
 
 
 class MatchingNomenclature(Base):
@@ -738,127 +447,96 @@ class MatchingNomenclature(Base):
     __tablename__ = "matching_nomenclatures"
 
     id = Column(Integer, primary_key=True, index=True)
-    agb_article = Column(String, nullable=False, index=True)  # Артикул АГБ
-    name = Column(String, nullable=False)  # Наименование
-    code_1c = Column(String, nullable=True)  # Код 1С (УТ-код)
-    bl_article = Column(String, nullable=True)  # Артикул BL
-    packaging = Column(Float, nullable=True)  # Фасовка
-    unit = Column(String, nullable=True, default="шт")  # Единица измерения
-    is_active = Column(Boolean, default=True)
+    agb_article = Column(String, nullable=False, index=True)
+    agb_description = Column(String, nullable=False)
+    bl_article = Column(String, nullable=True, index=True)
+    bl_description = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
 
 class ApiKey(Base):
     """Модель для хранения API ключей"""
     __tablename__ = "api_keys"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)  # Название ключа
-    provider = Column(String, nullable=False)  # openai, polza, custom
-    key = Column(String, nullable=False)  # Зашифрованный ключ
+    name = Column(String, nullable=False)
+    key_value = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    last_used = Column(DateTime(timezone=True), nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 class AiProcessingLog(Base):
     """Лог обработки ИИ-запросов"""
     __tablename__ = "ai_processing_logs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    api_key_id = Column(Integer, ForeignKey("api_keys.id"), nullable=True)
-    request_type = Column(String, nullable=False)  # file_upload, text_input
-    file_path = Column(String, nullable=True)  # Путь к обработанному файлу
-    input_text = Column(Text, nullable=True)  # Входной текст
-    ai_response = Column(Text, nullable=True)  # Ответ ИИ
-    processing_time = Column(Float, nullable=True)  # Время обработки в секундах
-    status = Column(String, nullable=False)  # success, error, processing
-    error_message = Column(Text, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    request_type = Column(String, nullable=False)  # article_matching, chat, etc.
+    input_data = Column(JSON, nullable=True)
+    output_data = Column(JSON, nullable=True)
+    processing_time = Column(Float, nullable=True)  # В секундах
+    success = Column(Boolean, default=True)
+    error_message = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Связи
+    user = relationship("User", lazy="selectin")
 
 class AppSettings(Base):
     """Настройки приложения"""
     __tablename__ = "app_settings"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    key = Column(String, unique=True, nullable=False, index=True)  # Ключ настройки
-    value = Column(Text, nullable=False)  # Значение настройки
-    description = Column(Text, nullable=True)  # Описание настройки
-    is_encrypted = Column(Boolean, default=False)  # Зашифровано ли значение
+    key = Column(String, unique=True, nullable=False)
+    value = Column(JSON, nullable=True)
+    description = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
 
 class AIChatSession(Base):
     """Сессия чата с ИИ"""
     __tablename__ = "ai_chat_sessions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title = Column(String, nullable=True)  # Название сессии (автогенерируемое)
+    title = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Связи
     user = relationship("User", back_populates="chat_sessions", lazy="selectin")
-    messages = relationship("AIChatMessage", back_populates="session", cascade="all, delete-orphan", lazy="selectin")
-
+    messages = relationship("AIChatMessage", back_populates="session", lazy="selectin")
 
 class AIChatMessage(Base):
     """Сообщение в чате с ИИ"""
     __tablename__ = "ai_chat_messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("ai_chat_sessions.id"), nullable=False)
-    message_type = Column(String, nullable=False)  # 'user', 'ai', 'system'
-    content = Column(Text, nullable=False)  # Текст сообщения
-    files_data = Column(JSON, nullable=True)  # Данные о прикрепленных файлах
-    matching_results = Column(JSON, nullable=True)  # Результаты сопоставления
-    search_query = Column(String, nullable=True)  # Поисковый запрос
-    search_type = Column(String, nullable=True)  # Тип поиска (артикул, наименование, код)
-    is_processing = Column(Boolean, default=False)  # Обрабатывается ли сообщение
+    role = Column(String, nullable=False)  # user, assistant, system
+    content = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Связи
-    session = relationship("AIChatSession", back_populates="messages")
 
+    # Связи
+    session = relationship("AIChatSession", back_populates="messages", lazy="selectin")
 
 class FoundMatch(Base):
     """Найденные и подтвержденные сопоставления"""
     __tablename__ = "found_matches"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
-    # Исходные данные
-    search_name = Column(String, nullable=False)  # Наименование для поиска
-    search_article = Column(String, nullable=True)  # Запрашиваемый артикул
-    quantity = Column(Float, default=1.0)  # Количество
-    unit = Column(String, default="шт")  # Единица измерения
-    
-    # Найденное соответствие
-    matched_name = Column(String, nullable=False)  # Наименование из базы
-    matched_article = Column(String, nullable=True)  # Наш артикул
-    bl_article = Column(String, nullable=True)  # Артикул BL
-    article_1c = Column(String, nullable=True)  # Номер в 1С
-    cost = Column(Float, nullable=True)  # Стоимость
-    
-    # Метаданные сопоставления
-    confidence = Column(Float, nullable=False)  # Уверенность (0-100)
-    match_type = Column(String, nullable=False)  # exact, substring, normalized, keyword
-    is_auto_confirmed = Column(Boolean, default=False)  # Автоматически подтверждено (100% совпадение)
-    is_user_confirmed = Column(Boolean, default=False)  # Подтверждено пользователем
-    
-    # Временные метки
+    contractor_article = Column(String, nullable=False, index=True)
+    contractor_description = Column(String, nullable=False)
+    matched_article = Column(String, nullable=True, index=True)
+    matched_description = Column(String, nullable=True)
+    confidence = Column(Float, default=0.0)
+    match_type = Column(String, default="manual")  # manual, ai, hybrid
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    confirmed_at = Column(DateTime(timezone=True), nullable=True)
-    
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
     # Связи
-    user = relationship("User")
+    creator = relationship("User", lazy="selectin")
 
 
 # Модели для поиска поставщиков артикулов
@@ -866,139 +544,129 @@ class FoundMatch(Base):
 class Supplier(Base):
     """Поставщики артикулов"""
     __tablename__ = "suppliers"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    company_name = Column(String, nullable=False, index=True)  # Название компании
-    contact_person = Column(String, nullable=True)  # Контактное лицо
-    email = Column(String, nullable=True, index=True)  # Email поставщика
-    phone = Column(String, nullable=True)  # Телефон
-    website = Column(String, nullable=True)  # Сайт компании
-    address = Column(String, nullable=True)  # Адрес
-    country = Column(String, nullable=True)  # Страна
-    city = Column(String, nullable=True)  # Город
-    
-    # Валидация данных
-    email_validated = Column(Boolean, default=False)  # Проверен ли email
-    website_validated = Column(Boolean, default=False)  # Проверен ли сайт
-    whois_data = Column(JSON, nullable=True)  # Данные whois
-    
-    # Метаданные
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+    contact_phone = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    last_checked = Column(DateTime(timezone=True), nullable=True)  # Последняя проверка
-    
+
     # Связи
     articles = relationship("SupplierArticle", back_populates="supplier", lazy="selectin")
-
 
 class SupplierArticle(Base):
     """Артикулы поставщиков"""
     __tablename__ = "supplier_articles"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
-    article_code = Column(String, nullable=False, index=True)  # Артикул поставщика
-    article_name = Column(String, nullable=False)  # Наименование артикула
-    description = Column(Text, nullable=True)  # Описание
-    price = Column(Float, nullable=True)  # Цена
-    currency = Column(String, default="RUB")  # Валюта
-    unit = Column(String, default="шт")  # Единица измерения
-    min_order_quantity = Column(Integer, nullable=True)  # Минимальный заказ
-    availability = Column(String, nullable=True)  # Наличие (в наличии, под заказ, etc.)
-    
-    # Связь с нашей номенклатурой
-    agb_article = Column(String, nullable=True)  # Наш артикул АГБ
-    bl_article = Column(String, nullable=True)  # Артикул BL
-    nomenclature_id = Column(Integer, ForeignKey("ved_nomenclature.id"), nullable=True)
-    
-    # Метаданные
-    is_active = Column(Boolean, default=True)
+    article = Column(String, nullable=False, index=True)
+    description = Column(String, nullable=False)
+    price = Column(Float, nullable=True)
+    currency = Column(String, default="RUB")
+    availability = Column(String, default="in_stock")  # in_stock, out_of_stock, limited
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    last_price_update = Column(DateTime(timezone=True), nullable=True)  # Последнее обновление цены
-    
+
     # Связи
     supplier = relationship("Supplier", back_populates="articles", lazy="selectin")
-    nomenclature = relationship("VEDNomenclature", lazy="selectin")
-
 
 class ArticleSearchRequest(Base):
     """Запросы на поиск артикулов"""
     __tablename__ = "article_search_requests"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    request_name = Column(String, nullable=True)  # Название запроса
-    articles = Column(JSON, nullable=False)  # Список артикулов для поиска
+    search_query = Column(String, nullable=False)
+    search_type = Column(String, default="article")  # article, description, both
     status = Column(String, default="pending")  # pending, processing, completed, failed
-    
-    # Результаты поиска
-    total_articles = Column(Integer, default=0)  # Общее количество артикулов
-    found_articles = Column(Integer, default=0)  # Найдено артикулов
-    total_suppliers = Column(Integer, default=0)  # Найдено поставщиков
-    
-    # Метаданные
+    results_count = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    
+
     # Связи
     user = relationship("User", lazy="selectin")
     results = relationship("ArticleSearchResult", back_populates="request", lazy="selectin")
 
-
 class ArticleSearchResult(Base):
     """Результаты поиска артикулов"""
     __tablename__ = "article_search_results"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     request_id = Column(Integer, ForeignKey("article_search_requests.id"), nullable=False)
-    article_code = Column(String, nullable=False)  # Искомый артикул
-    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
-    supplier_article_id = Column(Integer, ForeignKey("supplier_articles.id"), nullable=False)
+    article = Column(String, nullable=False)
     
-    # Результаты поиска
-    confidence_score = Column(Float, default=0.0)  # Уверенность в совпадении (0-100)
-    match_type = Column(String, nullable=True)  # exact, similar, ai_found
-    ai_analysis = Column(Text, nullable=True)  # Анализ ИИ
+    # Информация о поставщике
+    company_name = Column(String, nullable=False)
+    contact_person = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    country = Column(String, nullable=True)
+    city = Column(String, nullable=True)
     
-    # Метаданные
+    # Ценовая информация
+    price = Column(Float, nullable=True)
+    currency = Column(String, default="RUB")
+    min_order_quantity = Column(Integer, nullable=True)
+    availability = Column(String, default="in_stock")
+    confidence_score = Column(Float, default=0.0)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Связи
     request = relationship("ArticleSearchRequest", back_populates="results", lazy="selectin")
-    supplier = relationship("Supplier", lazy="selectin")
-    supplier_article = relationship("SupplierArticle", lazy="selectin")
-
 
 class SupplierValidationLog(Base):
     """Лог валидации поставщиков"""
     __tablename__ = "supplier_validation_logs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
-    validation_type = Column(String, nullable=False)  # email, website, whois
+    validation_type = Column(String, nullable=False)  # website_check, email_check, etc.
     status = Column(String, nullable=False)  # success, failed, warning
-    message = Column(Text, nullable=True)  # Сообщение о результате
-    details = Column(JSON, nullable=True)  # Дополнительные детали
-    
-    # Метаданные
+    message = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Связи
     supplier = relationship("Supplier", lazy="selectin")
 
 
-# Импортируем модели v3 для включения в базу данных
-try:
-    from api.v3.models import (
-        Role as RoleV3, RolePermission as RolePermissionV3,
-        UserRole as UserRoleV3, EmailSettings, ApiKeySettings,
-        SystemNotification, UserActivity, SystemSettings,
-        SystemLog, LoginLog, SystemMetrics, SecurityEvent, BackupLog
-    )
-except ImportError:
-    pass
+class ArticleMatchingRequest(Base):
+    """Запросы на сопоставление артикулов"""
+    __tablename__ = "article_matching_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    contractor_article = Column(String, nullable=False)
+    contractor_description = Column(String, nullable=True)
+    status = Column(String, default="pending")  # pending, processing, completed, failed
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Связи
+    user = relationship("User", lazy="selectin")
+    results = relationship("ArticleMatchingResult", back_populates="request", lazy="selectin")
 
 
+class ArticleMatchingResult(Base):
+    """Результаты сопоставления артикулов"""
+    __tablename__ = "article_matching_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    request_id = Column(Integer, ForeignKey("article_matching_requests.id"), nullable=False)
+    contractor_article = Column(String, nullable=False)
+    contractor_name = Column(String, nullable=True)
+    matched_article = Column(String, nullable=True)
+    matched_description = Column(String, nullable=True)
+    confidence = Column(Float, default=0.0)
+    match_type = Column(String, default="no_match")  # exact, partial, no_match
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Связи
+    request = relationship("ArticleMatchingRequest", back_populates="results", lazy="selectin")

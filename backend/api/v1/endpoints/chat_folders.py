@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, or_
 from sqlalchemy.orm import selectinload
 from typing import List
@@ -21,10 +21,10 @@ router = APIRouter()
 @router.get("/", response_model=List[ChatFolderSchema])
 async def get_folders(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка папок пользователя"""
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder)
         .where(ChatFolder.user_id == current_user.id)
         .order_by(ChatFolder.order_index)
@@ -37,11 +37,11 @@ async def get_folders(
 async def create_folder(
     folder_data: ChatFolderCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание новой папки"""
     # Проверяем уникальность имени для пользователя
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.user_id == current_user.id,
             ChatFolder.name == folder_data.name
@@ -57,8 +57,8 @@ async def create_folder(
         order_index=folder_data.order_index
     )
     db.add(folder)
-    await db.commit()
-    await db.refresh(folder)
+    db.commit()
+    db.refresh(folder)
     return folder
 
 
@@ -67,11 +67,11 @@ async def update_folder(
     folder_id: int,
     folder_data: ChatFolderUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Обновление папки"""
     # Получаем папку
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.id == folder_id,
             ChatFolder.user_id == current_user.id
@@ -83,7 +83,7 @@ async def update_folder(
 
     # Проверяем уникальность имени если оно меняется
     if folder_data.name and folder_data.name != folder.name:
-        result = await db.execute(
+        result = db.execute(
             select(ChatFolder).where(and_(
                 ChatFolder.user_id == current_user.id,
                 ChatFolder.name == folder_data.name,
@@ -98,8 +98,8 @@ async def update_folder(
     for field, value in update_data.items():
         setattr(folder, field, value)
 
-    await db.commit()
-    await db.refresh(folder)
+    db.commit()
+    db.refresh(folder)
     return folder
 
 
@@ -107,11 +107,11 @@ async def update_folder(
 async def delete_folder(
     folder_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление папки"""
     # Получаем папку
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.id == folder_id,
             ChatFolder.user_id == current_user.id
@@ -121,8 +121,8 @@ async def delete_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Папка не найдена")
 
-    await db.delete(folder)
-    await db.commit()
+    db.delete(folder)
+    db.commit()
     return {"message": "Папка успешно удалена"}
 
 
@@ -130,11 +130,11 @@ async def delete_folder(
 async def get_folder_rooms(
     folder_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка чатов в папке"""
     # Проверяем существование папки и права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.id == folder_id,
             ChatFolder.user_id == current_user.id
@@ -145,7 +145,7 @@ async def get_folder_rooms(
         raise HTTPException(status_code=404, detail="Папка не найдена")
 
     # Получаем чаты из папки для данного пользователя
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom)
         .join(ChatRoomFolder)
         .where(and_(
@@ -163,11 +163,11 @@ async def add_room_to_folder(
     folder_id: int,
     room_data: ChatFolderRoomAdd,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Добавление чата в папку"""
     # Проверяем существование папки и права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.id == folder_id,
             ChatFolder.user_id == current_user.id
@@ -178,7 +178,7 @@ async def add_room_to_folder(
         raise HTTPException(status_code=404, detail="Папка не найдена")
 
     # Проверяем существование чата и права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoom)
         .join(ChatParticipant)
         .where(and_(
@@ -191,7 +191,7 @@ async def add_room_to_folder(
         raise HTTPException(status_code=404, detail="Чат не найден или у вас нет к нему доступа")
 
     # Проверяем, не добавлен ли чат уже в эту папку для данного пользователя
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoomFolder).where(and_(
             ChatRoomFolder.folder_id == folder_id,
             ChatRoomFolder.room_id == room_data.room_id,
@@ -208,7 +208,7 @@ async def add_room_to_folder(
         user_id=current_user.id
     )
     db.add(folder_room)
-    await db.commit()
+    db.commit()
 
     return room
 
@@ -218,11 +218,11 @@ async def remove_room_from_folder(
     folder_id: int,
     room_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление чата из папки"""
     # Проверяем существование папки и права доступа
-    result = await db.execute(
+    result = db.execute(
         select(ChatFolder).where(and_(
             ChatFolder.id == folder_id,
             ChatFolder.user_id == current_user.id
@@ -233,7 +233,7 @@ async def remove_room_from_folder(
         raise HTTPException(status_code=404, detail="Папка не найдена")
 
     # Получаем связь чата с папкой для данного пользователя
-    result = await db.execute(
+    result = db.execute(
         select(ChatRoomFolder).where(and_(
             ChatRoomFolder.folder_id == folder_id,
             ChatRoomFolder.room_id == room_id,
@@ -244,6 +244,6 @@ async def remove_room_from_folder(
     if not folder_room:
         raise HTTPException(status_code=404, detail="Чат не найден в этой папке")
 
-    await db.delete(folder_room)
-    await db.commit()
+    db.delete(folder_room)
+    db.commit()
     return {"message": "Чат успешно удален из папки"}

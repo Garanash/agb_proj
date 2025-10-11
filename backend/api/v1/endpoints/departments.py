@@ -5,8 +5,9 @@ from typing import List
 
 from database import get_db
 from models import Department, User, UserRole
-from ..schemas import Department as DepartmentSchema, DepartmentList
+from ..schemas import Department as DepartmentSchema, DepartmentList, DepartmentCreate, DepartmentUpdate
 from .auth import get_current_user
+from ..dependencies import get_current_user_optional
 
 router = APIRouter()
 
@@ -124,3 +125,114 @@ def get_department(
         created_at=department.created_at.isoformat() if department.created_at else None,
         updated_at=department.updated_at.isoformat() if department.updated_at else None
     )
+
+
+@router.post("/", response_model=DepartmentSchema)
+def create_department(
+    department_data: DepartmentCreate,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Создание нового отдела"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для создания отдела")
+        
+        # Создаем новый отдел
+        department = Department(
+            name=department_data.name,
+            description=department_data.description,
+            head_id=getattr(department_data, 'head_id', None),
+            is_active=True,  # По умолчанию активен
+            sort_order=getattr(department_data, 'sort_order', 0)
+        )
+        
+        db.add(department)
+        db.commit()
+        db.refresh(department)
+        
+        return department
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании отдела: {str(e)}")
+
+
+@router.put("/{department_id}", response_model=DepartmentSchema)
+def update_department(
+    department_id: int,
+    department_data: DepartmentUpdate,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Обновление отдела"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        if current_user.role not in [UserRole.ADMIN, UserRole.MANAGER]:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для обновления отдела")
+        
+        # Находим отдел
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Отдел не найден")
+        
+        # Обновляем поля
+        if department_data.name is not None:
+            department.name = department_data.name
+        if department_data.description is not None:
+            department.description = department_data.description
+        if department_data.head_id is not None:
+            department.head_id = department_data.head_id
+        if department_data.is_active is not None:
+            department.is_active = department_data.is_active
+        if department_data.sort_order is not None:
+            department.sort_order = department_data.sort_order
+        
+        db.commit()
+        db.refresh(department)
+        
+        return department
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении отдела: {str(e)}")
+
+
+@router.delete("/{department_id}")
+def delete_department(
+    department_id: int,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Удаление отдела"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        if current_user.role not in [UserRole.ADMIN]:
+            raise HTTPException(status_code=403, detail="Недостаточно прав для удаления отдела")
+        
+        # Находим отдел
+        department = db.query(Department).filter(Department.id == department_id).first()
+        if not department:
+            raise HTTPException(status_code=404, detail="Отдел не найден")
+        
+        db.delete(department)
+        db.commit()
+        
+        return {"message": "Отдел успешно удален"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении отдела: {str(e)}")

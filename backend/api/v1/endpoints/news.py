@@ -153,15 +153,16 @@ def get_news(
     """Получение списка новостей"""
     try:
         # Используем raw SQL для получения новостей
-        query = "SELECT id, title, content, category, is_published, created_at FROM news"
-        params = []
+        query = "SELECT id, title, content, category, author_id, is_published, created_at FROM news"
+        params = {}
         
         if category:
-            query += " WHERE category = %s"
-            params.append(category)
+            query += " WHERE category = :category"
+            params['category'] = category
         
-        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
-        params.extend([limit, skip])
+        query += " ORDER BY created_at DESC LIMIT :limit OFFSET :skip"
+        params['limit'] = limit
+        params['skip'] = skip
         
         result = db.execute(text(query), params).fetchall()
         
@@ -172,8 +173,9 @@ def get_news(
                 "title": row[1],
                 "content": row[2],
                 "category": row[3],
-                "is_published": row[4],
-                "created_at": row[5].isoformat() if row[5] else None
+                "author_id": row[4],
+                "is_published": row[5],
+                "created_at": row[6].isoformat() if row[6] else None
             }
             news_list.append(news_dict)
         
@@ -218,3 +220,109 @@ def get_news_by_id(
         created_at=news.created_at.isoformat() if news.created_at else None,
         updated_at=news.updated_at.isoformat() if news.updated_at else None
     )
+
+
+@router.post("/", response_model=NewsSchema)
+def create_news(
+    news_data: NewsCreate,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Создание новой новости"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        check_admin_or_manager(current_user)
+        
+        # Создаем новую новость
+        news = News(
+            title=news_data.title,
+            content=news_data.content,
+            category=news_data.category,
+            is_published=news_data.is_published,
+            author_id=current_user.id
+        )
+        
+        db.add(news)
+        db.commit()
+        db.refresh(news)
+        
+        return news
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при создании новости: {str(e)}")
+
+
+@router.put("/{news_id}", response_model=NewsSchema)
+def update_news(
+    news_id: int,
+    news_data: NewsUpdate,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Обновление новости"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        check_admin_or_manager(current_user)
+        
+        # Находим новость
+        news = db.query(News).filter(News.id == news_id).first()
+        if not news:
+            raise HTTPException(status_code=404, detail="Новость не найдена")
+        
+        # Обновляем поля
+        if news_data.title is not None:
+            news.title = news_data.title
+        if news_data.content is not None:
+            news.content = news_data.content
+        if news_data.category is not None:
+            news.category = news_data.category
+        if news_data.is_published is not None:
+            news.is_published = news_data.is_published
+        
+        db.commit()
+        db.refresh(news)
+        
+        return news
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при обновлении новости: {str(e)}")
+
+
+@router.delete("/{news_id}")
+def delete_news(
+    news_id: int,
+    current_user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    """Удаление новости"""
+    try:
+        # Проверяем права доступа
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Требуется аутентификация")
+        
+        check_admin_or_manager(current_user)
+        
+        # Находим новость
+        news = db.query(News).filter(News.id == news_id).first()
+        if not news:
+            raise HTTPException(status_code=404, detail="Новость не найдена")
+        
+        db.delete(news)
+        db.commit()
+        
+        return {"message": "Новость успешно удалена"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении новости: {str(e)}")

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, desc
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
@@ -25,11 +25,11 @@ router = APIRouter()
 @router.get("/sessions/", response_model=List[ChatSessionResponse])
 async def get_chat_sessions(
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение списка сессий чата пользователя"""
     try:
-        result = await db.execute(
+        result = db.execute(
             select(AIChatSession)
             .where(AIChatSession.user_id == current_user.id)
             .order_by(desc(AIChatSession.updated_at))
@@ -63,7 +63,7 @@ async def get_chat_sessions(
 async def create_chat_session(
     session_data: ChatSessionCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание новой сессии чата"""
     logger.info("🚀 POST /sessions/ вызван")
@@ -84,8 +84,8 @@ async def create_chat_session(
         
         logger.info(f"💾 Добавляем сессию в БД...")
         db.add(new_session)
-        await db.commit()
-        await db.refresh(new_session)
+        db.commit()
+        db.refresh(new_session)
         
         logger.info(f"✅ Сессия создана с ID: {new_session.id}")
         
@@ -101,18 +101,18 @@ async def create_chat_session(
         logger.error(f"❌ Ошибка создания сессии: {e}")
         import traceback
         traceback.print_exc()
-        await db.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка создания сессии: {str(e)}")
 
 @router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
 async def get_chat_session(
     session_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Получение сессии чата с сообщениями"""
     try:
-        result = await db.execute(
+        result = db.execute(
             select(AIChatSession)
             .where(
                 AIChatSession.id == session_id,
@@ -153,12 +153,12 @@ async def create_chat_message(
     session_id: int,
     message_data: ChatMessageCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Создание сообщения в сессии чата"""
     try:
         # Проверяем, что сессия принадлежит пользователю
-        result = await db.execute(
+        result = db.execute(
             select(AIChatSession).where(
                 AIChatSession.id == session_id,
                 AIChatSession.user_id == current_user.id
@@ -180,8 +180,8 @@ async def create_chat_message(
         )
         
         db.add(user_message)
-        await db.commit()
-        await db.refresh(user_message)
+        db.commit()
+        db.refresh(user_message)
         
         # Создаем сообщение ИИ
         ai_message = AIChatMessage(
@@ -192,8 +192,8 @@ async def create_chat_message(
         )
         
         db.add(ai_message)
-        await db.commit()
-        await db.refresh(ai_message)
+        db.commit()
+        db.refresh(ai_message)
         
         # Асинхронно обрабатываем запрос к ИИ
         try:
@@ -210,14 +210,14 @@ async def create_chat_message(
             }
             ai_message.is_processing = False
             
-            await db.commit()
-            await db.refresh(ai_message)
+            db.commit()
+            db.refresh(ai_message)
             
         except Exception as e:
             print(f"Ошибка при обработке ИИ: {e}")
             ai_message.content = "Извините, произошла ошибка при обработке запроса. Попробуйте переформулировать."
             ai_message.is_processing = False
-            await db.commit()
+            db.commit()
         
         # Возвращаем сообщение пользователя
         return ChatMessageResponse(
@@ -232,7 +232,7 @@ async def create_chat_message(
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка создания сообщения: {str(e)}")
 
 @router.put("/messages/{message_id}/", response_model=ChatMessageResponse)
@@ -240,12 +240,12 @@ async def update_chat_message(
     message_id: int,
     message_data: ChatMessageCreate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Обновление сообщения в чате"""
     try:
         # Получаем сообщение с проверкой прав доступа
-        result = await db.execute(
+        result = db.execute(
             select(AIChatMessage)
             .join(AIChatSession)
             .where(
@@ -263,8 +263,8 @@ async def update_chat_message(
         message.files_data = message_data.files_data
         message.matching_results = message_data.matching_results
         
-        await db.commit()
-        await db.refresh(message)
+        db.commit()
+        db.refresh(message)
         
         # Преобразуем сообщение в объект ответа
         return ChatMessageResponse(
@@ -279,18 +279,18 @@ async def update_chat_message(
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка обновления сообщения: {str(e)}")
 
 @router.delete("/sessions/{session_id}/")
 async def delete_chat_session(
     session_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     """Удаление сессии чата"""
     try:
-        result = await db.execute(
+        result = db.execute(
             select(AIChatSession).where(
                 AIChatSession.id == session_id,
                 AIChatSession.user_id == current_user.id
@@ -301,12 +301,44 @@ async def delete_chat_session(
         if not session:
             raise HTTPException(status_code=404, detail="Сессия не найдена")
         
-        await db.delete(session)
-        await db.commit()
+        db.delete(session)
+        db.commit()
         
         return {"message": "Сессия удалена"}
     except HTTPException:
         raise
     except Exception as e:
-        await db.rollback()
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка удаления сессии: {str(e)}")
+
+
+# Дополнительные endpoints для совместимости с фронтендом
+@router.get("/folders/", response_model=List[dict])
+def get_folders(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение списка папок пользователя (заглушка)"""
+    try:
+        # Возвращаем пустой список, так как папки чата пока не реализованы
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка при получении папок: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.get("/unread-summary", response_model=dict)
+def get_unread_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение сводки о непрочитанных сообщениях (заглушка)"""
+    try:
+        # Возвращаем пустую сводку, так как система непрочитанных сообщений пока не реализована
+        return {
+            "unread_counts": {},
+            "total_unread": 0
+        }
+    except Exception as e:
+        logger.error(f"Ошибка при получении сводки непрочитанных сообщений: {e}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
