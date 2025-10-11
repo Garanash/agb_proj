@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getApiUrl } from '@/utils'
+import { getApiUrl } from '@/utils/api'
 import { EditRequestModal } from '@/components/modals'
 import { ContractorResponsesModal } from '@/components/modals'
 

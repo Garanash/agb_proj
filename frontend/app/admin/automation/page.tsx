@@ -46,7 +46,7 @@ interface N8NStats {
 }
 
 export default function AutomationPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [stats, setStats] = useState<N8NStats | null>(null);
@@ -67,10 +67,15 @@ export default function AutomationPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      
       const [workflowsRes, executionsRes, statsRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/n8n/workflows'),
-        fetch('http://localhost:8000/api/v1/n8n/executions'),
-        fetch('http://localhost:8000/api/v1/n8n/stats')
+        fetch('http://localhost:8000/api/v1/n8n/workflows', { headers }),
+        fetch('http://localhost:8000/api/v1/n8n/executions', { headers }),
+        fetch('http://localhost:8000/api/v1/n8n/stats', { headers })
       ]);
 
       if (workflowsRes.ok) {

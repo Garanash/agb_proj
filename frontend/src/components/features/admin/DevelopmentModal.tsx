@@ -2,7 +2,7 @@
 
 import React from 'react'
 
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 interface DevelopmentModalProps {
   isOpen: boolean
   onClose: () => void

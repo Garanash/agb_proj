@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '../../../utils/api';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '../../../hooks/useAuth';
 
 interface User {

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '../../utils/api';
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
 import { formatApiError } from '../../utils/errorHandler'
 

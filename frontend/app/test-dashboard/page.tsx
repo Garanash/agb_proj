@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 
 interface DashboardData {
   total_users: number;

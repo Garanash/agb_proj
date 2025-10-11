@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/index';
 
 const EmailSettingsV3: React.FC = () => {
   return (

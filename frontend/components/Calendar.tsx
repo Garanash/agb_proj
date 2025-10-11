@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiEndpoint } from '@/utils';
+import { getApiEndpoint, getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils'
+import { formatApiError } from '@/utils/errorHandler'
 import AddEventModal from './AddEventModal'
 import EditEventModal from './EditEventModal'
 import { useAuth } from '@/hooks'

@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui/index';
 import { Settings, Construction } from 'lucide-react';
 
 const SystemSettingsV3: React.FC = () => {

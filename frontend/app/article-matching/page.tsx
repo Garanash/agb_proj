@@ -226,9 +226,10 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests', {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -252,12 +253,13 @@ export default function ArticleMatchingPage() {
     console.log('=== loadOurDatabase вызвана ===')
     
     try {
-      const url = 'http://localhost:8000/api/v1/article-matching/test-our-database/'
+      const url = 'http://localhost:8000/api/v1/article-matching/test-our-database'
       console.log('URL:', url)
       
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -266,7 +268,7 @@ export default function ArticleMatchingPage() {
       if (response.ok) {
         const data = await response.json()
         console.log('Получены данные нашей базы:', data.count, 'элементов')
-        console.log('Первые 3 элемента:', data.data.slice(0, 3))
+        console.log('Первые 3 элемента:', data.data ? data.data.slice(0, 3) : [])
         setOurDatabase(data.data || [])
       } else {
         const errorData = await response.json()
@@ -891,7 +893,7 @@ export default function ArticleMatchingPage() {
 
   const loadSavedVariants = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -909,7 +911,7 @@ export default function ArticleMatchingPage() {
   const loadFoundMatches = async () => {
     try {
       setLoadingFoundMatches(true)
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

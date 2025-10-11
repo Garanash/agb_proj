@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiEndpoint } from '@/utils';
+import { getApiEndpoint } from '@/utils/api';
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks'
 import moment from 'moment'

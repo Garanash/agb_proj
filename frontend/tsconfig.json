@@ -22,6 +22,7 @@
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
+      "@/components/ui/*": ["./src/components/ui/*"],
       "@/hooks/*": ["./hooks/*"],
       "@/contexts/*": ["./src/contexts/*"],
       "@/types/*": ["./src/types/*"],

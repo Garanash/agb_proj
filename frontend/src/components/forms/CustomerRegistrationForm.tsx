@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '../../utils/api'
+import { getApiUrl } from '@/utils/api'
 import { LoginSuccessModal } from '../features/auth/LoginSuccessModal'
 
 interface CustomerRegistrationFormProps {

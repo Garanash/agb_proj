@@ -11,7 +11,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
   Tabs, TabsContent, TabsList, TabsTrigger,
   Alert, AlertDescription
-} from '@/components/ui';
+} from '@/components/ui/index';
 import { 
   Search, Plus, Edit, Trash2, Shield, Mail, Phone, 
   Calendar, Activity, Eye, UserCheck, UserX, MoreHorizontal

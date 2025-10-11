@@ -17,13 +17,13 @@ export { AuthProvider as AuthContext, useAuth } from './AuthContext'
 export { AuthProvider as SimpleAuthContext } from './SimpleAuthContext'
 
 // UI components
-export { default as AdvancedSearchFilters } from './AdvancedSearchFilters'
-export { default as ArchiveStats } from './ArchiveStats'
-export { default as BulkInputArea } from './BulkInputArea'
+export { default as AdvancedSearchFilters } from '@/components/ui/AdvancedSearchFilters'
+export { default as ArchiveStats } from '@/components/ui/ArchiveStats'
+export { default as BulkInputArea } from '@/components/ui/BulkInputArea'
 export { default as Calendar } from './Calendar'
-export { default as Logo } from './Logo'
-export { default as Modal } from './Modal'
-export { default as TextLogo } from './TextLogo'
+export { default as Logo } from '@/components/ui/Logo'
+export { default as Modal } from '@/components/ui/Modal'
+export { default as TextLogo } from '@/components/ui/TextLogo'
 
 // Modal components
 export { default as AddEventModal } from './AddEventModal'

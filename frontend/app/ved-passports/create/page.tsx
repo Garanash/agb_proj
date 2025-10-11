@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../../../src/utils/api';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '../../../src/hooks/useAuth'
 import { 
   ArrowLeftIcon,
@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import NomenclatureSelector from '../../../components/NomenclatureSelector'
-import BulkInputArea from '../../../components/BulkInputArea'
+import BulkInputArea from '@/components/ui/BulkInputArea'
 import PassportPreview from '../../../components/PassportPreview'
 
 interface NomenclatureItem {

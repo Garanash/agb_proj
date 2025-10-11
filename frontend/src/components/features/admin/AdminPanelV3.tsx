@@ -7,7 +7,7 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
   Card, CardContent, CardDescription, CardHeader, CardTitle,
   Button, Badge, Alert, AlertDescription
-} from '@/components/ui';
+} from '@/components/ui/index';
 import { 
   Settings, Users, Shield, Mail, Key, Bell, 
   BarChart3, Activity, Database, Zap

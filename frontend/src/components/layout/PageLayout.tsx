@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '../../utils/api';
+import { getApiUrl } from '@/utils/api';
 
 interface PageLayoutProps {
   title: string

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../../src/utils/api';
+import { getApiUrl } from '@/utils/api';
 import Link from 'next/link'
 import { useAuth } from '../../src/hooks/useAuth'
 import { 

@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { getApiUrl } from '../../utils/api';
+import { getApiUrl } from '@/utils/api';
 interface LogoProps {
   width?: number
   height?: number

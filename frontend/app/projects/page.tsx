@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { PageLayout } from '@/components/layout'
 import { useAuth } from '@/hooks'
 import { DevelopmentModal } from '@/components/features/admin'
