@@ -21,6 +21,13 @@ export $(cat .env.production | grep -v '^#' | xargs)
 # Переходим в директорию backend
 cd backend
 
+# Проверяем, что мы в правильной директории
+if [ ! -f "main.py" ]; then
+    echo "❌ Не удалось найти main.py в директории backend!"
+    echo "   Текущая директория: $(pwd)"
+    exit 1
+fi
+
 # Проверяем Python
 if ! command -v python3 &> /dev/null; then
     echo "❌ Python3 не установлен!"
