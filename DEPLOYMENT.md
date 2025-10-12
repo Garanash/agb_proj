@@ -1,285 +1,291 @@
-# Деплой AGB проекта
+# 🚀 AGB Production Deployment Guide
+
+## Обзор архитектуры
+
+В продакшн среде используется следующая архитектура:
+
+- **Backend** (FastAPI) - запускается локально на порту 8000
+- **Frontend** (Next.js) - запускается локально на порту 3000  
+- **PostgreSQL** - в Docker контейнере на порту 5432
+- **Redis** - в Docker контейнере на порту 6379
+- **N8N** - в Docker контейнере на порту 5678
+- **Nginx** - в Docker контейнере на портах 80/443 (reverse proxy)
 
 ## Быстрый старт
 
-### 1. Подготовка окружения
+### 1. Подготовка сервера
 
 ```bash
-# Клонирование репозитория
+# Клонируем репозиторий
 git clone <repository-url>
 cd agb_proj
 
-# Создание файла конфигурации
-cp config/env/production.env.example config/env/production.env
-# Отредактируйте файл config/env/production.env с вашими настройками
+# Создаем .env файл
+./create-env.sh
+
+# Редактируем конфигурацию
+nano .env.production
 ```
 
-### 2. Запуск проекта
+### 2. Запуск Docker сервисов
 
 ```bash
-# Запуск в продакшн режиме
-./deploy.sh prod up
-
-# Запуск в режиме разработки
-./deploy.sh dev up
-
-# Только сборка образов
-./deploy.sh prod build
-
-# Просмотр логов
-./deploy.sh prod logs
-
-# Остановка сервисов
-./deploy.sh prod down
-
-# Перезапуск сервисов
-./deploy.sh prod restart
-
-# Статус сервисов
-./deploy.sh prod status
+# Запускаем инфраструктуру (БД, Redis, N8N, Nginx)
+./scripts/production/deploy-production.sh
 ```
 
-## Структура проекта
+### 3. Запуск приложения
 
-```
-agb_proj/
-├── backend/                 # FastAPI бекенд
-├── frontend/               # Next.js фронтенд
-├── infrastructure/         # Инфраструктура (Nginx, OCR)
-├── config/                 # Конфигурационные файлы
-├── docs/                   # Документация
-├── tests/                  # Тесты
-├── docker-compose.yml      # Основная конфигурация Docker
-├── docker-compose.dev.yml  # Конфигурация для разработки
-├── deploy.sh              # Скрипт деплоя
-└── .dockerignore          # Исключения для Docker
+```bash
+# В отдельном терминале - Backend
+./scripts/production/start-backend.sh
+
+# В отдельном терминале - Frontend  
+./scripts/production/start-frontend.sh
 ```
 
-## Сервисы
-
-### Основные сервисы
-- **postgres** - База данных PostgreSQL
-- **redis** - Redis для кеширования и очередей
-- **backend** - FastAPI приложение
-- **frontend** - Next.js приложение
-- **nginx** - Веб-сервер и прокси
-- **ocr** - Сервис распознавания текста
-
-### Дополнительные сервисы
-- **n8n** - Платформа автоматизации (опционально)
-
-## Конфигурация
+## Детальная настройка
 
 ### Переменные окружения
 
-Создайте файл `config/env/production.env` на основе `config/env/production.env.example`:
+Основные переменные в `.env.production`:
 
-```env
+```bash
 # База данных
-POSTGRES_DB=agb_felix_prod
-POSTGRES_USER=felix_prod_user
-POSTGRES_PASSWORD=your_secure_password
-DATABASE_URL=postgresql://felix_prod_user:your_secure_password@postgres:5432/agb_felix_prod
+POSTGRES_DB=agb_production
+POSTGRES_USER=agb_user
+POSTGRES_PASSWORD=<сгенерированный_пароль>
 
-# Безопасность
-SECRET_KEY=your_secret_key_here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
+# Redis
+REDIS_PASSWORD=<сгенерированный_пароль>
 
-# Администратор
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your_admin_password
-ADMIN_EMAIL=admin@example.com
-ADMIN_FIRST_NAME=Администратор
-ADMIN_LAST_NAME=Системы
-
-# API
-NEXT_PUBLIC_API_URL=http://localhost/api
-
-# Nginx
-NGINX_PORT=80
-NGINX_SSL_PORT=443
-
-# n8n (опционально)
-N8N_DB_NAME=n8n_prod
-N8N_DB_USER=n8n_prod_user
-N8N_DB_PASSWORD=your_n8n_password
+# N8N
 N8N_USER=admin
-N8N_PASSWORD=your_n8n_admin_password
+N8N_PASSWORD=<сгенерированный_пароль>
+
+# API ключи (ОБЯЗАТЕЛЬНО измените!)
+POLZA_API_KEY=your_polza_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-### Порты
+### Роутинг
 
-- **80** - HTTP (Nginx)
-- **443** - HTTPS (Nginx)
-- **8000** - Backend API (внутренний)
-- **3000** - Frontend (внутренний)
-- **5432** - PostgreSQL (внутренний)
-- **6379** - Redis (внутренний)
-- **8001** - OCR сервис (внутренний)
-- **5678** - n8n (внутренний)
+Nginx настроен для маршрутизации:
 
-## Мониторинг
+- `http://yourdomain.com/` → Frontend (порт 3000)
+- `http://yourdomain.com/api/` → Backend (порт 8000)
+- `http://yourdomain.com/n8n/` → N8N (порт 5678)
+- `http://yourdomain.com/health` → Health check
 
-### Проверка статуса
+### Мониторинг
 
 ```bash
-# Статус всех сервисов
-docker-compose ps
+# Просмотр логов всех сервисов
+docker-compose -f docker-compose.production.yml logs -f
 
-# Логи конкретного сервиса
-docker-compose logs -f backend
-docker-compose logs -f frontend
-docker-compose logs -f nginx
+# Просмотр логов конкретного сервиса
+docker-compose -f docker-compose.production.yml logs -f postgres
+docker-compose -f docker-compose.production.yml logs -f nginx
 
-# Использование ресурсов
-docker stats
+# Статус сервисов
+docker-compose -f docker-compose.production.yml ps
 ```
 
-### Health checks
-
-- **Backend**: `http://localhost/api/health`
-- **Frontend**: `http://localhost`
-- **Nginx**: `http://localhost/health`
-
-## Обслуживание
-
-### Обновление
+### Управление сервисами
 
 ```bash
-# Остановка сервисов
-./deploy.sh prod down
+# Остановка всех Docker сервисов
+docker-compose -f docker-compose.production.yml down
 
-# Обновление кода
-git pull
+# Перезапуск сервиса
+docker-compose -f docker-compose.production.yml restart nginx
 
-# Пересборка и запуск
-./deploy.sh prod up
+# Обновление образов
+docker-compose -f docker-compose.production.yml pull
+docker-compose -f docker-compose.production.yml up -d
 ```
-
-### Резервное копирование
-
-```bash
-# Резервное копирование базы данных
-docker-compose exec postgres pg_dump -U felix_prod_user agb_felix_prod > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Восстановление базы данных
-docker-compose exec -T postgres psql -U felix_prod_user agb_felix_prod < backup_file.sql
-```
-
-### Очистка
-
-```bash
-# Очистка неиспользуемых ресурсов
-docker system prune -f
-
-# Очистка volumes (ОСТОРОЖНО!)
-docker-compose down -v
-```
-
-## Устранение неполадок
-
-### Проблемы с запуском
-
-1. **Проверьте логи**:
-   ```bash
-   docker-compose logs -f
-   ```
-
-2. **Проверьте статус сервисов**:
-   ```bash
-   docker-compose ps
-   ```
-
-3. **Проверьте конфигурацию**:
-   ```bash
-   docker-compose config
-   ```
-
-### Проблемы с базой данных
-
-1. **Проверьте подключение**:
-   ```bash
-   docker-compose exec postgres psql -U felix_prod_user -d agb_felix_prod -c "SELECT 1;"
-   ```
-
-2. **Проверьте миграции**:
-   ```bash
-   docker-compose exec backend alembic current
-   ```
-
-### Проблемы с сетью
-
-1. **Проверьте сеть**:
-   ```bash
-   docker network ls
-   docker network inspect agb_proj_app-network
-   ```
-
-2. **Пересоздайте сеть**:
-   ```bash
-   docker-compose down
-   docker network prune -f
-   docker-compose up -d
-   ```
 
 ## Безопасность
 
-### SSL сертификаты
+### SSL/TLS (опционально)
 
-1. Поместите SSL сертификаты в `infrastructure/ssl/`:
-   - `cert.pem` - сертификат
-   - `key.pem` - приватный ключ
+Для HTTPS добавьте сертификаты в `infrastructure/ssl/`:
 
-2. Раскомментируйте HTTPS конфигурацию в `infrastructure/nginx/nginx.prod.conf`
-
-3. Обновите переменные окружения:
-   ```env
-   N8N_PROTOCOL=https
-   N8N_WEBHOOK_URL=https://yourdomain.com
-   ```
+```bash
+# Структура SSL директории
+infrastructure/ssl/
+├── cert.pem      # Сертификат
+├── key.pem       # Приватный ключ
+└── chain.pem     # Цепочка сертификатов
+```
 
 ### Firewall
 
 ```bash
-# Открыть только необходимые порты
-sudo ufw allow 80
-sudo ufw allow 443
+# Открываем только необходимые порты
+sudo ufw allow 22    # SSH
+sudo ufw allow 80    # HTTP
+sudo ufw allow 443   # HTTPS (если используется)
 sudo ufw enable
 ```
 
-## Производительность
+## Резервное копирование
 
-### Оптимизация Docker
+### База данных
 
-1. **Увеличьте лимиты**:
-   ```bash
-   # В /etc/docker/daemon.json
-   {
-     "default-ulimits": {
-       "memlock": {
-         "Hard": -1,
-         "Name": "memlock",
-         "Soft": -1
-       }
-     }
-   }
-   ```
+```bash
+# Создание бэкапа
+docker exec agb_postgres pg_dump -U agb_user agb_production > backup_$(date +%Y%m%d_%H%M%S).sql
 
-2. **Мониторинг ресурсов**:
-   ```bash
-   docker stats --no-stream
-   ```
+# Восстановление
+docker exec -i agb_postgres psql -U agb_user agb_production < backup_file.sql
+```
 
-### Оптимизация базы данных
+### Файлы
 
-1. **Настройте PostgreSQL** в `config/env/production.env`:
-   ```env
-   POSTGRES_INITDB_ARGS="--encoding=UTF-8 --lc-collate=C --lc-ctype=C --shared-preload-libraries=pg_stat_statements"
-   ```
+```bash
+# Бэкап загруженных файлов
+tar -czf uploads_backup_$(date +%Y%m%d_%H%M%S).tar.gz uploads/
 
-2. **Создайте индексы**:
-   ```sql
-   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_articles_agb ON matching_nomenclature(agb_article);
-   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_articles_bl ON matching_nomenclature(bl_article);
-   ```
+# Бэкап логов
+tar -czf logs_backup_$(date +%Y%m%d_%H%M%S).tar.gz logs/
+```
+
+## Обновление
+
+### Обновление кода
+
+```bash
+# Получаем последние изменения
+git pull origin main
+
+# Перезапускаем сервисы
+docker-compose -f docker-compose.production.yml restart nginx
+# Перезапускаем backend и frontend вручную
+```
+
+### Обновление зависимостей
+
+```bash
+# Backend
+cd backend
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Frontend
+cd frontend
+npm install
+npm run build
+```
+
+## Устранение неполадок
+
+### Проверка подключений
+
+```bash
+# База данных
+docker exec agb_postgres pg_isready -U agb_user -d agb_production
+
+# Redis
+docker exec agb_redis redis-cli ping
+
+# N8N
+curl http://localhost:5678/healthz
+
+# Nginx
+curl http://localhost/health
+```
+
+### Логи
+
+```bash
+# Backend логи
+tail -f logs/backend.log
+
+# Frontend логи  
+tail -f logs/frontend.log
+
+# Docker логи
+docker-compose -f docker-compose.production.yml logs -f
+```
+
+### Производительность
+
+```bash
+# Использование ресурсов
+docker stats
+
+# Место на диске
+df -h
+docker system df
+```
+
+## Автозапуск (systemd)
+
+Создайте systemd сервисы для автозапуска:
+
+### Backend сервис
+
+```bash
+sudo nano /etc/systemd/system/agb-backend.service
+```
+
+```ini
+[Unit]
+Description=AGB Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/path/to/agb_proj
+ExecStart=/path/to/agb_proj/scripts/production/start-backend.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Frontend сервис
+
+```bash
+sudo nano /etc/systemd/system/agb-frontend.service
+```
+
+```ini
+[Unit]
+Description=AGB Frontend Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/path/to/agb_proj
+ExecStart=/path/to/agb_proj/scripts/production/start-frontend.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Активация сервисов
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable agb-backend
+sudo systemctl enable agb-frontend
+sudo systemctl start agb-backend
+sudo systemctl start agb-frontend
+```
+
+## Поддержка
+
+При возникновении проблем:
+
+1. Проверьте логи всех сервисов
+2. Убедитесь, что все порты свободны
+3. Проверьте переменные окружения
+4. Убедитесь, что Docker сервисы запущены
+5. Проверьте подключение к базе данных и Redis
