@@ -185,10 +185,15 @@ else
 fi
 
 echo "🔴 Проверка Redis..."
-if docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; then
-    echo "✅ Redis работает"
+# Проверяем без пароля
+if docker exec agb_redis redis-cli ping 2>/dev/null | grep -q "PONG"; then
+    echo "✅ Redis работает без пароля"
+elif docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; then
+    echo "✅ Redis работает с паролем"
 else
     echo "❌ Redis не работает"
+    echo "📋 Логи Redis:"
+    docker-compose -f docker-compose.production.yml logs --tail=10 redis
 fi
 
 echo "🌐 Проверка Nginx..."
