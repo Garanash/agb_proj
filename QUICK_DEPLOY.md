@@ -7,11 +7,29 @@
 git clone https://github.com/Garanash/agb_proj.git
 cd agb_proj
 
-# 2. Создаем .env файл
+# 2. Исправляем проблемы с зависимостями (если есть ошибки)
+sudo ./scripts/production/fix-server-issues.sh
+
+# 3. Создаем .env файл
 ./create-env.sh
 
-# 3. Редактируем конфигурацию
+# 4. Редактируем конфигурацию
 nano .env.production
+```
+
+## Исправление проблем
+
+Если возникают ошибки типа:
+- `pip: command not found`
+- `Node.js не установлен`
+- `Pool overlaps with other one on this address space`
+
+```bash
+# Быстрое исправление всех проблем
+sudo ./scripts/production/fix-server-issues.sh
+
+# Перезагрузка сервера
+sudo reboot
 ```
 
 ## Запуск
