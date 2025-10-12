@@ -17,6 +17,8 @@ import {
 } from '@heroicons/react/24/outline'
 import AIMatchingChat from '@/components/AIMatchingChat'
 import ExcelDataTable from '@/components/ExcelDataTable'
+import UploadDataModal from '@/src/components/features/admin/UploadDataModal'
+import AddSingleItemModal from '@/src/components/features/admin/AddSingleItemModal'
 
 interface ContractorRequest {
   id: number
@@ -1022,12 +1024,16 @@ export default function ArticleMatchingPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Сопоставление артикулов</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">Интеллектуальное сопоставление артикулов контрагентов с базой данных АГБ</p>
           </div>
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-          >
-            Назад
-          </button>
+          <div className="flex items-center space-x-3">
+            <UploadDataModal type="articles" />
+            <AddSingleItemModal type="articles" />
+            <button
+              onClick={() => router.back()}
+              className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            >
+              Назад
+            </button>
+          </div>
         </div>
       </div>
 

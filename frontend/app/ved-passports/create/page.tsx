@@ -122,21 +122,22 @@ export default function CreateVEDPassportPage() {
     setSuccessMessage('')
 
     try {
-      // Подготавливаем данные запроса
+      // Подготавливаем данные запроса для нового endpoint
       const requestData = {
+        passport_number: `VED-${formData.orderNumber}-${Date.now()}`,
         order_number: formData.orderNumber,
-        title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : undefined,
-        items: [{
-          code_1c: selectedNomenclature?.code_1c || '',
-          quantity: formData.quantity === 0 ? 1 : formData.quantity
-        }]
+        title: selectedNomenclature ? `Паспорт ВЭД ${selectedNomenclature.name}` : `Паспорт ВЭД ${formData.orderNumber}`,
+        description: selectedNomenclature ? `Паспорт для номенклатуры ${selectedNomenclature.name}` : '',
+        quantity: formData.quantity === 0 ? 1 : formData.quantity,
+        status: 'active',
+        nomenclature_id: formData.nomenclatureId
       }
       
       console.log('Данные запроса:', requestData)
-      console.log('URL запроса:', `${getApiUrl()}/api/v1/ved-passports/bulk/`)
+      console.log('URL запроса:', `${getApiUrl()}/api/v1/ved-passports-upload/add-single-passport`)
       
-      // Используем bulk API даже для одного паспорта для оптимизации
-      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports/bulk/`, {
+      // Используем новый endpoint для добавления одного паспорта
+      const response: any = await fetch(`${getApiUrl()}/api/v1/ved-passports-upload/add-single-passport`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,20 +149,20 @@ export default function CreateVEDPassportPage() {
       if (response.status >= 200 && response.status < 300) {
         const result = await response.json()
 
-        // Преобразуем результат bulk API в формат для отображения
-        const passports: CreatedPassport[] = result.passports.map((passport: any) => ({
-          id: passport.id,
-          passport_number: passport.passport_number,
-          order_number: passport.order_number,
-          nomenclature: passport.nomenclature || selectedNomenclature!,
-          quantity: passport.quantity || 1,
-          status: passport.status,
-          created_at: passport.created_at
-        }))
+        // Преобразуем результат нового API в формат для отображения
+        const passport: CreatedPassport = {
+          id: result.data.passport_id,
+          passport_number: result.data.passport_number,
+          order_number: result.data.order_number,
+          nomenclature: selectedNomenclature!,
+          quantity: formData.quantity === 0 ? 1 : formData.quantity,
+          status: 'active',
+          created_at: new Date().toISOString()
+        }
 
-        // Добавляем созданные паспорты к списку
-        setCreatedPassports(prev => [...passports, ...prev])
-        setSuccessMessage(`Успешно создано ${passports.length} паспортов ВЭД!`)
+        // Добавляем созданный паспорт к списку
+        setCreatedPassports(prev => [passport, ...prev])
+        setSuccessMessage(result.message || 'Паспорт ВЭД успешно создан!')
 
         // Очищаем форму
         setFormData({
@@ -170,11 +171,6 @@ export default function CreateVEDPassportPage() {
           quantity: 1
         })
         setSelectedNomenclature(null)
-
-        // Показываем ошибки если они есть
-        if (result.errors && result.errors.length > 0) {
-          console.warn('Предупреждения при создании:', result.errors)
-        }
       } else {
         const errorData = await response.json()
         console.error('Ошибка API:', errorData)
@@ -195,14 +191,6 @@ export default function CreateVEDPassportPage() {
         
         throw new Error(errorMessage)
       }
-
-      // Очищаем форму
-      setFormData({
-        orderNumber: '',
-        nomenclatureId: null,
-        quantity: 1
-      })
-      setSelectedNomenclature(null)
     } catch (error) {
       console.error('Ошибка при создании паспорта:', error)
       setErrorMessage(error instanceof Error ? error.message : 'Произошла ошибка при создании паспорта')

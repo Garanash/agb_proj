@@ -1,32 +1,20 @@
 /**
- * Компонент для управления системными уведомлениями v3
+ * Компонент для системных уведомлений v3
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Alert, AlertDescription } from '@/components/ui/index';
-import { Bell, Construction } from 'lucide-react';
 
 const SystemNotificationsV3: React.FC = () => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-5 w-5" />
-          Системные уведомления
-        </CardTitle>
-        <CardDescription>
-          Создание и управление системными уведомлениями для пользователей
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Alert>
-          <Construction className="h-4 w-4" />
-          <AlertDescription>
-            Компонент в разработке. Здесь будет создание и отправка системных уведомлений пользователям.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border p-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        Системные уведомления v3
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400">
+        Функция системных уведомлений находится в разработке.
+      </p>
+    </div>
   );
 };
+
 export default SystemNotificationsV3;

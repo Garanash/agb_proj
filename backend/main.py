@@ -121,6 +121,15 @@ app.include_router(ved_passports_router, prefix="/api/v1/ved-passports", tags=["
 from api.v1.endpoints.n8n_integration import router as n8n_router
 app.include_router(n8n_router, prefix="/api/v1/n8n", tags=["🔄 N8N Интеграция"])
 
+from api.v1.endpoints.data_upload import router as data_upload_router
+app.include_router(data_upload_router, prefix="/api/v1/data-upload", tags=["📤 Загрузка данных"])
+
+from api.v1.endpoints.ved_passports_upload import router as ved_passports_upload_router
+app.include_router(ved_passports_upload_router, prefix="/api/v1/ved-passports-upload", tags=["📋 Загрузка ВЭД паспортов"])
+
+from api.v1.endpoints.admin_data_entry import router as admin_data_entry_router
+app.include_router(admin_data_entry_router, prefix="/api/v1/admin", tags=["👑 Админка - Управление данными"])
+
 # Подключаем API v3
 from api.v3.router import api_router as v3_router
 app.include_router(v3_router, prefix="/api/v3", tags=["🔍 API v3"])

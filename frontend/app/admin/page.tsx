@@ -137,6 +137,19 @@ const AdminPage = () => {
             </div>
             <p className="text-gray-600 dark:text-gray-400">Создание новых паспортов ВЭД</p>
           </Link>
+
+          <Link
+            href="/admin/data-management"
+            className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          >
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white text-xl">
+                👑
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 ml-4">Управление данными</h3>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400">Построчное добавление данных во все таблицы</p>
+          </Link>
         </div>
       </div>
     </PageLayout>

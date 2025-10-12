@@ -4,7 +4,16 @@
 
 import { useContext } from 'react'
 import { AuthContext } from '../../components/AuthContext'
-import type { AuthContextType } from '../types/index'
+
+interface AuthContextType {
+  user: any | null
+  token: string | null
+  login: (username: string, password: string) => Promise<boolean>
+  logout: () => void
+  refreshUser: () => Promise<void>
+  isLoading: boolean
+  isAuthenticated: boolean
+}
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)

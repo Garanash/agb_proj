@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import ForcePasswordChangeModal from '@/components/ForcePasswordChangeModal'
+import ForcePasswordChangeModal from './ForcePasswordChangeModal'
 
 interface User {
   id: number
@@ -33,14 +33,6 @@ interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)

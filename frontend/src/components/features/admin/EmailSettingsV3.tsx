@@ -1,27 +1,18 @@
 /**
- * Компонент для управления настройками email v3
- * ВРЕМЕННО ОТКЛЮЧЕН ДЛЯ СБОРКИ
+ * Компонент для настройки email v3
  */
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/index';
 
 const EmailSettingsV3: React.FC = () => {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Настройки Email</CardTitle>
-          <CardDescription>
-            Компонент временно отключен для сборки
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Настройки email будут доступны в следующей версии
-          </p>
-        </CardContent>
-      </Card>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border p-6">
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        Настройки Email v3
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400">
+        Функция настройки email находится в разработке.
+      </p>
     </div>
   );
 };

@@ -128,6 +128,18 @@ except ImportError:
     pass
 
 try:
+    from .endpoints.data_upload import router as data_upload_router
+    api_router.include_router(data_upload_router, prefix="/data-upload", tags=["📤 Загрузка данных"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.ved_passports_upload import router as ved_passports_upload_router
+    api_router.include_router(ved_passports_upload_router, prefix="/ved-passports-upload", tags=["📋 Загрузка ВЭД паспортов"])
+except ImportError:
+    pass
+
+try:
     from .endpoints.settings import router as settings_router
     api_router.include_router(settings_router, prefix="/settings", tags=["⚙️ Настройки"])
 except ImportError:
