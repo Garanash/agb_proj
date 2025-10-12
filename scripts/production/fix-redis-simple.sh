@@ -28,7 +28,6 @@ docker run -d \
   --name agb_redis \
   --network agb_proj_agb_network \
   -p 6379:6379 \
-  -e REDIS_PASSWORD="$REDIS_PASSWORD" \
   redis:7-alpine \
   redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes
 

@@ -39,6 +39,15 @@ if [ ! -f "./venv/bin/pip" ]; then
     echo "   Удаляем и создаем заново..."
     rm -rf venv
     python3 -m venv venv
+    
+    # Проверяем еще раз
+    if [ ! -f "./venv/bin/pip" ]; then
+        echo "❌ Не удалось создать виртуальное окружение!"
+        echo "   Попробуем использовать системный pip..."
+        pip3 install -r requirements.txt
+        python3 main.py 2>&1 | tee ../logs/backend.log
+        exit 0
+    fi
 fi
 
 # Активируем виртуальное окружение
