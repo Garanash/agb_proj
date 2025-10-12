@@ -71,7 +71,7 @@ done
 
 # Проверяем подключение к Redis
 echo "🔴 Проверка подключения к Redis..."
-until docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping; do
+until docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; do
     echo "   Ожидание Redis..."
     sleep 2
 done
