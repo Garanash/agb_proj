@@ -39,7 +39,7 @@ source venv/bin/activate
 
 # Устанавливаем зависимости
 echo "📥 Установка зависимостей..."
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 
 # Создаем директории для логов
 mkdir -p ../logs
