@@ -84,3 +84,18 @@ docker-compose -f docker-compose.production.yml down
 
 # Остановка приложения (Ctrl+C в терминалах backend/frontend)
 ```
+
+## Диагностика проблем
+
+Если возникают проблемы:
+
+```bash
+# Диагностика всех проблем
+./scripts/production/diagnose-server.sh
+
+# Исправление проблем с Nginx
+./scripts/production/fix-nginx.sh
+
+# Просмотр логов
+docker-compose -f docker-compose.production.yml logs -f
+```
