@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Скрипт для исправления проблем с Redis
-# Использование: ./scripts/production/fix-redis-final.sh
+# Упрощенный скрипт для исправления Redis
+# Использование: ./scripts/production/fix-redis-simple.sh
 
 set -e
 
-echo "🔧 Финальное исправление Redis"
-echo "============================="
+echo "🔧 Простое исправление Redis"
+echo "==========================="
 
 # Проверяем наличие .env файла
 if [ ! -f ".env.production" ]; then
@@ -22,26 +22,15 @@ echo "🛑 Остановка Redis контейнера..."
 docker-compose -f docker-compose.production.yml stop redis || true
 docker-compose -f docker-compose.production.yml rm -f redis || true
 
-echo "🔧 Создание новой конфигурации Redis..."
-# Создаем директорию для конфигурации Redis
-mkdir -p infrastructure/redis
-
-# Создаем конфигурационный файл Redis
-cat > infrastructure/redis/redis.conf << EOF
-# Redis configuration for production
-port 6379
-bind 0.0.0.0
-protected-mode yes
-requirepass "$REDIS_PASSWORD"
-maxmemory 256mb
-maxmemory-policy allkeys-lru
-save 900 1
-save 300 10
-save 60 10000
-EOF
-
-echo "🐳 Запуск Redis с новой конфигурацией..."
-docker-compose -f docker-compose.production.yml up -d redis
+echo "🐳 Запуск Redis с простой конфигурацией..."
+# Используем простую команду без конфигурационного файла
+docker run -d \
+  --name agb_redis \
+  --network agb_proj_agb_network \
+  -p 6379:6379 \
+  -e REDIS_PASSWORD="$REDIS_PASSWORD" \
+  redis:7-alpine \
+  redis-server --requirepass "$REDIS_PASSWORD" --appendonly yes
 
 echo "⏳ Ожидание запуска Redis..."
 sleep 10
@@ -54,7 +43,7 @@ until docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null | gr
     if [ $REDIS_COUNT -ge $REDIS_TIMEOUT ]; then
         echo "❌ Redis не работает после настройки" >&2
         echo "📋 Логи Redis:" >&2
-        docker-compose -f docker-compose.production.yml logs redis >&2
+        docker logs agb_redis >&2
         exit 1
     fi
     echo "   Ожидание Redis... ($REDIS_COUNT/$REDIS_TIMEOUT)"
