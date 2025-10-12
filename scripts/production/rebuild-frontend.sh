@@ -13,7 +13,7 @@ cd frontend
 
 echo "🔄 Синхронизация компонентов..."
 # Синхронизируем все компоненты
-../scripts/production/sync-components.sh
+../scripts/production/sync-all-components.sh
 
 echo "🗑️  Удаление всех кэшей..."
 rm -rf .next
