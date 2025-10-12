@@ -26,6 +26,10 @@ if ! docker ps | grep -q agb_redis; then
 fi
 
 echo "🔧 Настройка Redis пароля..."
+# Перезапускаем Redis для применения пароля
+docker-compose -f docker-compose.production.yml restart redis
+sleep 5
+
 # Устанавливаем пароль в Redis
 docker exec agb_redis redis-cli CONFIG SET requirepass "$REDIS_PASSWORD"
 
