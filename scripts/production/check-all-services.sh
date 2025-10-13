@@ -8,9 +8,9 @@ set -e
 echo "🔍 Проверка статуса всех сервисов"
 echo "================================="
 
-# Получаем IP сервера
-SERVER_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || echo "localhost")
-echo "🌐 IP сервера: $SERVER_IP"
+# Получаем IPv4 IP сервера
+SERVER_IP=$(curl -s -4 ifconfig.me || curl -s -4 ipinfo.io/ip || curl -s -4 icanhazip.com || echo "localhost")
+echo "🌐 IPv4 IP сервера: $SERVER_IP"
 
 echo ""
 echo "📋 Проверка портов:"
@@ -20,10 +20,10 @@ echo "------------------"
 check_port() {
     local port=$1
     local service=$2
-    if netstat -tuln | grep -q ":$port "; then
+    if ss -tuln | grep -q ":$port " || lsof -i :$port >/dev/null 2>&1; then
         echo "✅ Порт $port ($service) - открыт"
         # Показываем процесс
-        local pid=$(lsof -ti :$port)
+        local pid=$(lsof -ti :$port 2>/dev/null)
         if [ ! -z "$pid" ]; then
             echo "   PID: $pid"
         fi

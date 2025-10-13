@@ -8,9 +8,9 @@ set -e
 echo "🔧 Комплексное исправление всех проблем"
 echo "======================================"
 
-# Получаем IP сервера
-SERVER_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || echo "localhost")
-echo "🌐 IP сервера: $SERVER_IP"
+# Получаем IPv4 IP сервера
+SERVER_IP=$(curl -s -4 ifconfig.me || curl -s -4 ipinfo.io/ip || curl -s -4 icanhazip.com || echo "localhost")
+echo "🌐 IPv4 IP сервера: $SERVER_IP"
 
 echo ""
 echo "📋 Шаг 1: Проверка и запуск backend"
