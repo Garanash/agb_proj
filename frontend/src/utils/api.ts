@@ -9,20 +9,26 @@ export const DEFAULT_API_VERSION = 'v1';
 export const getApiUrl = (): string => {
   // Если есть переменная окружения NEXT_PUBLIC_API_URL, используем её
   if (process.env.NEXT_PUBLIC_API_URL) {
+    console.log('🌐 Используем NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
   // Для локальной разработки используем localhost:8000
   if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 Режим разработки: localhost:8000');
     return 'http://localhost:8000';
   }
 
-  // На клиенте в продакшене используем текущий origin
+  // В продакшене на клиенте определяем API URL автоматически
   if (typeof window !== 'undefined') {
-    return window.location.origin;
+    const currentOrigin = window.location.origin;
+    const apiUrl = currentOrigin.replace(/:\d+$/, ':8000');
+    console.log('🌐 Продакшен: автоматически определен API URL:', apiUrl);
+    return apiUrl;
   }
 
   // На сервере используем localhost для разработки
+  console.log('⚠️ Fallback: localhost:8000');
   return 'http://localhost:8000';
 };
 

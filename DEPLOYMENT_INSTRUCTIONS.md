@@ -134,24 +134,24 @@ chmod +x create-env.sh
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
-# БЫСТРОЕ ИСПРАВЛЕНИЕ - пересборка frontend с правильным API URL:
-./scripts/production/quick-fix-cors.sh
+# ПОЛНОЕ ИСПРАВЛЕНИЕ - исправляет все проблемы разом:
+./scripts/production/fix-cors-completely.sh
 
-# ПОЛНОЕ ИСПРАВЛЕНИЕ - деплой с проверками:
-./scripts/production/deploy-with-cors-fix.sh
+# Или пошагово:
+# 1. Проверить и запустить backend:
+./scripts/production/ensure-backend-running.sh
 
-# РУЧНОЕ ИСПРАВЛЕНИЕ:
-# 1. Установите правильный NEXT_PUBLIC_API_URL:
-export NEXT_PUBLIC_API_URL="http://89.23.99.86:8000/api"
+# 2. Принудительно пересобрать frontend:
+./scripts/production/force-rebuild-frontend.sh
 
-# 2. Пересоберите frontend:
-cd frontend
-rm -rf .next
-NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" npm run build
-NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" npm start
+# 3. Проверить статус всех сервисов:
+./scripts/production/check-services-status.sh
 ```
 
-**ВАЖНО:** Переменная `NEXT_PUBLIC_API_URL` должна быть установлена **во время сборки**, а не во время выполнения!
+**ВАЖНО:** 
+- Frontend теперь автоматически определяет API URL в продакшене
+- Если frontend все еще обращается к localhost, используйте `force-rebuild-frontend.sh`
+- Переменная `NEXT_PUBLIC_API_URL` должна быть установлена **во время сборки**
 
 ### N8N не может подключиться к БД
 ```bash
