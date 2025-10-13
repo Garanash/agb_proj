@@ -134,23 +134,21 @@ chmod +x create-env.sh
 
 ### Проблемы с запуском backend
 ```bash
-# Если ошибка "venv/bin/pip: cannot execute: required file not found":
-# 1. Полная очистка и пересоздание виртуального окружения:
+# Если ошибка "Cannot import 'setuptools.build_meta'":
+# 1. Быстрое исправление setuptools:
+./scripts/production/fix-setuptools.sh
+
+# 2. Запуск с минимальными зависимостями (без pandas/numpy):
+./scripts/production/minimal-backend.sh
+
+# 3. Полная очистка и пересоздание виртуального окружения:
 ./scripts/production/clean-recreate-venv.sh
 
-# 2. Ультра-простой запуск backend:
-./scripts/production/ultra-simple-backend.sh
-
-# 3. Диагностика проблем с backend:
+# 4. Диагностика проблем с backend:
 ./scripts/production/diagnose-backend.sh
-
-# Если есть ошибки с переменными окружения:
-# 1. Проверьте .env.production: cat .env.production
-# 2. Создайте новый: ./create-env.sh
-# 3. Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh
 ```
 
-**ВАЖНО:** Если виртуальное окружение повреждено, используйте `clean-recreate-venv.sh`!
+**ВАЖНО:** Если есть проблемы с pandas/numpy, используйте `minimal-backend.sh`!
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash

@@ -52,6 +52,7 @@ fi
 
 echo "📦 Установка зависимостей..."
 venv/bin/pip install --upgrade pip
+venv/bin/pip install setuptools wheel
 venv/bin/pip install -r requirements.txt
 
 echo "🔧 Проверка установленных пакетов..."
