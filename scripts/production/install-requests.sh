@@ -47,6 +47,9 @@ venv/bin/pip install requests==2.31.0
 echo "📦 Установка psutil..."
 venv/bin/pip install psutil==5.9.6
 
+echo "📦 Установка python-whois..."
+venv/bin/pip install python-whois==0.8.0
+
 echo ""
 echo "📋 Шаг 4: Проверка установки"
 echo "-------------------------"
@@ -57,6 +60,9 @@ venv/bin/python -c "import requests; print('requests:', requests.__version__)"
 
 echo "🔍 Проверка установки psutil..."
 venv/bin/python -c "import psutil; print('psutil:', psutil.__version__)"
+
+echo "🔍 Проверка установки python-whois..."
+venv/bin/python -c "import whois; print('python-whois: OK')"
 
 echo ""
 echo "✅ Недостающие зависимости успешно установлены!"

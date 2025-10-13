@@ -75,7 +75,7 @@ echo "📦 Установка основных зависимостей..."
 venv/bin/pip install fastapi==0.104.1 uvicorn[standard]==0.24.0
 venv/bin/pip install sqlalchemy==2.0.23 asyncpg==0.29.0 psycopg2-binary==2.9.9 alembic==1.12.1
 venv/bin/pip install pydantic[email]==2.5.0 python-multipart==0.0.6 python-jose[cryptography]==3.3.0 passlib[bcrypt]==1.7.4 bcrypt==4.0.1
-venv/bin/pip install python-dotenv==1.0.0 fastapi-users==12.1.2 aiohttp==3.9.5 httpx==0.25.2 requests==2.31.0 psutil==5.9.6
+venv/bin/pip install python-dotenv==1.0.0 fastapi-users==12.1.2 aiohttp==3.9.5 httpx==0.25.2 requests==2.31.0 psutil==5.9.6 python-whois==0.8.0
 
 echo ""
 echo "📋 Шаг 6: Проверка заглушек pandas"
