@@ -1,43 +1,15 @@
 #!/bin/bash
 
-# Простой скрипт для запуска backend
-# Использование: ./simple-start-backend.sh
+# Максимально простой запуск backend с виртуальным окружением
+# Использование: ./ultra-simple-backend.sh
 
 set -e
 
-echo "🚀 Простой запуск Backend сервера"
-echo "================================="
-
-# Проверяем наличие Python
-if ! command -v python3 &> /dev/null; then
-    echo "❌ Python3 не найден!"
-    echo "   Установите Python3: apt update && apt install python3 python3-pip python3-venv"
-    exit 1
-fi
-
-# Проверяем наличие pip
-if ! command -v pip3 &> /dev/null; then
-    echo "❌ pip3 не найден!"
-    echo "   Установите pip3: apt install python3-pip"
-    exit 1
-fi
-
-# Проверяем наличие venv
-if ! python3 -m venv --help &> /dev/null; then
-    echo "❌ python3-venv не найден!"
-    echo "   Установите: apt install python3-venv"
-    exit 1
-fi
+echo "🚀 Ультра-простой запуск Backend"
+echo "==============================="
 
 # Переходим в директорию backend
 cd backend
-
-# Проверяем, что мы в правильной директории
-if [ ! -f "main.py" ]; then
-    echo "❌ Не удалось найти main.py в директории backend!"
-    echo "   Текущая директория: $(pwd)"
-    exit 1
-fi
 
 echo "✅ Найден main.py в $(pwd)"
 
@@ -56,16 +28,15 @@ else
     echo "✅ Виртуальное окружение уже существует"
 fi
 
-echo "📦 Активация виртуального окружения..."
-source venv/bin/activate
-
-echo "📦 Установка зависимостей в виртуальное окружение..."
+echo "📦 Установка зависимостей..."
 # Используем pip из виртуального окружения напрямую
 venv/bin/pip install --upgrade pip
 venv/bin/pip install -r requirements.txt
 
-echo "🔧 Проверка переменных окружения..."
-# Устанавливаем базовые переменные окружения
+echo "🔧 Проверка установленных пакетов..."
+venv/bin/pip list | grep -E "(fastapi|uvicorn|sqlalchemy)" || echo "⚠️ Некоторые пакеты могут быть не установлены"
+
+echo "🔧 Установка переменных окружения..."
 export DATABASE_URL="postgresql://agb_user:agb_password@localhost:5432/agb_db"
 export JWT_SECRET_KEY="your_jwt_secret_key_change_this_in_production"
 export DEBUG="False"
@@ -74,10 +45,11 @@ export ENVIRONMENT="production"
 echo "🚀 Запуск backend сервера..."
 echo "   Порт: 8000"
 echo "   Логи: backend.log"
-echo "   Виртуальное окружение: активировано"
+echo "   Python: venv/bin/python"
+echo "   Uvicorn: venv/bin/uvicorn"
 
 # Запускаем backend с виртуальным окружением
-nohup bash -c "source venv/bin/activate && venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000" > ../backend.log 2>&1 &
+nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
 
 BACKEND_PID=$!
 echo "📋 Backend запущен с PID: $BACKEND_PID"
@@ -101,3 +73,6 @@ fi
 
 echo ""
 echo "🎉 Backend запущен и готов к работе!"
+echo ""
+echo "📋 Проверьте доступность:"
+echo "curl http://localhost:8000/api/v1/health"

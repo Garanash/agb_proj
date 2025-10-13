@@ -138,19 +138,19 @@ chmod +x create-env.sh
 # 1. Установите необходимые пакеты:
 ./scripts/production/install-system-packages.sh
 
-# 2. Диагностика проблем с backend:
-./scripts/production/diagnose-backend.sh
+# 2. Ультра-простой запуск backend (обходит все проблемы с venv):
+./scripts/production/ultra-simple-backend.sh
 
-# 3. Простой запуск backend (с виртуальным окружением):
-./scripts/production/simple-start-backend.sh
+# 3. Диагностика проблем с backend:
+./scripts/production/diagnose-backend.sh
 
 # Если есть ошибки с переменными окружения:
 # 1. Проверьте .env.production: cat .env.production
 # 2. Создайте новый: ./create-env.sh
-# 3. Запустите простой скрипт: ./scripts/production/simple-start-backend.sh
+# 3. Запустите ультра-простой скрипт: ./scripts/production/ultra-simple-backend.sh
 ```
 
-**ВАЖНО:** На новых системах Python защищен от установки пакетов в системное окружение. Используйте виртуальное окружение!
+**ВАЖНО:** На новых системах Python защищен от установки пакетов в системное окружение. Используйте `ultra-simple-backend.sh`!
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
