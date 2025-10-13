@@ -3,7 +3,7 @@ from sqlalchemy import text
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from database import engine, Base
+from database import async_engine, Base
 from datetime import datetime
 import os
 import asyncio
@@ -16,8 +16,8 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     # Проверяем подключение к базе данных
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        async with async_engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
             print("✅ Подключение к базе данных успешно установлено")
     except Exception as e:
         print(f"❌ Ошибка подключения к базе данных: {e}")
