@@ -25,11 +25,30 @@ services:
       retries: 5
       start_period: 30s
 
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: agb_redis_prod
+    env_file:
+      - ../env/production.env
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   # Бекенд - FastAPI
   backend:
     build:
       context: ../../backend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     container_name: agb_backend_prod
     env_file:
       - ../env/production.env
@@ -47,6 +66,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - uploads_data:/app/uploads
     networks:
@@ -63,7 +84,7 @@ services:
   frontend:
     build:
       context: ../../frontend
-      dockerfile: Dockerfile.prod.fixed
+      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: agb_frontend_prod
@@ -131,6 +152,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
   uploads_data:
     driver: local

@@ -1,36 +1,37 @@
 #!/bin/bash
+
+# Скрипт инициализации базы данных для продакшн
+# Этот скрипт выполняется при первом запуске PostgreSQL
+
 set -e
 
-echo "🚀 Инициализация production базы данных..."
+echo "🔧 Инициализация базы данных для продакшн..."
 
-# Ждем готовности PostgreSQL
-until pg_isready -h localhost -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB"; do
-    echo "⏳ Ожидание готовности PostgreSQL..."
-    sleep 2
-done
-
-echo "✅ PostgreSQL готов к работе"
-
-# Создаем расширения если нужно
+# Создаем пользователя и базу данных
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Создаем расширения
+    -- Пользователь и база данных уже созданы через переменные окружения
+    -- Проверяем, что все правильно настроено
+    
+    -- Создаем расширения если нужно
     CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
     CREATE EXTENSION IF NOT EXISTS "pg_trgm";
     
-    -- Настраиваем параметры для производительности
-    ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements';
-    ALTER SYSTEM SET max_connections = 200;
-    ALTER SYSTEM SET shared_buffers = '256MB';
-    ALTER SYSTEM SET effective_cache_size = '1GB';
-    ALTER SYSTEM SET maintenance_work_mem = '64MB';
-    ALTER SYSTEM SET checkpoint_completion_target = 0.9;
-    ALTER SYSTEM SET wal_buffers = '16MB';
-    ALTER SYSTEM SET default_statistics_target = 100;
+    -- Выводим информацию о созданных объектах
+    SELECT 'Пользователи:' as info;
+    SELECT usename FROM pg_user WHERE usename = '$POSTGRES_USER';
     
-    -- Перезагружаем конфигурацию
-    SELECT pg_reload_conf();
+    SELECT 'База данных:' as info;
+    SELECT datname FROM pg_database WHERE datname = '$POSTGRES_DB';
     
-    echo "✅ Расширения и настройки PostgreSQL созданы"
+    -- Предоставляем все права пользователю
+    GRANT ALL PRIVILEGES ON DATABASE $POSTGRES_DB TO $POSTGRES_USER;
+    GRANT ALL ON SCHEMA public TO $POSTGRES_USER;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO $POSTGRES_USER;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO $POSTGRES_USER;
+    
+    -- Устанавливаем права по умолчанию
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $POSTGRES_USER;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO $POSTGRES_USER;
 EOSQL
 
-echo "🎉 Инициализация production базы данных завершена!"
+echo "✅ Инициализация базы данных завершена!"
