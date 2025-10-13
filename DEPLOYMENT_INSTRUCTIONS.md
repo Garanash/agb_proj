@@ -152,23 +152,23 @@ chmod +x create-env.sh
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
-# ПОЛНОЕ ИСПРАВЛЕНИЕ - исправляет все проблемы разом:
-./scripts/production/fix-cors-completely.sh
+# КОМПЛЕКСНОЕ ИСПРАВЛЕНИЕ - исправляет все проблемы разом:
+./scripts/production/comprehensive-fix.sh
+
+# Проверка статуса всех сервисов:
+./scripts/production/check-all-services.sh
 
 # Или пошагово:
 # 1. Проверить и запустить backend:
-./scripts/production/ensure-backend-running.sh
+./scripts/production/minimal-backend.sh
 
 # 2. Принудительно пересобрать frontend:
 ./scripts/production/force-rebuild-frontend.sh
-
-# 3. Проверить статус всех сервисов:
-./scripts/production/check-services-status.sh
 ```
 
 **ВАЖНО:** 
-- Frontend теперь автоматически определяет API URL в продакшене
-- Если frontend все еще обращается к localhost, используйте `force-rebuild-frontend.sh`
+- Используйте `comprehensive-fix.sh` для полного исправления всех проблем
+- Frontend автоматически определяет API URL в продакшене
 - Переменная `NEXT_PUBLIC_API_URL` должна быть установлена **во время сборки**
 
 ### N8N не может подключиться к БД
