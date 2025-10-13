@@ -3,7 +3,7 @@ from sqlalchemy import text
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from database import engine, Base
+from database import async_engine, Base
 from datetime import datetime
 import os
 import asyncio
@@ -16,8 +16,8 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     # Проверяем подключение к базе данных
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        async with async_engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
             print("✅ Подключение к базе данных успешно установлено")
     except Exception as e:
         print(f"❌ Ошибка подключения к базе данных: {e}")
@@ -58,6 +58,22 @@ app = FastAPI(
 
 # CORS настройки для локальной разработки
 from fastapi.middleware.cors import CORSMiddleware
+import socket
+
+# Получаем IP сервера автоматически
+def get_server_ip():
+    try:
+        # Подключаемся к внешнему серверу для определения внешнего IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except:
+        return "localhost"
+
+SERVER_IP = get_server_ip()
+print(f"🌐 Сервер IP: {SERVER_IP}")
 
 # Простой тестовый endpoint для проверки работы
 @app.get("/test-dashboard")
@@ -67,38 +83,22 @@ async def test_dashboard_endpoint():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Разрешаем все источники для локальной разработки
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        f"http://{SERVER_IP}",
+        f"http://{SERVER_IP}:3000",
+        f"http://{SERVER_IP}:80",
+        "http://89.23.99.86",
+        "http://89.23.99.86:3000",
+        "http://89.23.99.86:80"
+    ],  # Разрешаем конкретные источники
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешаем все методы
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Разрешаем конкретные методы
     allow_headers=["*"],  # Разрешаем все заголовки
     expose_headers=["*"],
     max_age=3600
 )
-
-# Добавляем middleware для логирования CORS ошибок
-@app.middleware("http")
-async def cors_logging_middleware(request, call_next):
-    # Логируем детали запроса
-    origin = request.headers.get("origin")
-    method = request.method
-    path = request.url.path
-    print(f"🔍 Request: {method} {path}")
-    print(f"🌐 Origin: {origin}")
-    print(f"📨 Headers: {dict(request.headers)}")
-    
-    response = await call_next(request)
-    
-    # Логируем заголовки ответа
-    print(f"📝 Response status: {response.status_code}")
-    print(f"🔧 Response headers: {dict(response.headers)}")
-    
-    # Добавляем CORS заголовки если их нет
-    if origin and "access-control-allow-origin" not in response.headers:
-        response.headers["access-control-allow-origin"] = origin
-        response.headers["access-control-allow-credentials"] = "true"
-        print("⚠️ Added missing CORS headers")
-    
-    return response
 
 # Подключаем роутеры v1 напрямую
 from api.v1.endpoints.auth import router as auth_router
@@ -119,8 +119,8 @@ app.include_router(chat_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 from api.v1.endpoints.chat_rooms import router as chat_rooms_router
 app.include_router(chat_rooms_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 
-from api.v1.endpoints.chat_unread import router as chat_unread_router
-app.include_router(chat_unread_router, prefix="/api/v1/chat", tags=["💬 Чат"])
+# from api.v1.endpoints.chat_unread import router as chat_unread_router
+# app.include_router(chat_unread_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 
 from api.v1.endpoints.chat_ws import router as chat_ws_router
 app.include_router(chat_ws_router, prefix="/api/v1/chat", tags=["💬 Чат"])
@@ -134,11 +134,30 @@ app.include_router(news_router, prefix="/api/v1/news", tags=["📰 Новост�
 from api.v1.endpoints.events import router as events_router
 app.include_router(events_router, prefix="/api/v1/events", tags=["📅 События"])
 
-# from api.v1.endpoints.article_matching import router as article_matching_router
-# app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
+from api.v1.endpoints.article_matching import router as article_matching_router
+app.include_router(article_matching_router, prefix="/api/v1/article-matching", tags=["🔗 Сопоставление артикулов"])
 
 from api.v1.endpoints.dashboard import router as dashboard_router
 app.include_router(dashboard_router, prefix="/api/v1", tags=["📊 Дашборд"])
+
+from api.v1.endpoints.ved_passports_simple import router as ved_passports_router
+app.include_router(ved_passports_router, prefix="/api/v1/ved-passports", tags=["📋 ВЭД паспорта"])
+
+from api.v1.endpoints.n8n_integration import router as n8n_router
+app.include_router(n8n_router, prefix="/api/v1/n8n", tags=["🔄 N8N Интеграция"])
+
+from api.v1.endpoints.data_upload import router as data_upload_router
+app.include_router(data_upload_router, prefix="/api/v1/data-upload", tags=["📤 Загрузка данных"])
+
+from api.v1.endpoints.ved_passports_upload import router as ved_passports_upload_router
+app.include_router(ved_passports_upload_router, prefix="/api/v1/ved-passports-upload", tags=["📋 Загрузка ВЭД паспортов"])
+
+from api.v1.endpoints.admin_data_entry import router as admin_data_entry_router
+app.include_router(admin_data_entry_router, prefix="/api/v1/admin", tags=["👑 Админка - Управление данными"])
+
+# Подключаем API v3
+from api.v3.router import api_router as v3_router
+app.include_router(v3_router, prefix="/api/v3", tags=["🔍 API v3"])
 
 # Добавляем middleware для обработки больших запросов
 from fastapi.middleware.trustedhost import TrustedHostMiddleware

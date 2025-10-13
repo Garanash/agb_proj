@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { LoginForm } from '@/components/features/auth'
-import { Logo } from '@/components/ui'
+import { Logo } from '@/components/ui/Logo'
 import { RegistrationModal } from '@/components/features/auth'
 
 export default function LoginPage() {

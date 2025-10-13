@@ -12,18 +12,6 @@ class UserRoles:
     MANAGER = "manager"
     EMPLOYEE = "employee"
     VED_PASSPORT = "ved_passport"
-    CUSTOMER = "customer"
-    CONTRACTOR = "contractor"
-    SERVICE_ENGINEER = "service_engineer"
-
-# Статусы заявок
-class RequestStatus:
-    NEW = "new"
-    PROCESSING = "processing"
-    SENT_TO_BOT = "sent_to_bot"
-    ASSIGNED = "assigned"
-    COMPLETED = "completed"
-    CANCELLED = "cancelled"
 
 # Типы файлов
 class FileTypes:

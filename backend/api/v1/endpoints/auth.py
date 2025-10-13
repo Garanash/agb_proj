@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from sqlalchemy import select
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from typing import Optional
@@ -40,10 +39,7 @@ def login(
     print(f"👤 Попытка входа для пользователя: {login_data.username}")
     
     # Ищем пользователя
-    result = db.execute(
-        select(User).where(User.username == login_data.username)
-    )
-    user = result.scalar_one_or_none()
+    user = db.query(User).filter(User.username == login_data.username).first()
     
     if not user:
         print(f"❌ Пользователь не найден: {login_data.username}")
@@ -102,6 +98,7 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "middle_name": current_user.middle_name,
         "role": current_user.role,
         "is_active": current_user.is_active,
+        "is_password_changed": current_user.is_password_changed,
         "avatar_url": current_user.avatar_url,
         "phone": current_user.phone,
         "department_id": current_user.department_id,
@@ -145,6 +142,7 @@ def change_password(
     
     # Обновляем пароль в базе данных
     current_user.hashed_password = new_hashed_password
+    current_user.is_password_changed = True
     db.commit()
     print(f"✅ Пароль успешно изменен для пользователя {current_user.username}")
     
@@ -163,7 +161,5 @@ def get_current_user_optional(
     except JWTError:
         return None
     
-    result = db.execute(
-        select(User).where(User.username == username)
-    )
-    return result.scalar_one_or_none()
+    user = db.query(User).filter(User.username == username).first()
+    return user

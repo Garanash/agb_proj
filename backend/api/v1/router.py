@@ -64,11 +64,8 @@ try:
 except ImportError:
     pass
 
-try:
-    from .endpoints.ved_passports import router as ved_passports_router
-    api_router.include_router(ved_passports_router, prefix="/ved-passports", tags=["📋 ВЭД паспорта"])
-except ImportError:
-    pass
+from .endpoints.ved_passports_simple import router as ved_passports_simple_router
+api_router.include_router(ved_passports_simple_router, prefix="/ved-passports", tags=["📋 ВЭД паспорта"])
 
 try:
     from .endpoints.news import router as news_router
@@ -94,29 +91,11 @@ try:
 except ImportError:
     pass
 
-try:
-    from .endpoints.chat import router as chat_router
-    api_router.include_router(chat_router, prefix="/chat", tags=["💬 Чат"])
-except ImportError:
-    pass
-
-try:
-    from .endpoints.chat_rooms import router as chat_rooms_router
-    api_router.include_router(chat_rooms_router, prefix="/chat", tags=["💬 Чат"])
-except ImportError:
-    pass
-
-try:
-    from .endpoints.chat_unread import router as chat_unread_router
-    api_router.include_router(chat_unread_router, prefix="/chat", tags=["💬 Чат"])
-except ImportError:
-    pass
-
-try:
-    from .endpoints.chat_ws import router as chat_ws_router
-    api_router.include_router(chat_ws_router, prefix="/chat", tags=["💬 Чат"])
-except ImportError:
-    pass
+# try:
+#     from .endpoints.chat_sync import router as chat_sync_router
+#     api_router.include_router(chat_sync_router, prefix="/chat", tags=["💬 Чат"])
+# except ImportError:
+#     pass
 
 try:
     from .endpoints.chat_folders import router as chat_folders_router
@@ -124,11 +103,11 @@ try:
 except ImportError:
     pass
 
-try:
-    from .endpoints.telegram import router as telegram_router
-    api_router.include_router(telegram_router, prefix="/telegram", tags=["📱 Telegram"])
-except ImportError:
-    pass
+# try:
+#     from .endpoints.telegram import router as telegram_router
+#     api_router.include_router(telegram_router, prefix="/telegram", tags=["📱 Telegram"])
+# except ImportError:
+#     pass
 
 try:
     from .endpoints.n8n_integration import router as n8n_router
@@ -145,6 +124,18 @@ except ImportError:
 try:
     from .endpoints.article_matching import router as article_matching_router
     api_router.include_router(article_matching_router, prefix="/article-matching", tags=["🔗 Сопоставление артикулов"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.data_upload import router as data_upload_router
+    api_router.include_router(data_upload_router, prefix="/data-upload", tags=["📤 Загрузка данных"])
+except ImportError:
+    pass
+
+try:
+    from .endpoints.ved_passports_upload import router as ved_passports_upload_router
+    api_router.include_router(ved_passports_upload_router, prefix="/ved-passports-upload", tags=["📋 Загрузка ВЭД паспортов"])
 except ImportError:
     pass
 

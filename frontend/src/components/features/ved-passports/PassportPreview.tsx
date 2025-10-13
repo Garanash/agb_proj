@@ -2,7 +2,7 @@
 
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 interface NomenclatureItem {
   id: number
   code_1c: string

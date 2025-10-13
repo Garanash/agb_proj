@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '@/hooks'
 import axios from 'axios'
-import { formatApiError } from '@/utils'
-import { Modal } from '@/components/ui'
+import { formatApiError } from '@/utils/errorHandler'
+import Modal from '@/components/ui/Modal'
 
 interface ProfileEditModalProps {
   isOpen: boolean

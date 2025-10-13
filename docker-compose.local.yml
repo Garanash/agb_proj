@@ -1,8 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
+  agb-db:
     image: postgres:15
     container_name: agb_postgres_local
     environment:
@@ -12,9 +11,9 @@ services:
     ports:
       - "15432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - agb_postgres_data:/var/lib/postgresql/data
     networks:
-      - app-network
+      - agb-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U agb_user -d agb_prod"]
@@ -22,16 +21,15 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache
-  redis:
+  agb-redis:
     image: redis:7-alpine
     container_name: agb_redis_local
     ports:
-      - "6379:6379"
+      - "16379:6379"
     volumes:
-      - redis_data:/data
+      - agb_redis_data:/data
     networks:
-      - app-network
+      - agb-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -40,9 +38,9 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
-  redis_data:
+  agb_postgres_data:
+  agb_redis_data:
 
 networks:
-  app-network:
+  agb-network:
     driver: bridge

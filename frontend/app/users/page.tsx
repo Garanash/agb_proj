@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { UserPlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { PageLayout } from '@/components/layout'
 import { CreateUserModal } from '@/components/features/users'
 import { EditUserModal } from '@/components/features/users'
 import { useAuth } from '@/hooks'
 import axios from 'axios'
-import { formatApiError } from '@/utils'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface User {
   id: number

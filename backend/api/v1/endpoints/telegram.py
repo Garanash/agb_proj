@@ -6,18 +6,19 @@ import httpx
 from datetime import datetime
 
 from database import get_db
-from models import User, TelegramBot, TelegramUser, TelegramNotification, RepairRequest, ContractorResponse, UserRole
-from ..schemas import (
-    TelegramBot as TelegramBotSchema,
-    TelegramBotCreate,
-    TelegramBotUpdate,
-    TelegramUser as TelegramUserSchema,
-    TelegramUserCreate,
-    TelegramUserUpdate,
-    TelegramNotification as TelegramNotificationSchema,
-    TelegramWebhookUpdate,
-    TelegramBotCommand
-)
+from models import User, UserRole
+# Telegram схемы временно отключены
+# from ..schemas import (
+#     TelegramBot as TelegramBotSchema,
+#     TelegramBotCreate,
+#     TelegramBotUpdate,
+#     TelegramUser as TelegramUserSchema,
+#     TelegramUserCreate,
+#     TelegramUserUpdate,
+#     TelegramNotification as TelegramNotificationSchema,
+#     TelegramWebhookUpdate,
+#     TelegramBotCommand
+# )
 from .auth import get_current_user
 
 router = APIRouter(prefix="/telegram", tags=["telegram"])

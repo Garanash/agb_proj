@@ -54,7 +54,7 @@ def get_found_matches(
     try:
         results = db.query(ArticleMatchingResult).offset(skip).limit(limit).all()
         
-                    matches = []
+        matches = []
         for result in results:
             match_dict = {
                 "id": result.id,
@@ -69,13 +69,13 @@ def get_found_matches(
             }
             matches.append(match_dict)
         
-            return {
+        return {
             "matches": matches,
             "total": len(matches),
             "skip": skip,
             "limit": limit
         }
-        except Exception as e:
+    except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка при получении сопоставлений: {str(e)}"
@@ -121,6 +121,40 @@ def upload_articles(
         raise HTTPException(
             status_code=500,
             detail=f"Ошибка при загрузке файла: {str(e)}"
+        )
+
+
+@router.get("/test-requests")
+def test_requests(
+    skip: int = 0,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение списка запросов на сопоставление (алиас для /requests)"""
+    return get_requests(skip, limit, current_user, db)
+
+
+@router.get("/saved-variants")
+def get_saved_variants(
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Получение сохраненных вариантов сопоставления"""
+    try:
+        # Пока возвращаем пустой список, так как функционал еще не реализован
+        return {
+            "variants": [],
+            "total": 0,
+            "skip": skip,
+            "limit": limit
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Ошибка при получении сохраненных вариантов: {str(e)}"
         )
 
 

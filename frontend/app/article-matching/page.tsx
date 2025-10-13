@@ -16,7 +16,9 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import AIMatchingChat from '@/components/AIMatchingChat'
-import ExcelDataTable from '@/components/ExcelDataTable'
+import ExcelDataTable from '@/src/components/ExcelDataTable'
+import UploadDataModal from '@/src/components/features/admin/UploadDataModal'
+import AddSingleItemModal from '@/src/components/features/admin/AddSingleItemModal'
 
 interface ContractorRequest {
   id: number
@@ -226,9 +228,10 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests', {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -252,12 +255,13 @@ export default function ArticleMatchingPage() {
     console.log('=== loadOurDatabase вызвана ===')
     
     try {
-      const url = 'http://localhost:8000/api/v1/article-matching/test-our-database/'
+      const url = 'http://localhost:8000/api/v1/article-matching/test-our-database'
       console.log('URL:', url)
       
       const response = await fetch(url, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -266,7 +270,7 @@ export default function ArticleMatchingPage() {
       if (response.ok) {
         const data = await response.json()
         console.log('Получены данные нашей базы:', data.count, 'элементов')
-        console.log('Первые 3 элемента:', data.data.slice(0, 3))
+        console.log('Первые 3 элемента:', data.data ? data.data.slice(0, 3) : [])
         setOurDatabase(data.data || [])
       } else {
         const errorData = await response.json()
@@ -891,7 +895,7 @@ export default function ArticleMatchingPage() {
 
   const loadSavedVariants = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -909,7 +913,7 @@ export default function ArticleMatchingPage() {
   const loadFoundMatches = async () => {
     try {
       setLoadingFoundMatches(true)
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches/', {
+      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -1020,12 +1024,16 @@ export default function ArticleMatchingPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Сопоставление артикулов</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-1">Интеллектуальное сопоставление артикулов контрагентов с базой данных АГБ</p>
           </div>
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-          >
-            Назад
-          </button>
+          <div className="flex items-center space-x-3">
+            <UploadDataModal type="articles" />
+            <AddSingleItemModal type="articles" />
+            <button
+              onClick={() => router.back()}
+              className="bg-gray-600 dark:bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            >
+              Назад
+            </button>
+          </div>
         </div>
       </div>
 

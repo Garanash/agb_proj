@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../../src/utils/api';
+import { getApiUrl } from '@/utils/api';
 import Link from 'next/link'
 import { useAuth } from '../../src/hooks/useAuth'
 import { 
@@ -10,6 +10,8 @@ import {
   PlusIcon,
   MagnifyingGlassIcon 
 } from '@heroicons/react/24/outline'
+import UploadDataModal from '@/src/components/features/admin/UploadDataModal'
+import AddSingleItemModal from '@/src/components/features/admin/AddSingleItemModal'
 
 interface PassportStats {
   total: number
@@ -100,10 +102,18 @@ export default function VEDPassportsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Заголовок страницы */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Паспорта ВЭД</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Управление паспортами внешнеэкономической деятельности
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Паспорта ВЭД</h1>
+              <p className="mt-2 text-gray-600 dark:text-gray-400">
+                Управление паспортами внешнеэкономической деятельности
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <UploadDataModal type="ved-passports" />
+              <AddSingleItemModal type="ved-passports" />
+            </div>
+          </div>
         </div>
 
         {/* Поиск */}

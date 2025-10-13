@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../../src/utils/api';
+import { getApiUrl } from '@/utils/api';
 import PageLayout from '../../src/components/layout/PageLayout'
 import CreateNewsModal from '../../src/components/features/news/CreateNewsModal'
 import EditNewsModal from '../../src/components/features/news/EditNewsModal'

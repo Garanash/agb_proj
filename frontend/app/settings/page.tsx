@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { 
   UserIcon, 
   BellIcon, 

@@ -2,7 +2,8 @@
 Создание администратора и тестовых данных
 """
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import SessionLocal
 from models import User, Department
@@ -19,7 +20,13 @@ def create_admin():
         # Проверяем, есть ли уже админ
         admin = db.query(User).filter(User.username == "admin").first()
         if admin:
-            print("✅ Администратор уже существует")
+            print("✅ Администратор уже существует, сбрасываем пароль")
+            admin.hashed_password = get_password_hash("admin123")
+            admin.is_password_changed = False
+            db.commit()
+            print("✅ Пароль администратора сброшен!")
+            print("   Логин: admin")
+            print("   Пароль: admin123")
             return
         
         # Создаем отдел

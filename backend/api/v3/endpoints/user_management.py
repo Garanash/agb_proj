@@ -14,7 +14,7 @@ from ..schemas import (
 from ..models import UserRole as UserRoleV3, Role, UserActivity
 from ..utils import PermissionManager, ActivityLogger
 from ...v1.dependencies import get_current_user
-from models import User, CustomerProfile, ContractorProfile
+from models import User
 
 
 router = APIRouter()

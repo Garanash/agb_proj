@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
@@ -22,7 +22,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { UserProfile } from '@/components/features/users'
 import { useAuth } from '@/hooks'
-import { TextLogo } from '@/components/ui'
+import TextLogo from '@/src/components/ui/TextLogo'
 
 interface NavigationItem {
   name: string

@@ -1,12 +1,19 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, and_
 from typing import Dict, Set
 import json
 
-from database import get_db
+from database import SessionLocal
 from models import User, ChatRoom, ChatMessage, ChatParticipant
 from ..dependencies import get_current_user_ws
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 router = APIRouter()
 
@@ -40,26 +47,22 @@ async def websocket_endpoint(
     websocket: WebSocket,
     room_id: int,
     token: str,
-    db: AsyncSession = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
     # Проверяем токен и получаем пользователя
     try:
-        current_user = await get_current_user_ws(token, db)
+        current_user = get_current_user_ws(token, db)
     except HTTPException:
         await websocket.close(code=4001)  # Unauthorized
         return
 
     # Проверяем, что пользователь является участником чата
-    result = await db.execute(
-        select(ChatParticipant)
-        .where(
-            and_(
-                ChatParticipant.room_id == room_id,
-                ChatParticipant.user_id == current_user.id
-            )
+    participant = db.query(ChatParticipant).filter(
+        and_(
+            ChatParticipant.room_id == room_id,
+            ChatParticipant.user_id == current_user.id
         )
-    )
-    participant = result.scalar_one_or_none()
+    ).first()
     if not participant:
         await websocket.close(code=4004)  # Not Found
         return
@@ -77,8 +80,8 @@ async def websocket_endpoint(
                 is_edited=False
             )
             db.add(message)
-            await db.commit()
-            await db.refresh(message)
+            db.commit()
+            db.refresh(message)
             
             # Отправляем сообщение всем участникам
             await manager.broadcast(

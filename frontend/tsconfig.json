@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["./components/*"],
-      "@/hooks/*": ["./hooks/*"],
+      "@/components/ui/*": ["./components/ui/*"],
+      "@/hooks/*": ["./src/hooks/*"],
       "@/contexts/*": ["./src/contexts/*"],
       "@/types/*": ["./src/types/*"],
       "@/utils/*": ["./src/utils/*"],

@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { PencilIcon, TrashIcon, Bars3Icon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '../../utils/api'
+import { getApiUrl } from '@/utils/api'
 import axios from 'axios'
 
 interface Employee {

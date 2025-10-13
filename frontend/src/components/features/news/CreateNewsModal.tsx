@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import axios from 'axios'
-import { formatApiError } from '@/utils'
+import { formatApiError } from '@/utils/errorHandler'
 
 interface CreateNewsModalProps {
   isOpen: boolean

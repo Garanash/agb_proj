@@ -7,7 +7,7 @@ from typing import Optional, List, Any, Dict, Union
 from datetime import datetime
 from enum import Enum
 
-from .shared.constants import UserRoles, RequestStatus, FileTypes
+from .shared.constants import UserRoles, FileTypes
 
 
 class BaseResponseModel(BaseModel):
@@ -169,7 +169,7 @@ class UserResponse(BaseResponseModel):
     full_name: Optional[str] = Field(None, description="Полное имя")
     role: str = Field(description="Роль пользователя")
     is_active: bool = Field(description="Активен ли пользователь")
-    is_password_changed: bool = Field(description="Был ли изменен пароль")
+    is_password_changed: Optional[bool] = Field(None, description="Был ли изменен пароль")
     phone: Optional[str] = Field(None, description="Номер телефона")
     department_id: Optional[int] = Field(None, description="ID отдела")
     position: Optional[str] = Field(None, description="Должность")
@@ -797,15 +797,15 @@ class EventResponse(BaseResponseModel):
     """Схема ответа события"""
     id: int = Field(description="ID события")
     title: str = Field(description="Название события")
-    description: str = Field(description="Описание события")
+    description: Optional[str] = Field(None, description="Описание события")
     start_date: str = Field(description="Дата начала")
     end_date: str = Field(description="Дата окончания")
     event_type: str = Field(description="Тип события")
     is_public: bool = Field(description="Публичное событие")
     location: Optional[str] = Field(None, description="Место проведения")
-    max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
-    current_participants: int = Field(description="Текущее количество участников")
-    participants: List[dict] = Field(default=[], description="Список участников")
+    organizer_id: int = Field(description="ID организатора")
+    organizer_name: Optional[str] = Field(None, description="Имя организатора")
+    is_active: bool = Field(description="Активно ли событие")
     created_at: str = Field(description="Дата создания")
     updated_at: Optional[str] = Field(None, description="Дата обновления")
 
@@ -820,9 +820,7 @@ class EventCreate(BaseModel):
     end_date: str = Field(description="Дата окончания")
     event_type: str = Field(default="meeting", description="Тип события")
     is_public: bool = Field(default=False, description="Публичное событие")
-    participants: List[int] = Field(default=[], description="Список ID участников")
     location: Optional[str] = Field(None, description="Место проведения")
-    max_participants: Optional[int] = Field(None, description="Максимальное количество участников")
 
 
 class EventUpdate(BaseModel):

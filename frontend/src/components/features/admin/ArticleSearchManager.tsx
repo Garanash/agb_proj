@@ -14,8 +14,10 @@ import {
   PhoneIcon,
   GlobeAltIcon,
   CurrencyDollarIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline'
+import ArticleDetailsModal from './ArticleDetailsModal'
 
 interface ArticleSearchRequest {
   id: number
@@ -32,32 +34,27 @@ interface ArticleSearchRequest {
 
 interface SearchResult {
   article_code: string
-  suppliers: SupplierInfo[]
+  suppliers: Supplier[]
   total_suppliers: number
   confidence_scores: number[]
 }
 
-interface SupplierInfo {
-  supplier: Supplier
-  confidence_score: number
-  match_type: string
-}
-
 interface Supplier {
-  id: number
   company_name: string
   contact_person?: string
   email?: string
+  email_validated?: boolean
   phone?: string
   website?: string
+  website_validated?: boolean
   address?: string
   country?: string
   city?: string
-  email_validated: boolean
-  website_validated: boolean
-  is_active: boolean
-  created_at: string
-  last_checked?: string
+  price?: number
+  currency?: string
+  min_order_quantity?: number
+  availability?: string
+  confidence_score?: number
 }
 
 interface SupplierGroup {
@@ -96,6 +93,11 @@ export default function ArticleSearchManager() {
   const [supplierGroups, setSupplierGroups] = useState<SupplierGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  
+  // Состояние для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedArticleCode, setSelectedArticleCode] = useState('')
+  const [modalResults, setModalResults] = useState<SearchResult[]>([])
 
   useEffect(() => {
     if (token) {
@@ -200,7 +202,14 @@ export default function ArticleSearchManager() {
       if (response.ok) {
         const data = await response.json()
         setSelectedRequest(data)
-        setActiveTab('results')
+        
+        // Если есть результаты, открываем модальное окно с первым артикулом
+        if (data.results && data.results.length > 0) {
+          const firstResult = data.results[0]
+          openArticleModal(firstResult.article_code, data.results)
+        } else {
+          setActiveTab('results')
+        }
       } else {
         setMessage({ type: 'error', text: 'Ошибка загрузки деталей запроса' })
       }
@@ -234,6 +243,59 @@ export default function ArticleSearchManager() {
       setMessage({ type: 'error', text: 'Ошибка соединения с сервером' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Функции для модального окна
+  const openArticleModal = (articleCode: string, results: SearchResult[]) => {
+    setSelectedArticleCode(articleCode)
+    setModalResults(results)
+    setIsModalOpen(true)
+  }
+
+  const closeArticleModal = () => {
+    setIsModalOpen(false)
+    setSelectedArticleCode('')
+    setModalResults([])
+  }
+
+  const retrySearchForArticle = async (articleCode: string) => {
+    try {
+      setIsSearching(true)
+      const response = await fetch('http://localhost:8000/api/v3/article-search/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          articles: [articleCode],
+          request_name: `Повторный поиск: ${articleCode}`,
+          use_ai: true,
+          validate_contacts: true
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        // Обновляем результаты в модальном окне
+        if (data.results && data.results.length > 0) {
+          const articleResult = data.results.find((r: any) => r.article_code === articleCode)
+          if (articleResult) {
+            setModalResults(data.results)
+          }
+        }
+        // Перезагружаем список запросов
+        await loadSearchRequests()
+        setMessage({ type: 'success', text: 'Повторный поиск выполнен успешно' })
+      } else {
+        setMessage({ type: 'error', text: 'Ошибка повторного поиска' })
+      }
+    } catch (error) {
+      console.error('Ошибка повторного поиска:', error)
+      setMessage({ type: 'error', text: 'Ошибка повторного поиска' })
+    } finally {
+      setIsSearching(false)
     }
   }
 
@@ -279,17 +341,6 @@ export default function ArticleSearchManager() {
 
   return (
     <div className="space-y-6">
-      {/* Заголовок */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <MagnifyingGlassIcon className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Поиск поставщиков артикулов</h2>
-            <p className="text-gray-600 dark:text-gray-300">Поиск поставщиков через ИИ с валидацией контактов</p>
-          </div>
-        </div>
-      </div>
-
       {/* Сообщения */}
       {message && (
         <div className={`p-4 rounded-md ${
@@ -512,43 +563,52 @@ export default function ArticleSearchManager() {
                   <div className="space-y-4">
                     {selectedRequest.results.map((result, index) => (
                       <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-3">
-                          Артикул: {result.article_code}
-                        </h4>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="font-medium text-gray-900 dark:text-white">
+                            Артикул: {result.article_code}
+                          </h4>
+                          <button
+                            onClick={() => openArticleModal(result.article_code, [result])}
+                            className="flex items-center space-x-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 text-sm font-medium"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                            <span>Подробнее</span>
+                          </button>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {result.suppliers.map((supplierInfo, supplierIndex) => (
+                          {result.suppliers.map((supplier, supplierIndex) => (
                             <div key={supplierIndex} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
                               <div className="flex items-start justify-between mb-2">
                                 <h5 className="font-medium text-gray-900 dark:text-white text-sm">
-                                  {supplierInfo.supplier.company_name}
+                                  {supplier.company_name}
                                 </h5>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {supplierInfo.confidence_score.toFixed(1)}%
+                                  {supplier.confidence_score ? `${(supplier.confidence_score * 100).toFixed(1)}%` : 'N/A'}
                                 </span>
                               </div>
                               <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-                                {supplierInfo.supplier.email && (
+                                {supplier.email && (
                                   <div className="flex items-center space-x-1">
                                     <EnvelopeIcon className="h-3 w-3" />
-                                    <span>{supplierInfo.supplier.email}</span>
-                                    {supplierInfo.supplier.email_validated && (
-                                      <CheckCircleIcon className="h-3 w-3 text-green-500" />
-                                    )}
+                                    <span>{supplier.email}</span>
                                   </div>
                                 )}
-                                {supplierInfo.supplier.website && (
+                                {supplier.website && (
                                   <div className="flex items-center space-x-1">
                                     <GlobeAltIcon className="h-3 w-3" />
-                                    <span>{supplierInfo.supplier.website}</span>
-                                    {supplierInfo.supplier.website_validated && (
-                                      <CheckCircleIcon className="h-3 w-3 text-green-500" />
-                                    )}
+                                    <span>{supplier.website}</span>
                                   </div>
                                 )}
-                                {supplierInfo.supplier.phone && (
+                                {supplier.phone && (
                                   <div className="flex items-center space-x-1">
                                     <PhoneIcon className="h-3 w-3" />
-                                    <span>{supplierInfo.supplier.phone}</span>
+                                    <span>{supplier.phone}</span>
+                                  </div>
+                                )}
+                                {supplier.price && (
+                                  <div className="flex items-center space-x-1">
+                                    <CurrencyDollarIcon className="h-3 w-3" />
+                                    <span>{supplier.price} {supplier.currency || 'RUB'}</span>
                                   </div>
                                 )}
                               </div>
@@ -705,6 +765,16 @@ export default function ArticleSearchManager() {
           )}
         </div>
       )}
+      
+      {/* Модальное окно с подробной информацией по артикулу */}
+      <ArticleDetailsModal
+        isOpen={isModalOpen}
+        onClose={closeArticleModal}
+        articleCode={selectedArticleCode}
+        results={modalResults}
+        onRetrySearch={retrySearchForArticle}
+        isSearching={isSearching}
+      />
     </div>
   )
 }

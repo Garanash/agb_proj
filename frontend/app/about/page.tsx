@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '../../src/utils/api';
+import { getApiUrl } from '@/utils/api';
 import Image from 'next/image'
 import { ChevronDownIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import PageLayout from '../../src/components/layout/PageLayout'

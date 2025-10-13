@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks';
-import { getApiEndpoint } from '@/utils';
+import { getApiEndpoint } from '@/utils/api';
 
 interface SystemStats {
   totalUsers: number;

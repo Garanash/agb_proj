@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { XMarkIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils'
+import { getApiUrl } from '@/utils/api'
 
 interface ChangePasswordModalProps {
   isOpen: boolean

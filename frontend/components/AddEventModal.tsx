@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
-import { formatApiError } from '@/utils'
-import Modal from './Modal'
+import { formatApiError } from '@/utils/errorHandler'
+import Modal from '@/components/ui/Modal'
 import { useAuth } from '@/hooks'
 
 interface User {
@@ -31,7 +31,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   onEventAdded,
   initialEventType = 'meeting'
 }) => {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -84,8 +84,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         console.log('Загружаем пользователей и отделы...')
         const apiUrl = getApiUrl();
         const [usersResponse, departmentsResponse] = await Promise.all([
-          axios.get(`${apiUrl}/api/v1/users/chat-users`),
-          axios.get(`${apiUrl}/api/v1/departments/list`)
+          axios.get(`${apiUrl}/api/v1/users/chat-users`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get(`${apiUrl}/api/v1/departments/list`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
         ])
         
 
@@ -102,9 +106,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         
         // Создаем словарь отделов
         const deptMap: {[key: number]: string} = {}
-        departmentsResponse.data.forEach((dept: any) => {
-          deptMap[dept.id] = dept.name
-        })
+        if (departmentsResponse.data.departments && Array.isArray(departmentsResponse.data.departments)) {
+          departmentsResponse.data.departments.forEach((dept: any) => {
+            deptMap[dept.id] = dept.name
+          })
+        }
         setDepartments(deptMap)
         
         console.log('Словарь отделов:', deptMap)
@@ -174,11 +180,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         start_date: startDateTime,
         end_date: endDateTime,
         event_type: formData.event_type,
-        is_public: formData.is_public,
-        participants: formData.participants
+        is_public: formData.is_public
       }
 
-      await axios.post(`${getApiUrl()}/api/v1/events/`, eventData)
+      await axios.post(`${getApiUrl()}/api/v1/events/`, eventData, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       
       onEventAdded()
       onClose()

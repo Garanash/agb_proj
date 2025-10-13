@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# Диагностика проблем с backend
+# Использование: ./diagnose-backend.sh
+
+set -e
+
+echo "🔍 Диагностика проблем с backend"
+echo "================================"
+
+# Получаем IP сервера
+SERVER_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || echo "localhost")
+echo "🌐 IP сервера: $SERVER_IP"
+
+echo ""
+echo "📋 Проверка системы:"
+echo "-------------------"
+
+# Проверяем Python
+if command -v python3 &> /dev/null; then
+    echo "✅ Python3: $(python3 --version)"
+else
+    echo "❌ Python3 не установлен"
+    echo "   Установите: apt update && apt install python3 python3-pip python3-venv"
+fi
+
+# Проверяем pip
+if command -v pip3 &> /dev/null; then
+    echo "✅ pip3: $(pip3 --version)"
+else
+    echo "❌ pip3 не установлен"
+    echo "   Установите: apt install python3-pip"
+fi
+
+# Проверяем venv
+if python3 -m venv --help &> /dev/null; then
+    echo "✅ python3-venv доступен"
+else
+    echo "❌ python3-venv не установлен"
+    echo "   Установите: apt install python3-venv"
+fi
+
+# Проверяем uvicorn в виртуальном окружении
+if [ -d "backend/venv" ]; then
+    echo "✅ Виртуальное окружение backend/venv найдено"
+    
+    # Проверяем pip
+    if [ -f "backend/venv/bin/pip" ]; then
+        echo "✅ pip найден в виртуальном окружении"
+        echo "📋 Версия pip: $(backend/venv/bin/pip --version)"
+    else
+        echo "❌ pip не найден в виртуальном окружении"
+        echo "   Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh"
+    fi
+    
+    # Проверяем python
+    if [ -f "backend/venv/bin/python" ]; then
+        echo "✅ python найден в виртуальном окружении"
+        echo "📋 Версия python: $(backend/venv/bin/python --version)"
+    else
+        echo "❌ python не найден в виртуальном окружении"
+        echo "   Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh"
+    fi
+    
+    # Проверяем uvicorn
+    if [ -f "backend/venv/bin/uvicorn" ]; then
+        echo "✅ uvicorn установлен в виртуальном окружении"
+    else
+        echo "❌ uvicorn не установлен в виртуальном окружении"
+        echo "   Установите зависимости: cd backend && venv/bin/pip install -r requirements.txt"
+    fi
+else
+    echo "❌ Виртуальное окружение backend/venv не найдено"
+    echo "   Создайте: cd backend && python3 -m venv venv"
+fi
+
+echo ""
+echo "📋 Проверка файлов:"
+echo "------------------"
+
+# Проверяем структуру проекта
+if [ -d "backend" ]; then
+    echo "✅ Директория backend найдена"
+    if [ -f "backend/main.py" ]; then
+        echo "✅ main.py найден"
+    else
+        echo "❌ main.py не найден в backend/"
+    fi
+    if [ -f "backend/requirements.txt" ]; then
+        echo "✅ requirements.txt найден"
+    else
+        echo "❌ requirements.txt не найден в backend/"
+    fi
+else
+    echo "❌ Директория backend не найдена"
+fi
+
+echo ""
+echo "📋 Проверка портов:"
+echo "------------------"
+
+# Проверяем порт 8000
+if lsof -i :8000 > /dev/null 2>&1; then
+    echo "⚠️ Порт 8000 занят:"
+    lsof -i :8000
+else
+    echo "✅ Порт 8000 свободен"
+fi
+
+echo ""
+echo "📋 Проверка переменных окружения:"
+echo "--------------------------------"
+
+if [ -f ".env.production" ]; then
+    echo "✅ .env.production найден"
+    echo "📋 Содержимое (первые 10 строк):"
+    head -10 .env.production
+else
+    echo "❌ .env.production не найден"
+    echo "   Создайте: ./create-env.sh"
+fi
+
+echo ""
+echo "📋 Проверка логов:"
+echo "----------------"
+
+if [ -f "backend.log" ]; then
+    echo "✅ backend.log найден"
+    echo "📋 Последние 10 строк логов:"
+    tail -10 backend.log
+else
+    echo "❌ backend.log не найден"
+fi
+
+echo ""
+echo "📋 Рекомендации:"
+echo "---------------"
+
+# Проверяем, что нужно исправить
+if ! command -v python3 &> /dev/null; then
+    echo "🔧 Установите Python3: apt update && apt install python3 python3-pip"
+fi
+
+if ! command -v pip3 &> /dev/null; then
+    echo "🔧 Установите pip3: apt install python3-pip"
+fi
+
+if [ ! -f ".env.production" ]; then
+    echo "🔧 Создайте .env.production: ./create-env.sh"
+fi
+
+if [ ! -d "backend" ]; then
+    echo "🔧 Проверьте структуру проекта"
+fi
+
+if lsof -i :8000 > /dev/null 2>&1; then
+    echo "🔧 Остановите процессы на порту 8000: lsof -ti :8000 | xargs kill -9"
+fi
+
+echo ""
+echo "✅ Диагностика завершена!"
+echo ""
+echo "🚀 Для запуска backend используйте:"
+echo "   ./scripts/production/simple-start-backend.sh"

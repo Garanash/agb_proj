@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../src/hooks/useAuth';
-import { getApiUrl, getWsUrl } from '../../src/utils/api';
+import { getApiUrl, getWsUrl } from '@/utils/api';
 import PageLayout from '../../src/components/layout/PageLayout';
 
 import CreateChatRoomModal from '../../src/components/features/chat/CreateChatRoomModal';
@@ -178,9 +178,12 @@ const ChatPage = () => {
           const unreadData = await unreadResponse.json();
           console.log('Полученные непрочитанные сообщения:', unreadData);
           const unreadMap: {[key: number]: number} = {};
-          unreadData.unread_summary.forEach((item: any) => {
-            unreadMap[item.room_id] = item.unread_count;
-          });
+          // API возвращает unread_counts, а не unread_summary
+          if (unreadData.unread_counts) {
+            Object.entries(unreadData.unread_counts).forEach(([roomId, count]) => {
+              unreadMap[Number(roomId)] = count as number;
+            });
+          }
           setUnreadSummary(unreadMap);
         } else {
           console.error('Error fetching unread summary:', unreadResponse.status);
@@ -449,7 +452,7 @@ const ChatPage = () => {
       if (!prev) return null;
       return {
         ...prev,
-        messages: [...prev.messages, tempMessage]
+        messages: [...(prev.messages || []), tempMessage]
       };
     });
 

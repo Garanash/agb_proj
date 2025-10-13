@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { useAuth } from '@/hooks';
 
 interface Department {

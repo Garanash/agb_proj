@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { getApiUrl } from '@/utils';
+import { getApiUrl } from '@/utils/api';
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
@@ -26,7 +26,7 @@ import {
 } from '@heroicons/react/24/outline'
 import UserProfile from './UserProfile'
 import { useAuth } from '@/hooks'
-import TextLogo from './TextLogo'
+import TextLogo from '@/src/components/ui/TextLogo'
 import ThemeToggle from './ThemeToggle'
 
 interface NavigationItem {
