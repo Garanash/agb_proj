@@ -43,11 +43,31 @@ fi
 # Проверяем uvicorn в виртуальном окружении
 if [ -d "backend/venv" ]; then
     echo "✅ Виртуальное окружение backend/venv найдено"
+    
+    # Проверяем pip
+    if [ -f "backend/venv/bin/pip" ]; then
+        echo "✅ pip найден в виртуальном окружении"
+        echo "📋 Версия pip: $(backend/venv/bin/pip --version)"
+    else
+        echo "❌ pip не найден в виртуальном окружении"
+        echo "   Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh"
+    fi
+    
+    # Проверяем python
+    if [ -f "backend/venv/bin/python" ]; then
+        echo "✅ python найден в виртуальном окружении"
+        echo "📋 Версия python: $(backend/venv/bin/python --version)"
+    else
+        echo "❌ python не найден в виртуальном окружении"
+        echo "   Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh"
+    fi
+    
+    # Проверяем uvicorn
     if [ -f "backend/venv/bin/uvicorn" ]; then
         echo "✅ uvicorn установлен в виртуальном окружении"
     else
         echo "❌ uvicorn не установлен в виртуальном окружении"
-        echo "   Запустите: cd backend && source venv/bin/activate && pip install uvicorn"
+        echo "   Установите зависимости: cd backend && venv/bin/pip install -r requirements.txt"
     fi
 else
     echo "❌ Виртуальное окружение backend/venv не найдено"

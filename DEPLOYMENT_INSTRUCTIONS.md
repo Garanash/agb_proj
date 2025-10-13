@@ -134,11 +134,11 @@ chmod +x create-env.sh
 
 ### Проблемы с запуском backend
 ```bash
-# Если ошибка "externally-managed-environment":
-# 1. Установите необходимые пакеты:
-./scripts/production/install-system-packages.sh
+# Если ошибка "venv/bin/pip: cannot execute: required file not found":
+# 1. Полная очистка и пересоздание виртуального окружения:
+./scripts/production/clean-recreate-venv.sh
 
-# 2. Ультра-простой запуск backend (обходит все проблемы с venv):
+# 2. Ультра-простой запуск backend:
 ./scripts/production/ultra-simple-backend.sh
 
 # 3. Диагностика проблем с backend:
@@ -147,10 +147,10 @@ chmod +x create-env.sh
 # Если есть ошибки с переменными окружения:
 # 1. Проверьте .env.production: cat .env.production
 # 2. Создайте новый: ./create-env.sh
-# 3. Запустите ультра-простой скрипт: ./scripts/production/ultra-simple-backend.sh
+# 3. Пересоздайте venv: ./scripts/production/clean-recreate-venv.sh
 ```
 
-**ВАЖНО:** На новых системах Python защищен от установки пакетов в системное окружение. Используйте `ultra-simple-backend.sh`!
+**ВАЖНО:** Если виртуальное окружение повреждено, используйте `clean-recreate-venv.sh`!
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
