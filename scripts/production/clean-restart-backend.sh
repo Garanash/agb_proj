@@ -81,7 +81,7 @@ echo "📦 Установка зависимостей для аутентифи
 venv/bin/pip install pydantic[email]==2.5.0 python-multipart==0.0.6 python-jose[cryptography]==3.3.0 passlib[bcrypt]==1.7.4 bcrypt==4.0.1
 
 echo "📦 Установка дополнительных зависимостей..."
-venv/bin/pip install python-dotenv==1.0.0 fastapi-users==12.1.2 aiohttp==3.9.5 httpx==0.25.2
+venv/bin/pip install python-dotenv==1.0.0 fastapi-users==12.1.2 aiohttp==3.9.5 httpx==0.25.2 requests==2.31.0
 
 echo ""
 echo "📋 Шаг 5: Создание заглушек для pandas"
