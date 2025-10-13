@@ -73,6 +73,16 @@ fi
 echo "🛑 Остановка существующих контейнеров..."
 docker-compose -f config/docker/docker-compose.prod.yml --env-file config/env/production.env down -v 2>/dev/null || true
 
+echo "🔧 Исправление проблем с Docker..."
+# Останавливаем все контейнеры проекта
+docker stop agb_nginx_prod agb_frontend_prod agb_backend_prod agb_postgres_prod agb_redis_prod 2>/dev/null || true
+# Удаляем контейнеры
+docker rm agb_nginx_prod agb_frontend_prod agb_backend_prod agb_postgres_prod agb_redis_prod 2>/dev/null || true
+# Удаляем сеть
+docker network rm docker_app-network 2>/dev/null || true
+# Удаляем volumes
+docker volume rm docker_postgres_data docker_redis_data docker_uploads_data 2>/dev/null || true
+
 echo "🚀 Запуск всех сервисов..."
 docker-compose -f config/docker/docker-compose.prod.yml --env-file config/env/production.env up -d
 
