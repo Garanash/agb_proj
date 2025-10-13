@@ -21,7 +21,7 @@ if command -v python3 &> /dev/null; then
     echo "✅ Python3: $(python3 --version)"
 else
     echo "❌ Python3 не установлен"
-    echo "   Установите: apt update && apt install python3 python3-pip"
+    echo "   Установите: apt update && apt install python3 python3-pip python3-venv"
 fi
 
 # Проверяем pip
@@ -32,12 +32,26 @@ else
     echo "   Установите: apt install python3-pip"
 fi
 
-# Проверяем uvicorn
-if pip3 list | grep -q uvicorn; then
-    echo "✅ uvicorn установлен"
+# Проверяем venv
+if python3 -m venv --help &> /dev/null; then
+    echo "✅ python3-venv доступен"
 else
-    echo "❌ uvicorn не установлен"
-    echo "   Установите: pip3 install uvicorn"
+    echo "❌ python3-venv не установлен"
+    echo "   Установите: apt install python3-venv"
+fi
+
+# Проверяем uvicorn в виртуальном окружении
+if [ -d "backend/venv" ]; then
+    echo "✅ Виртуальное окружение backend/venv найдено"
+    if [ -f "backend/venv/bin/uvicorn" ]; then
+        echo "✅ uvicorn установлен в виртуальном окружении"
+    else
+        echo "❌ uvicorn не установлен в виртуальном окружении"
+        echo "   Запустите: cd backend && source venv/bin/activate && pip install uvicorn"
+    fi
+else
+    echo "❌ Виртуальное окружение backend/venv не найдено"
+    echo "   Создайте: cd backend && python3 -m venv venv"
 fi
 
 echo ""

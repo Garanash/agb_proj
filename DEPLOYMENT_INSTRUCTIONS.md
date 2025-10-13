@@ -134,10 +134,14 @@ chmod +x create-env.sh
 
 ### Проблемы с запуском backend
 ```bash
-# Диагностика проблем с backend:
+# Если ошибка "externally-managed-environment":
+# 1. Установите необходимые пакеты:
+./scripts/production/install-system-packages.sh
+
+# 2. Диагностика проблем с backend:
 ./scripts/production/diagnose-backend.sh
 
-# Простой запуск backend (без сложной логики):
+# 3. Простой запуск backend (с виртуальным окружением):
 ./scripts/production/simple-start-backend.sh
 
 # Если есть ошибки с переменными окружения:
@@ -145,6 +149,8 @@ chmod +x create-env.sh
 # 2. Создайте новый: ./create-env.sh
 # 3. Запустите простой скрипт: ./scripts/production/simple-start-backend.sh
 ```
+
+**ВАЖНО:** На новых системах Python защищен от установки пакетов в системное окружение. Используйте виртуальное окружение!
 
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
