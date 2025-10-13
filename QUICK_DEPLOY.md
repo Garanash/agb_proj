@@ -84,3 +84,30 @@ docker-compose -f docker-compose.production.yml down
 
 # Остановка приложения (Ctrl+C в терминалах backend/frontend)
 ```
+
+## Диагностика проблем
+
+Если возникают проблемы:
+
+```bash
+# Универсальное исправление всех проблем
+./scripts/production/fix-all-issues.sh
+
+# Диагностика всех проблем
+./scripts/production/diagnose-server.sh
+
+# Исправление конкретных проблем
+./scripts/production/fix-redis.sh
+./scripts/production/fix-nginx.sh
+./scripts/production/fix-network-issues.sh
+
+# Просмотр логов
+docker-compose -f docker-compose.production.yml logs -f
+```
+
+### Типичные проблемы и решения:
+
+- **Redis требует аутентификацию** → `./scripts/production/fix-redis.sh`
+- **Nginx перезапускается** → `./scripts/production/fix-network-issues.sh`
+- **N8N не отвечает** → Подождите инициализации (до 2 минут)
+- **Все проблемы сразу** → `./scripts/production/fix-all-issues.sh`

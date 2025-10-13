@@ -23,7 +23,7 @@ export { default as BulkInputArea } from '@/components/ui/BulkInputArea'
 export { default as Calendar } from './Calendar'
 export { default as Logo } from '@/components/ui/Logo'
 export { default as Modal } from '@/components/ui/Modal'
-export { default as TextLogo } from '@/components/ui/TextLogo'
+export { default as TextLogo } from '@/src/components/ui/TextLogo'
 
 // Modal components
 export { default as AddEventModal } from './AddEventModal'

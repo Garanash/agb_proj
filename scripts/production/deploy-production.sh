@@ -71,16 +71,24 @@ done
 
 # Проверяем подключение к Redis
 echo "🔴 Проверка подключения к Redis..."
-until docker exec agb_redis redis-cli ping; do
+until docker exec agb_redis redis-cli -a "$REDIS_PASSWORD" ping 2>/dev/null | grep -q "PONG"; do
     echo "   Ожидание Redis..."
     sleep 2
 done
 
-# Проверяем N8N
+# Проверяем N8N (с таймаутом)
 echo "🔄 Проверка N8N..."
+N8N_TIMEOUT=60
+N8N_COUNT=0
 until curl -f http://localhost:5678/healthz 2>/dev/null; do
-    echo "   Ожидание N8N..."
+    if [ $N8N_COUNT -ge $N8N_TIMEOUT ]; then
+        echo "⚠️  N8N не отвечает в течение $N8N_TIMEOUT секунд"
+        echo "   Проверьте логи: docker-compose -f docker-compose.production.yml logs n8n"
+        break
+    fi
+    echo "   Ожидание N8N... ($N8N_COUNT/$N8N_TIMEOUT)"
     sleep 2
+    N8N_COUNT=$((N8N_COUNT + 2))
 done
 
 # Проверяем Nginx
