@@ -30,6 +30,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>
   isLoading: boolean
   isAuthenticated: boolean
+  hasInitialized: boolean
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -225,7 +226,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     refreshUser,
     isLoading: isLoading || !hasInitialized,
-    isAuthenticated: !!user || !!token
+    isAuthenticated: !!user || !!token,
+    hasInitialized
   }
 
   console.log('AuthContext value:', { 
@@ -246,4 +248,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       />
     </AuthContext.Provider>
   )
+}
+
+// Хук для использования контекста аутентификации
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
 }

@@ -22,7 +22,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { UserProfile } from '@/components/features/users'
 import { useAuth } from '@/hooks'
-import { TextLogo } from '@/components/ui/Modal'
+import TextLogo from '@/src/components/ui/TextLogo'
 
 interface NavigationItem {
   name: string

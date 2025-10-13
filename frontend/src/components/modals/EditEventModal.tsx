@@ -5,7 +5,7 @@ import { getApiUrl } from '@/utils/api';
 import moment from 'moment'
 import axios from 'axios'
 import { formatApiError } from '@/utils/errorHandler'
-import { Modal } from '@/components/ui/Modal'
+import Modal from '@/components/ui/Modal'
 import { useAuth } from '@/hooks'
 
 interface User {

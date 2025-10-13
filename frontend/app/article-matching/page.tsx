@@ -16,7 +16,7 @@ import {
   ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import AIMatchingChat from '@/components/AIMatchingChat'
-import ExcelDataTable from '@/components/ExcelDataTable'
+import ExcelDataTable from '@/src/components/ExcelDataTable'
 import UploadDataModal from '@/src/components/features/admin/UploadDataModal'
 import AddSingleItemModal from '@/src/components/features/admin/AddSingleItemModal'
 

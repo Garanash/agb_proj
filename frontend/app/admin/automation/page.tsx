@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks';
-import AutomationBuilder from '@/components/AutomationBuilder';
-import WorkflowCanvas from '@/components/WorkflowCanvasSimple';
+import AutomationBuilder from '@/src/components/AutomationBuilder';
+import WorkflowCanvas from '@/src/components/WorkflowCanvasSimple';
 import { 
   PlayIcon, 
   PauseIcon, 

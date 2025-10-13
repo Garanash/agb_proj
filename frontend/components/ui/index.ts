@@ -3,13 +3,13 @@
  */
 
 // Основные компоненты
-export { default as AdvancedSearchFilters } from '../AdvancedSearchFilters'
-export { default as ArchiveStats } from '../ArchiveStats'
+export { default as AdvancedSearchFilters } from '../../src/components/ui/AdvancedSearchFilters'
+export { default as ArchiveStats } from '../../src/components/ui/ArchiveStats'
 export { default as BulkInputArea } from './BulkInputArea'
-export { default as Calendar } from './Calendar'
-export { default as Logo } from '../Logo'
+export { default as Calendar } from '../Calendar'
+export { default as Logo } from './Logo'
 export { default as Modal } from './Modal'
-export { default as TextLogo } from '../TextLogo'
+export { default as TextLogo } from '../../src/components/ui/TextLogo'
 
 // UI компоненты
 export { Button } from './button'

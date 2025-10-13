@@ -43,8 +43,10 @@ interface Supplier {
   company_name: string
   contact_person?: string
   email?: string
+  email_validated?: boolean
   phone?: string
   website?: string
+  website_validated?: boolean
   address?: string
   country?: string
   city?: string

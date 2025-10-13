@@ -13,6 +13,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>
   isLoading: boolean
   isAuthenticated: boolean
+  hasInitialized: boolean
 }
 
 export const useAuth = (): AuthContextType => {

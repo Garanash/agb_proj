@@ -17,8 +17,8 @@ export { AuthProvider as AuthContext, useAuth } from './AuthContext'
 export { AuthProvider as SimpleAuthContext } from './SimpleAuthContext'
 
 // UI components
-export { default as AdvancedSearchFilters } from '@/components/ui/AdvancedSearchFilters'
-export { default as ArchiveStats } from '@/components/ui/ArchiveStats'
+export { default as AdvancedSearchFilters } from '@/src/components/ui/AdvancedSearchFilters'
+export { default as ArchiveStats } from '@/src/components/ui/ArchiveStats'
 export { default as BulkInputArea } from '@/components/ui/BulkInputArea'
 export { default as Calendar } from './Calendar'
 export { default as Logo } from '@/components/ui/Logo'
