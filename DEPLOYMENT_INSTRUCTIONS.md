@@ -132,6 +132,19 @@ chmod +x scripts/production/*.sh
 chmod +x create-env.sh
 ```
 
+### CORS ошибки (frontend не может подключиться к backend)
+```bash
+# Быстрое исправление CORS
+./scripts/production/fix-cors-issue.sh
+
+# Или вручную:
+# 1. Установите правильный NEXT_PUBLIC_API_URL в .env.production:
+echo "NEXT_PUBLIC_API_URL=http://89.23.99.86:8000/api" >> .env.production
+
+# 2. Перезапустите frontend:
+cd frontend && npm run build && npm start
+```
+
 ### N8N не может подключиться к БД
 ```bash
 # Проверьте, что PostgreSQL работает

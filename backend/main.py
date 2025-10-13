@@ -58,6 +58,22 @@ app = FastAPI(
 
 # CORS настройки для локальной разработки
 from fastapi.middleware.cors import CORSMiddleware
+import socket
+
+# Получаем IP сервера автоматически
+def get_server_ip():
+    try:
+        # Подключаемся к внешнему серверу для определения внешнего IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except:
+        return "localhost"
+
+SERVER_IP = get_server_ip()
+print(f"🌐 Сервер IP: {SERVER_IP}")
 
 # Простой тестовый endpoint для проверки работы
 @app.get("/test-dashboard")
@@ -67,7 +83,16 @@ async def test_dashboard_endpoint():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Разрешаем конкретные источники
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://localhost:3001",
+        f"http://{SERVER_IP}",
+        f"http://{SERVER_IP}:3000",
+        f"http://{SERVER_IP}:80",
+        "http://89.23.99.86",
+        "http://89.23.99.86:3000",
+        "http://89.23.99.86:80"
+    ],  # Разрешаем конкретные источники
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Разрешаем конкретные методы
     allow_headers=["*"],  # Разрешаем все заголовки

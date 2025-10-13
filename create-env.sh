@@ -68,6 +68,9 @@ FRONTEND_HOST=localhost
 FRONTEND_PORT=3000
 FRONTEND_URL=http://localhost:3000
 
+# API Configuration - ВАЖНО для CORS!
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+
 # ===========================================
 # SECURITY CONFIGURATION
 # ===========================================
