@@ -132,6 +132,20 @@ chmod +x scripts/production/*.sh
 chmod +x create-env.sh
 ```
 
+### Проблемы с запуском backend
+```bash
+# Диагностика проблем с backend:
+./scripts/production/diagnose-backend.sh
+
+# Простой запуск backend (без сложной логики):
+./scripts/production/simple-start-backend.sh
+
+# Если есть ошибки с переменными окружения:
+# 1. Проверьте .env.production: cat .env.production
+# 2. Создайте новый: ./create-env.sh
+# 3. Запустите простой скрипт: ./scripts/production/simple-start-backend.sh
+```
+
 ### CORS ошибки (frontend не может подключиться к backend)
 ```bash
 # ПОЛНОЕ ИСПРАВЛЕНИЕ - исправляет все проблемы разом:

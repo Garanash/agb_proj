@@ -30,7 +30,7 @@ else
     
     # Запускаем backend
     echo "🚀 Запуск backend..."
-    ./scripts/production/start-backend.sh &
+    ./scripts/production/simple-start-backend.sh
     
     # Ждем запуска
     echo "⏳ Ожидание запуска backend..."
