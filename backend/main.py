@@ -83,19 +83,10 @@ async def test_dashboard_endpoint():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:3001",
-        f"http://{SERVER_IP}",
-        f"http://{SERVER_IP}:3000",
-        f"http://{SERVER_IP}:80",
-        "http://89.23.99.86",
-        "http://89.23.99.86:3000",
-        "http://89.23.99.86:80"
-    ],  # Разрешаем конкретные источники
+    allow_origins=["*"],  # Разрешаем все источники для продакшена
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Разрешаем конкретные методы
-    allow_headers=["*"],  # Разрешаем все заголовки
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600
 )

@@ -22,6 +22,13 @@ export const getApiUrl = (): string => {
   // В продакшене на клиенте определяем API URL автоматически
   if (typeof window !== 'undefined') {
     const currentOrigin = window.location.origin;
+    // Если мы на порту 80, используем порт 8000 для API
+    if (currentOrigin.includes(':80') || !currentOrigin.includes(':')) {
+      const apiUrl = currentOrigin.replace(':80', ':8000').replace(/\/$/, '') + ':8000';
+      console.log('🌐 Продакшен: автоматически определен API URL:', apiUrl);
+      return apiUrl;
+    }
+    // Если уже есть порт, заменяем его на 8000
     const apiUrl = currentOrigin.replace(/:\d+$/, ':8000');
     console.log('🌐 Продакшен: автоматически определен API URL:', apiUrl);
     return apiUrl;
