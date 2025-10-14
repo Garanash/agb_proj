@@ -22,12 +22,15 @@ export const getApiUrl = (): string => {
   // В продакшене на клиенте определяем API URL автоматически
   if (typeof window !== 'undefined') {
     const currentOrigin = window.location.origin;
-    // Если мы на порту 80, используем порт 8000 для API
+    console.log('🌐 Текущий origin:', currentOrigin);
+    
+    // Если мы на порту 80 или без порта, добавляем :8000
     if (currentOrigin.includes(':80') || !currentOrigin.includes(':')) {
-      const apiUrl = currentOrigin.replace(':80', ':8000').replace(/\/$/, '') + ':8000';
-      console.log('🌐 Продакшен: автоматически определен API URL:', apiUrl);
+      const apiUrl = currentOrigin.replace(':80', '').replace(/\/$/, '') + ':8000';
+      console.log('🌐 Продакшен (порт 80): автоматически определен API URL:', apiUrl);
       return apiUrl;
     }
+    
     // Если уже есть порт, заменяем его на 8000
     const apiUrl = currentOrigin.replace(/:\d+$/, ':8000');
     console.log('🌐 Продакшен: автоматически определен API URL:', apiUrl);
@@ -36,6 +39,28 @@ export const getApiUrl = (): string => {
 
   // На сервере используем localhost для разработки
   console.log('⚠️ Fallback: localhost:8000');
+  return 'http://localhost:8000';
+};
+
+// Простая функция для получения API URL без сложной логики
+export const getSimpleApiUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin;
+    console.log('🌐 Simple API URL - текущий origin:', currentOrigin);
+    
+    // Если мы на порту 80 или без порта, добавляем :8000
+    if (currentOrigin.includes(':80') || !currentOrigin.includes(':')) {
+      const apiUrl = currentOrigin.replace(':80', '').replace(/\/$/, '') + ':8000';
+      console.log('🌐 Simple API URL (порт 80):', apiUrl);
+      return apiUrl;
+    }
+    
+    // Если уже есть порт, заменяем его на 8000
+    const apiUrl = currentOrigin.replace(/:\d+$/, ':8000');
+    console.log('🌐 Simple API URL:', apiUrl);
+    return apiUrl;
+  }
+  
   return 'http://localhost:8000';
 };
 

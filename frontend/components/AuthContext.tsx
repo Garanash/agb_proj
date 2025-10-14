@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { getApiUrl } from '@/utils/api';
+import { getSimpleApiUrl } from '@/utils/api';
 import axios from 'axios'
 import ForcePasswordChangeModal from './ForcePasswordChangeModal'
 
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkTokenValidity = async () => {
     try {
-      const apiUrl = getApiUrl() + '/api/v1/auth/me'
+      const apiUrl = getSimpleApiUrl() + '/api/v1/auth/me'
       console.log('API URL for token validation:', apiUrl)
       console.log('Making request to:', apiUrl)
       
@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = getApiUrl() + '/api/v1/auth/login'
+      const apiUrl = getSimpleApiUrl() + '/api/v1/auth/login'
       console.log('Login attempt:', { username, apiUrl })
       const response = await axios.post(apiUrl, {
         username,
@@ -174,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = getSimpleApiUrl()
       console.log('Logout attempt:', { apiUrl })
       await axios.post(`${apiUrl}/api/v1/auth/logout`)
       console.log('Logout successful')
@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
-      const apiUrl = getApiUrl()
+      const apiUrl = getSimpleApiUrl()
       console.log('Refresh user attempt:', { apiUrl })
       const response = await axios.get(`${apiUrl}/api/v1/auth/me`)
       console.log('Refresh user successful:', response.data)
