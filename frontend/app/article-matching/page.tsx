@@ -255,7 +255,8 @@ export default function ArticleMatchingPage() {
     console.log('=== loadOurDatabase вызвана ===')
     
     try {
-      const url = 'http://localhost:8000/api/v1/article-matching/test-our-database'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const url = `${apiUrl}/api/v1/article-matching/test-our-database`
       console.log('URL:', url)
       
       const response = await fetch(url, {

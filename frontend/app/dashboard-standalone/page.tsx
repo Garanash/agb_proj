@@ -14,7 +14,8 @@ const DashboardStandalonePage = () => {
         setError(null);
         
         // Получаем токен администратора
-        const loginResponse = await fetch('http://localhost:8000/api/v1/auth/login', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const loginResponse = await fetch(`${apiUrl}/api/v1/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -33,7 +34,7 @@ const DashboardStandalonePage = () => {
         const token = loginData.access_token;
 
         // Получаем статистику дашборда
-        const statsResponse = await fetch('http://localhost:8000/api/v1/admin/dashboard/stats', {
+        const statsResponse = await fetch(`${apiUrl}/api/v1/admin/dashboard/stats`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
