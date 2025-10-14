@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { UserCircleIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
-import { getApiUrl } from '@/utils/api';
+import { getSimpleApiUrl } from '@/utils/api';
 import { useAuth } from '@/hooks'
 import LoginForm from './LoginForm'
 import ProfileEditModal from './ProfileEditModal'
