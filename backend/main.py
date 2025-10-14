@@ -204,11 +204,11 @@ async def health_check():
     """Проверка здоровья сервиса и базы данных (legacy endpoint)"""
     try:
         # Проверяем подключение к базе данных
-        from database import AsyncSessionLocal
+        from database import async_engine
         from sqlalchemy import text
         
-        async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
+        async with async_engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
         
         return {
             "status": "healthy", 
