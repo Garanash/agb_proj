@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks'
 import { useRouter } from 'next/navigation'
+import { getApiUrl } from '@/utils/api'
 import { 
   DocumentArrowUpIcon, 
   MagnifyingGlassIcon, 
@@ -105,7 +106,7 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-requests/', {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -137,7 +138,7 @@ export default function ArticleMatchingPage() {
       formData.append('file', file)
       formData.append('contractor_name', 'Контрагент')
 
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/step-upload/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/step-upload/', {
         method: 'POST',
         body: formData
       })
@@ -180,7 +181,7 @@ export default function ArticleMatchingPage() {
   const handleMatchArticles = async (requestId: number) => {
     setMatching(true)
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/test-match/${requestId}`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/test-match/${requestId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -207,7 +208,7 @@ export default function ArticleMatchingPage() {
 
   const handleExportResults = async (requestId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/requests/${requestId}/export/excel`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/requests/${requestId}/export/excel`, {
         headers: {
           'Content-Type': 'application/json'
         }

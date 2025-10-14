@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getApiUrl } from '@/utils/api';
 
 const DashboardTestPage = () => {
   const [data, setData] = useState<any>(null);
@@ -14,7 +15,7 @@ const DashboardTestPage = () => {
         setError(null);
         
         // Получаем токен администратора
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = getApiUrl();
         const loginResponse = await fetch(`${apiUrl}/api/v1/auth/login`, {
           method: 'POST',
           headers: {

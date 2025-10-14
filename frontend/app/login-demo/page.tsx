@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getApiUrl } from '@/utils/api'
 
 export default function LoginDemoPage() {
   const [username, setUsername] = useState('admin')
@@ -14,7 +15,7 @@ export default function LoginDemoPage() {
     setMessage('')
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      const response = await fetch('getApiUrl() + '/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

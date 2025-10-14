@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks'
 import { useRouter } from 'next/navigation'
+import { getApiUrl } from '@/utils/api'
 import { 
   DocumentArrowUpIcon, 
   MagnifyingGlassIcon, 
@@ -228,7 +229,7 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-requests', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-requests', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -255,7 +256,7 @@ export default function ArticleMatchingPage() {
     console.log('=== loadOurDatabase вызвана ===')
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = getApiUrl();
       const url = `${apiUrl}/api/v1/article-matching/test-our-database`
       console.log('URL:', url)
       
@@ -323,7 +324,7 @@ export default function ArticleMatchingPage() {
       formData.append('file', file)
       formData.append('contractor_name', contractorName.trim())
 
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/step-upload/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/step-upload/', {
         method: 'POST',
         body: formData
       })
@@ -390,7 +391,7 @@ export default function ArticleMatchingPage() {
         return
       }
       
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/test-upload-text/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-upload-text/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -432,7 +433,7 @@ export default function ArticleMatchingPage() {
 
     setMatching(true)
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/test-match/${requestId}`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/test-match/${requestId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -552,7 +553,7 @@ export default function ArticleMatchingPage() {
       console.log('Удаляем сопоставление с ID:', itemToDelete.mapping_id)
       console.log('Используем токен:', token ? 'есть' : 'нет')
       
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/mappings/${itemToDelete.mapping_id}/`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/mappings/${itemToDelete.mapping_id}/`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -627,7 +628,7 @@ export default function ArticleMatchingPage() {
     if (!editingItem || !token) return
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/nomenclature/${editingItem.id}/`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/nomenclature/${editingItem.id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -686,7 +687,7 @@ export default function ArticleMatchingPage() {
     if (!editingFoundItem || !token) return
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/mapping/${editingFoundItem.id}/`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/mapping/${editingFoundItem.id}/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -745,7 +746,7 @@ export default function ArticleMatchingPage() {
 
     setIsSearching(true);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/search/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/search/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -788,7 +789,7 @@ export default function ArticleMatchingPage() {
     if (!token) return
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/mappings/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/mappings/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -830,7 +831,7 @@ export default function ArticleMatchingPage() {
 
     setIsAutoMatching(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/auto-match-excel/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/auto-match-excel/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -870,7 +871,7 @@ export default function ArticleMatchingPage() {
 
     setIsSavingExcel(true)
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-excel-results/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-excel-results/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -896,7 +897,7 @@ export default function ArticleMatchingPage() {
 
   const loadSavedVariants = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/saved-variants', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/saved-variants', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -914,7 +915,7 @@ export default function ArticleMatchingPage() {
   const loadFoundMatches = async () => {
     try {
       setLoadingFoundMatches(true)
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/found-matches', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/found-matches', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -933,7 +934,7 @@ export default function ArticleMatchingPage() {
 
   const saveVariantSelection = async (rowId: string, variantIndex: number) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-variant-selection/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-variant-selection/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -955,7 +956,7 @@ export default function ArticleMatchingPage() {
 
   const deleteFoundMatch = async (matchId: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/article-matching/found-matches/${matchId}`, {
+      const response = await fetch(`getApiUrl() + '/api/v1/article-matching/found-matches/${matchId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -972,7 +973,7 @@ export default function ArticleMatchingPage() {
 
   const saveConfirmedMatch = async (rowData: ExcelRow, variant: any) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/article-matching/save-found-match/', {
+      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-found-match/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

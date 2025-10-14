@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks';
+import { getApiUrl } from '@/utils/api';
 import AutomationBuilder from '@/src/components/AutomationBuilder';
 import WorkflowCanvas from '@/src/components/WorkflowCanvasSimple';
 import { 
@@ -73,9 +74,9 @@ export default function AutomationPage() {
       };
       
       const [workflowsRes, executionsRes, statsRes] = await Promise.all([
-        fetch('http://localhost:8000/api/v1/n8n/workflows', { headers }),
-        fetch('http://localhost:8000/api/v1/n8n/executions', { headers }),
-        fetch('http://localhost:8000/api/v1/n8n/stats', { headers })
+        fetch('getApiUrl() + '/api/v1/n8n/workflows', { headers }),
+        fetch('getApiUrl() + '/api/v1/n8n/executions', { headers }),
+        fetch('getApiUrl() + '/api/v1/n8n/stats', { headers })
       ]);
 
       if (workflowsRes.ok) {
@@ -126,7 +127,7 @@ export default function AutomationPage() {
 
   const executeWorkflow = async (workflowId: string) => {
     try {
-      const response = await fetch('http://localhost:8000/api/v1/n8n/workflow/execute', {
+      const response = await fetch('getApiUrl() + '/api/v1/n8n/workflow/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
