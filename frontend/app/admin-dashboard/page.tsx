@@ -77,7 +77,7 @@ const AdminDashboardPage: React.FC = () => {
       setError(null);
       
       // Сначала авторизуемся
-      const loginResponse = await fetch('getApiUrl() + '/api/v1/auth/login', {
+      const loginResponse = await fetch(getApiUrl() + '/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -96,7 +96,7 @@ const AdminDashboardPage: React.FC = () => {
       const token = loginData.access_token;
 
       // Получаем статистику дашборда
-      const statsResponse = await fetch('getApiUrl() + '/api/v1/admin/dashboard/stats', {
+      const statsResponse = await fetch(getApiUrl() + '/api/v1/admin/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,7 +110,7 @@ const AdminDashboardPage: React.FC = () => {
       const statsData: DashboardData = await statsResponse.json();
 
       // Получаем последнюю активность
-      const activityResponse = await fetch('getApiUrl() + '/api/v1/admin/dashboard/activity?limit=5', {
+      const activityResponse = await fetch(getApiUrl() + '/api/v1/admin/dashboard/activity?limit=5', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

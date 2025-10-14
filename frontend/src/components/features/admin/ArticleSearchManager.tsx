@@ -157,7 +157,7 @@ export default function ArticleSearchManager() {
       setIsSearching(true)
       setMessage(null)
 
-      const response = await fetch('getApiUrl() + '/api/v3/article-search/search', {
+      const response = await fetch(getApiUrl() + '/api/v3/article-search/search', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -263,7 +263,7 @@ export default function ArticleSearchManager() {
   const retrySearchForArticle = async (articleCode: string) => {
     try {
       setIsSearching(true)
-      const response = await fetch('getApiUrl() + '/api/v3/article-search/search', {
+      const response = await fetch(getApiUrl() + '/api/v3/article-search/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

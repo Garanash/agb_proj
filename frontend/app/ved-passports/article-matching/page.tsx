@@ -106,7 +106,7 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-requests/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/test-requests/', {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -138,7 +138,7 @@ export default function ArticleMatchingPage() {
       formData.append('file', file)
       formData.append('contractor_name', 'Контрагент')
 
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/step-upload/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/step-upload/', {
         method: 'POST',
         body: formData
       })

@@ -229,7 +229,7 @@ export default function ArticleMatchingPage() {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-requests', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/test-requests', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -324,7 +324,7 @@ export default function ArticleMatchingPage() {
       formData.append('file', file)
       formData.append('contractor_name', contractorName.trim())
 
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/step-upload/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/step-upload/', {
         method: 'POST',
         body: formData
       })
@@ -391,7 +391,7 @@ export default function ArticleMatchingPage() {
         return
       }
       
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/test-upload-text/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/test-upload-text/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -746,7 +746,7 @@ export default function ArticleMatchingPage() {
 
     setIsSearching(true);
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/search/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/search/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -789,7 +789,7 @@ export default function ArticleMatchingPage() {
     if (!token) return
 
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/mappings/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/mappings/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -831,7 +831,7 @@ export default function ArticleMatchingPage() {
 
     setIsAutoMatching(true)
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/auto-match-excel/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/auto-match-excel/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -871,7 +871,7 @@ export default function ArticleMatchingPage() {
 
     setIsSavingExcel(true)
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-excel-results/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/save-excel-results/', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -897,7 +897,7 @@ export default function ArticleMatchingPage() {
 
   const loadSavedVariants = async () => {
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/saved-variants', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/saved-variants', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -915,7 +915,7 @@ export default function ArticleMatchingPage() {
   const loadFoundMatches = async () => {
     try {
       setLoadingFoundMatches(true)
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/found-matches', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/found-matches', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -934,7 +934,7 @@ export default function ArticleMatchingPage() {
 
   const saveVariantSelection = async (rowId: string, variantIndex: number) => {
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-variant-selection/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/save-variant-selection/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -973,7 +973,7 @@ export default function ArticleMatchingPage() {
 
   const saveConfirmedMatch = async (rowData: ExcelRow, variant: any) => {
     try {
-      const response = await fetch('getApiUrl() + '/api/v1/article-matching/save-found-match/', {
+      const response = await fetch(getApiUrl() + '/api/v1/article-matching/save-found-match/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

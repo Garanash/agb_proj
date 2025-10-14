@@ -55,7 +55,7 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
         headers['Authorization'] = `Bearer ${token}`
       }
 
-      const response = await fetch('getApiUrl() + '/api/v1/settings/api-keys/', {
+      const response = await fetch(getApiUrl() + '/api/v1/settings/api-keys/', {
         headers
       })
 
@@ -80,7 +80,7 @@ export default function ApiKeysSettings({ onClose }: ApiKeysSettingsProps) {
     try {
       const url = editingKey 
         ? `getApiUrl() + '/api/v1/settings/api-keys/${editingKey.id}/`
-        : 'getApiUrl() + '/api/v1/settings/api-keys/'
+        : getApiUrl() + '/api/v1/settings/api-keys/'
       
       const method = editingKey ? 'PUT' : 'POST'
 
