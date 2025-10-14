@@ -61,6 +61,8 @@ services:
       - ADMIN_FIRST_NAME=${ADMIN_FIRST_NAME:-Администратор}
       - ADMIN_LAST_NAME=${ADMIN_LAST_NAME:-Системы}
       - PYTHONWARNINGS=ignore:Unverified HTTPS request
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
