@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkTokenValidity = async () => {
     try {
-      const apiUrl = 'http://localhost:8000/api/v1/auth/me'
+      const apiUrl = getApiUrl() + '/api/v1/auth/me'
       console.log('API URL for token validation:', apiUrl)
       console.log('Making request to:', apiUrl)
       
@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = 'http://localhost:8000/api/v1/auth/login'
+      const apiUrl = getApiUrl() + '/api/v1/auth/login'
       console.log('Login attempt:', { username, apiUrl })
       const response = await axios.post(apiUrl, {
         username,

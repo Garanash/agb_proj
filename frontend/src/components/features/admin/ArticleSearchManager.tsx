@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks'
+import { getApiUrl } from '@/utils/api'
 import { 
   MagnifyingGlassIcon, 
   PlusIcon, 
@@ -108,7 +109,7 @@ export default function ArticleSearchManager() {
   const loadSearchRequests = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:8000/api/v3/article-search/requests', {
+      const response = await fetch(getApiUrl() + '/api/v3/article-search/requests', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -156,7 +157,7 @@ export default function ArticleSearchManager() {
       setIsSearching(true)
       setMessage(null)
 
-      const response = await fetch('http://localhost:8000/api/v3/article-search/search', {
+      const response = await fetch('getApiUrl() + '/api/v3/article-search/search', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -192,7 +193,7 @@ export default function ArticleSearchManager() {
   const loadRequestDetails = async (requestId: number) => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:8000/api/v3/article-search/requests/${requestId}`, {
+      const response = await fetch(`getApiUrl() + '/api/v3/article-search/requests/${requestId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -224,7 +225,7 @@ export default function ArticleSearchManager() {
   const loadSupplierGroups = async (requestId: number) => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:8000/api/v3/article-search/suppliers/grouped?request_id=${requestId}`, {
+      const response = await fetch(`getApiUrl() + '/api/v3/article-search/suppliers/grouped?request_id=${requestId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -262,7 +263,7 @@ export default function ArticleSearchManager() {
   const retrySearchForArticle = async (articleCode: string) => {
     try {
       setIsSearching(true)
-      const response = await fetch('http://localhost:8000/api/v3/article-search/search', {
+      const response = await fetch('getApiUrl() + '/api/v3/article-search/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
