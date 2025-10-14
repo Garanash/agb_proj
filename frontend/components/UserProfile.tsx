@@ -136,7 +136,7 @@ export default function UserProfile() {
         `}>
           {user?.avatar_url ? (
             <img
-              src={`${getApiUrl()}/uploads/${user.avatar_url}`}
+              src={`${getSimpleApiUrl()}/uploads/${user.avatar_url}`}
               alt={`${user?.last_name || ''} ${user?.first_name || ''}`}
               className="w-full h-full object-cover"
               onError={(e) => {
