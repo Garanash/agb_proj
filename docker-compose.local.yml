@@ -1,46 +1,126 @@
 version: '3.8'
 
 services:
-  agb-db:
-    image: postgres:15
+  # База данных PostgreSQL
+  postgres:
+    image: postgres:15-alpine
     container_name: agb_postgres_local
     environment:
-      POSTGRES_DB: agb_prod
-      POSTGRES_USER: agb_user
-      POSTGRES_PASSWORD: secure_password_2024
+      POSTGRES_DB: agb_felix_dev
+      POSTGRES_USER: felix_dev_user
+      POSTGRES_PASSWORD: dev_password_123
     ports:
       - "15432:5432"
     volumes:
-      - agb_postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - agb-network
-    restart: unless-stopped
+      - app-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agb_user -d agb_prod"]
+      test: ["CMD-SHELL", "pg_isready -U felix_dev_user -d agb_felix_dev"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  agb-redis:
+  # Redis для кэширования
+  redis:
     image: redis:7-alpine
     container_name: agb_redis_local
     ports:
       - "16379:6379"
-    volumes:
-      - agb_redis_data:/data
     networks:
-      - agb-network
-    restart: unless-stopped
+      - app-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agb_backend_local
+    environment:
+      - DATABASE_URL=postgresql://felix_dev_user:dev_password_123@postgres:5432/agb_felix_dev
+      - SECRET_KEY=dev_secret_key_123
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=1440
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_EMAIL=admin@almazgeobur.ru
+      - ADMIN_FIRST_NAME=Администратор
+      - ADMIN_LAST_NAME=Системы
+      - PYTHONWARNINGS=ignore:Unverified HTTPS request
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agb_frontend_local
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: agb_nginx_local
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
 volumes:
-  agb_postgres_data:
-  agb_redis_data:
+  postgres_data:
+  uploads_data:
 
 networks:
-  agb-network:
+  app-network:
     driver: bridge

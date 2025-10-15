@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд администратора - Felix Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="/favicon.svg">
+</head>
+<body class="bg-gray-100">
+    <div id="app">
+        <div class="min-h-screen bg-gray-100 flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p class="text-gray-600">Загрузка дашборда...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadDashboard() {
+            try {
+                // Получаем токен администратора
+                const loginResponse = await fetch('http://localhost:8000/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                if (!loginResponse.ok) {
+                    throw new Error(`Ошибка входа: ${loginResponse.status}`);
+                }
+
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+
+                // Получаем статистику дашборда
+                const statsResponse = await fetch('http://localhost:8000/api/v1/admin/dashboard/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!statsResponse.ok) {
+                    throw new Error(`Ошибка получения статистики: ${statsResponse.status}`);
+                }
+
+                const data = await statsResponse.json();
+                renderDashboard(data);
+                
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                renderError(error.message);
+            }
+        }
+
+        function renderDashboard(data) {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen bg-gray-100 p-6">
+                    <div class="max-w-7xl mx-auto">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-8">
+                            🚀 Дашборд администратора (автономный)
+                        </h1>
+
+                        <!-- Основная статистика -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-blue-100 rounded-lg">
+                                        <span class="text-2xl">👥</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm text-gray-600">Всего пользователей</p>
+                                        <p class="text-2xl font-bold text-gray-900">${data.total_users}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-green-100 rounded-lg">
+                                        <span class="text-2xl">✅</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm text-gray-600">Активные пользователи</p>
+                                        <p class="text-2xl font-bold text-gray-900">${data.active_users}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-purple-100 rounded-lg">
+                                        <span class="text-2xl">📄</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm text-gray-600">События</p>
+                                        <p class="text-2xl font-bold text-gray-900">${data.total_events}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <div class="flex items-center">
+                                    <div class="p-2 bg-orange-100 rounded-lg">
+                                        <span class="text-2xl">📰</span>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm text-gray-600">Новости</p>
+                                        <p class="text-2xl font-bold text-gray-900">${data.total_news}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Статистика по ролям -->
+                        <div class="bg-white p-6 rounded-lg shadow-lg mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Статистика по ролям</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                ${Object.entries(data.role_stats).map(([role, count]) => `
+                                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                                        <p class="text-sm text-gray-600 capitalize">${role}</p>
+                                        <p class="text-2xl font-bold text-gray-900">${count}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Производительность системы -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">Производительность системы</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                            <span>Использование памяти</span>
+                                            <span>${data.system_stats.memory_usage}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: ${data.system_stats.memory_usage}%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                            <span>Загрузка CPU</span>
+                                            <span>${data.system_stats.cpu_usage}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: ${data.system_stats.cpu_usage}%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                            <span>Использование диска</span>
+                                            <span>${data.system_stats.disk_usage}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-yellow-600 h-2 rounded-full transition-all duration-300" style="width: ${data.system_stats.disk_usage}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-lg shadow-lg">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4">API Статистика</h3>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Всего запросов</span>
+                                        <span class="font-semibold text-gray-900">${data.system_stats.api_requests_today.toLocaleString()}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Ошибки</span>
+                                        <span class="font-semibold text-red-600">${data.system_stats.error_rate}%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Успешные запросы</span>
+                                        <span class="font-semibold text-green-600">${100 - data.system_stats.error_rate}%</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Время работы</span>
+                                        <span class="font-semibold text-gray-900">${data.system_stats.uptime}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Последние пользователи -->
+                        <div class="bg-white p-6 rounded-lg shadow-lg">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4">Последние пользователи</h3>
+                            <div class="space-y-3">
+                                ${data.recent_users.map(user => `
+                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-2 h-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">
+                                                    ${user.first_name && user.last_name 
+                                                        ? `${user.first_name} ${user.last_name}` 
+                                                        : user.username}
+                                                </p>
+                                                <p class="text-xs text-gray-600">@${user.username} • ${user.role}</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs text-gray-500">
+                                                ${user.last_login ? new Date(user.last_login).toLocaleString() : 'Никогда'}
+                                            </p>
+                                            <p class="text-xs text-gray-500">
+                                                ${new Date(user.created_at).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Информация о последнем обновлении -->
+                        <div class="mt-6 text-center text-sm text-gray-500">
+                            Последнее обновление: ${new Date(data.last_updated).toLocaleString()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderError(message) {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+                        <h2 class="text-red-800 font-bold text-lg mb-2">Ошибка загрузки</h2>
+                        <p class="text-red-600">${message}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Загружаем дашборд при загрузке страницы
+        loadDashboard();
+    </script>
+</body>
+</html>
