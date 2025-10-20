@@ -122,35 +122,59 @@ from passlib.context import CryptContext
 print(CryptContext(schemes=['bcrypt'], deprecated='auto').hash('123456'))
 ")
 
-# Вставка/обновление пользователей
-cat > /tmp/seed_users.sql <<'EOSQL'
-DO $$
-BEGIN
-   IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin') THEN
-      INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
-      VALUES ('admin', 'admin@local', 'ADMIN_HASH_PLACEHOLDER', 'Администратор', 'Системы', 'admin', true, true, NOW());
-   ELSE
-      UPDATE users SET email='admin@local', hashed_password='ADMIN_HASH_PLACEHOLDER', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='admin';
-   END IF;
+# Вставка/обновление пользователей через Python скрипт
+echo "Создание пользователей через Python скрипт..."
+cat > /tmp/seed_users.py <<'EOPY'
+import asyncio
+from database import async_engine
+from sqlalchemy import text
 
-   IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'd.li') THEN
-      INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
-      VALUES ('d.li', 'd.li@ved.ru', 'DLI_HASH_PLACEHOLDER', 'Дмитрий', 'Ли', 'ved', true, true, NOW());
-   ELSE
-      UPDATE users SET email='d.li@ved.ru', hashed_password='DLI_HASH_PLACEHOLDER', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='d.li';
-   END IF;
-END
-$$;
-EOSQL
+async def main():
+    async with async_engine.begin() as conn:
+        # Создаем/обновляем admin
+        await conn.execute(text("""
+            INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
+            VALUES ('admin', 'admin@local', :admin_hash, 'Администратор', 'Системы', 'admin', true, true, NOW())
+            ON CONFLICT (username) DO UPDATE SET
+                email = 'admin@local',
+                hashed_password = :admin_hash,
+                is_active = true,
+                is_password_changed = true,
+                updated_at = NOW()
+        """), {"admin_hash": "ADMIN_HASH_PLACEHOLDER"})
+        
+        # Создаем/обновляем d.li
+        await conn.execute(text("""
+            INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
+            VALUES ('d.li', 'd.li@ved.ru', :dli_hash, 'Дмитрий', 'Ли', 'ved', true, true, NOW())
+            ON CONFLICT (username) DO UPDATE SET
+                email = 'd.li@ved.ru',
+                hashed_password = :dli_hash,
+                is_active = true,
+                is_password_changed = true,
+                updated_at = NOW()
+        """), {"dli_hash": "DLI_HASH_PLACEHOLDER"})
+        
+        print("✅ Пользователи созданы/обновлены")
+
+asyncio.run(main())
+EOPY
 
 # Заменяем плейсхолдеры на реальные хеши
-sed -i "s/ADMIN_HASH_PLACEHOLDER/$ADMIN_HASH/g" /tmp/seed_users.sql
-sed -i "s/DLI_HASH_PLACEHOLDER/$DLI_HASH/g" /tmp/seed_users.sql
+python3 -c "
+import re
+with open('/tmp/seed_users.py', 'r') as f:
+    content = f.read()
+content = content.replace('ADMIN_HASH_PLACEHOLDER', '$ADMIN_HASH')
+content = content.replace('DLI_HASH_PLACEHOLDER', '$DLI_HASH')
+with open('/tmp/seed_users.py', 'w') as f:
+    f.write(content)
+"
 
-docker cp /tmp/seed_users.sql "$POSTGRES_CONTAINER":/tmp/seed_users.sql
-rm -f /tmp/seed_users.sql
+docker cp /tmp/seed_users.py "$BACKEND_CONTAINER":/tmp/seed_users.py
+rm -f /tmp/seed_users.py
 
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/seed_users.sql
+docker exec "$BACKEND_CONTAINER" python3 /tmp/seed_users.py
 
 echo "=== 8) ПРОВЕРКИ ==="
 # Health
