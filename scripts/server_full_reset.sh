@@ -100,6 +100,7 @@ echo "=== 6) СОЗДАНИЕ ТАБЛИЦ ==="
 echo "Создание всех таблиц через Base.metadata.create_all..."
 docker exec -w /app -e PYTHONPATH=/app "$BACKEND_CONTAINER" python3 -c "
 from database import async_engine, Base
+from sqlalchemy import text
 import asyncio
 
 async def main():
@@ -108,7 +109,7 @@ async def main():
         print('✅ Все таблицы созданы через Base.metadata.create_all')
         
         # Проверяем, что таблица users создалась
-        result = await conn.execute('SELECT COUNT(*) FROM information_schema.tables WHERE table_name = \\'users\\'')
+        result = await conn.execute(text('SELECT COUNT(*) FROM information_schema.tables WHERE table_name = \\'users\\''))
         count = result.scalar()
         print(f'Таблица users существует: {count > 0}')
         
