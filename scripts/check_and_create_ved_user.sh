@@ -32,7 +32,7 @@ if [ "$USER_EXISTS" = "1" ]; then
     echo "4. Обновление пароля пользователя d.li:"
     docker exec agb_postgres_prod psql -U agb_user -d agb_backend_prod -c "
     UPDATE users 
-    SET password_hash = '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4/LewdBPj4', 
+    SET hashed_password = '\$2b\$12\$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4/LewdBPj4', 
         is_password_changed = true,
         updated_at = NOW()
     WHERE username = 'd.li';
@@ -94,7 +94,7 @@ else
         # Создание пользователя напрямую в БД
         docker exec agb_postgres_prod psql -U agb_user -d agb_backend_prod -c "
         INSERT INTO users (
-            username, password_hash, first_name, last_name, email, role, 
+            username, hashed_password, first_name, last_name, email, role, 
             department_id, is_active, is_password_changed, created_at, updated_at
         ) VALUES (
             'd.li', 
