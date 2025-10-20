@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
 # Полный сброс и восстановление окружения на сервере (выполнять НА СЕРВЕРЕ)
 # Предполагается структура /root/agb_proj и docker-compose.prod.yml
@@ -115,15 +115,15 @@ done
 
 # Применение миграций Alembic (если есть) и создание таблиц
 echo "=== 6) МИГРАЦИИ И СОЗДАНИЕ ТАБЛИЦ ==="
-if docker exec "$BACKEND_CONTAINER" bash -lc "ls -1 alembic/versions/*.py 2>/dev/null | wc -l" | grep -vq '^0$'; then
+if docker exec "$BACKEND_CONTAINER" sh -c "ls -1 alembic/versions/*.py 2>/dev/null | wc -l" | grep -vq '^0$'; then
   echo "Запуск alembic upgrade head..."
-  docker exec "$BACKEND_CONTAINER" bash -lc "/app/venv/bin/alembic upgrade head" || true
+  docker exec "$BACKEND_CONTAINER" sh -c "/app/venv/bin/alembic upgrade head" || true
 else
   echo "Миграций не найдено, пропускаю alembic"
 fi
 
 # create_all из моделей
-docker exec "$BACKEND_CONTAINER" bash -lc "python3 - <<'PY'
+docker exec "$BACKEND_CONTAINER" python3 -c "
 from database import async_engine, Base
 import asyncio
 
@@ -132,22 +132,20 @@ async def main():
         await conn.run_sync(Base.metadata.create_all)
 asyncio.run(main())
 print('✅ Все таблицы созданы через Base.metadata.create_all')
-PY"
+"
 
 # Сидинг данных: админ и d.li
 echo "=== 7) СОЗДАНИЕ ПОЛЬЗОВАТЕЛЕЙ ==="
 # Получаем хеши паролей внутри backend-контейнера
-ADMIN_HASH=$(docker exec "$BACKEND_CONTAINER" python3 - <<'PY'
+ADMIN_HASH=$(docker exec "$BACKEND_CONTAINER" python3 -c "
 from passlib.context import CryptContext
-print(CryptContext(schemes=['bcrypt'], deprecated='auto').hash('admin123'))
-PY
-)
+print(CryptContext(schemes=['bcrypt'], deprecated='auto').hash('$ADMIN_PASSWORD'))
+")
 
-DLI_HASH=$(docker exec "$BACKEND_CONTAINER" python3 - <<'PY'
+DLI_HASH=$(docker exec "$BACKEND_CONTAINER" python3 -c "
 from passlib.context import CryptContext
 print(CryptContext(schemes=['bcrypt'], deprecated='auto').hash('123456'))
-PY
-)
+")
 
 # Вставка/обновление пользователей
 cat > /tmp/seed_users.sql <<EOSQL
