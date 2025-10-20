@@ -1,0 +1,52 @@
+# Фронтенд - Next.js (Production)
+FROM node:20.11.1-alpine AS base
+
+# Устанавливаем системные зависимости
+RUN apk add --no-cache libc6-compat wget
+
+# Builder stage
+FROM base AS builder
+WORKDIR /app
+
+# Копируем package.json и package-lock.json
+COPY package.json package-lock.json* ./
+
+# Устанавливаем зависимости
+RUN npm ci --only=production --frozen-lockfile
+
+# Копируем исходный код
+COPY . .
+
+# Собираем приложение с правильными путями
+RUN npm run build && \
+    npm prune --production
+
+# Runner stage
+FROM base AS runner
+WORKDIR /app
+
+# Создаем пользователя nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Копируем только необходимые файлы
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+
+# Устанавливаем переменные окружения
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME="0.0.0.0" \
+    NEXT_TELEMETRY_DISABLED=1
+
+# Переключаемся на пользователя nextjs
+USER nextjs
+
+# Открываем порт
+EXPOSE 3000
+
+# Запускаем приложение
+CMD ["npm", "start"]
