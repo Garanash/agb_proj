@@ -1,5 +1,5 @@
 # Фронтенд - Next.js (Production)
-FROM node:20.11.1-alpine AS base
+FROM mirror.gcr.io/library/node:20.11.1-alpine AS base
 
 # Устанавливаем системные зависимости
 RUN apk add --no-cache libc6-compat wget
