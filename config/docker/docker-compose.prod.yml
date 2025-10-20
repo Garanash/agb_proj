@@ -6,8 +6,8 @@ services:
     env_file:
       - ../env/production.env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-agb_felix_prod}
-      POSTGRES_USER: ${POSTGRES_USER:-felix_prod_user}
+      POSTGRES_DB: ${POSTGRES_DB:-agb_backend_prod}
+      POSTGRES_USER: ${POSTGRES_USER:-agb_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -17,7 +17,7 @@ services:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-felix_prod_user} -d ${POSTGRES_DB:-agb_felix_prod}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agb_user} -d ${POSTGRES_DB:-agb_backend_prod}"]
       interval: 10s
       timeout: 5s
       retries: 5

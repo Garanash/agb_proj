@@ -79,27 +79,18 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Создаем пользователя/БД явно (на случай пустого кластера)
-echo "Создание пользователя и БД, если их нет..."
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d postgres -c "DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
-      CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS';
-   END IF;
-END
-\$\$;" || true
-
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d postgres -c "DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME') THEN
-      CREATE DATABASE $DB_NAME OWNER $DB_USER;
-   END IF;
-END
-\$\$;" || true
-
-# Привилегии
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" || true
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" || true
+# Создаем пользователя/БД через переменные окружения PostgreSQL
+echo "Создание пользователя и БД через переменные окружения..."
+# PostgreSQL контейнер автоматически создаст пользователя и БД из переменных окружения
+# Проверяем, что БД создалась
+sleep 5
+docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" || {
+  echo "Ошибка подключения к БД. Попробуем создать пользователя вручную..."
+  # Создаем пользователя через postgres (если он есть) или через init скрипт
+  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || true
+  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" || true
+  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" || true
+}
 
 echo "=== 5) ЗАПУСК BACKEND/FRONTEND/NGINX ==="
 docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d backend frontend nginx
