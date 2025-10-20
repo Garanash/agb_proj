@@ -98,15 +98,26 @@ done
 # Создание таблиц через Base.metadata.create_all (пропускаем Alembic)
 echo "=== 6) СОЗДАНИЕ ТАБЛИЦ ==="
 echo "Создание всех таблиц через Base.metadata.create_all..."
-docker exec "$BACKEND_CONTAINER" python3 -c "
+docker exec -w /app -e PYTHONPATH=/app "$BACKEND_CONTAINER" python3 -c "
 from database import async_engine, Base
 import asyncio
 
 async def main():
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        print('✅ Все таблицы созданы через Base.metadata.create_all')
+        
+        # Проверяем, что таблица users создалась
+        result = await conn.execute('SELECT COUNT(*) FROM information_schema.tables WHERE table_name = \\'users\\'')
+        count = result.scalar()
+        print(f'Таблица users существует: {count > 0}')
+        
+        if count == 0:
+            print('❌ Таблица users не создалась!')
+        else:
+            print('✅ Таблица users создана успешно')
+
 asyncio.run(main())
-print('✅ Все таблицы созданы через Base.metadata.create_all')
 "
 
 # Сидинг данных: админ и d.li
