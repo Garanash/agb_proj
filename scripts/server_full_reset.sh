@@ -174,7 +174,7 @@ with open('/tmp/seed_users.py', 'w') as f:
 docker cp /tmp/seed_users.py "$BACKEND_CONTAINER":/tmp/seed_users.py
 rm -f /tmp/seed_users.py
 
-docker exec -w /app "$BACKEND_CONTAINER" PYTHONPATH=/app python3 /tmp/seed_users.py
+docker exec -w /app -e PYTHONPATH=/app "$BACKEND_CONTAINER" python3 /tmp/seed_users.py
 
 echo "=== 8) ПРОВЕРКИ ==="
 # Health
