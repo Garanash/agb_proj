@@ -26,13 +26,12 @@ echo "=== 1) ОСТАНОВКА СЕРВИСОВ ==="
 docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down || true
 
 echo "=== 2) ЧИСТКА ДАННЫХ POSTGRES (drop volumes) ==="
-# Удаляем старый volume Postgres (если используется volume docker-compose с именем)
-# Попытка найти volume по имени проекта
-PG_VOLUME=$(docker volume ls --format '{{.Name}}' | grep -E 'agb_proj.*postgres|postgres_data|agb_postgres' || true)
-if [ -n "$PG_VOLUME" ]; then
-  echo "Найден volume: $PG_VOLUME. Удаляю..."
-  docker volume rm -f "$PG_VOLUME" || true
-fi
+# Удаляем все volumes связанные с проектом
+echo "Удаление всех volumes проекта..."
+docker volume ls --format '{{.Name}}' | grep -E 'agb_proj|postgres_data|redis_data|uploads_data' | while read volume; do
+  echo "Удаляю volume: $volume"
+  docker volume rm -f "$volume" || true
+done
 
 # На всякий случай удалим контейнер Postgres
 docker rm -f "$POSTGRES_CONTAINER" 2>/dev/null || true
@@ -79,18 +78,9 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Создаем пользователя/БД через переменные окружения PostgreSQL
-echo "Создание пользователя и БД через переменные окружения..."
 # PostgreSQL контейнер автоматически создаст пользователя и БД из переменных окружения
-# Проверяем, что БД создалась
-sleep 5
-docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" || {
-  echo "Ошибка подключения к БД. Попробуем создать пользователя вручную..."
-  # Создаем пользователя через postgres (если он есть) или через init скрипт
-  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASS';" || true
-  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;" || true
-  docker exec "$POSTGRES_CONTAINER" psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" || true
-}
+echo "PostgreSQL контейнер создаст пользователя $DB_USER и БД $DB_NAME автоматически"
+sleep 10
 
 echo "=== 5) ЗАПУСК BACKEND/FRONTEND/NGINX ==="
 docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d backend frontend nginx
