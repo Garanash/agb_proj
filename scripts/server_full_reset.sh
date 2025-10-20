@@ -103,6 +103,9 @@ from database import async_engine, Base
 from sqlalchemy import text
 import asyncio
 
+# Импортируем все модели чтобы они были зарегистрированы в Base.metadata
+from models import User, Department, Event, News, ChatRoom, ChatMessage, ChatParticipant, ChatBot, AIChatSession, ArticleMatchingRequest, ArticleMatchingResult, OurDatabaseArticle, EventParticipant, SavedVariant
+
 async def main():
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
