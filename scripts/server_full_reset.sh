@@ -41,6 +41,7 @@ echo "=== 3) РЕГЕНЕРАЦИЯ production.env ==="
 cat > "$ENV_FILE" <<EOF
 # Core
 ENV=production
+SECRET_KEY=your-secret-key-change-in-production
 
 # API конфигурация
 NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
@@ -80,25 +81,25 @@ done
 
 # Создаем пользователя/БД явно (на случай пустого кластера)
 echo "Создание пользователя и БД, если их нет..."
-docker exec -u postgres "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -c "DO $$
+docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d postgres -c "DO \$\$
 BEGIN
    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
       CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASS';
    END IF;
 END
-$$;"
+\$\$;" || true
 
-docker exec -u postgres "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -c "DO $$
+docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d postgres -c "DO \$\$
 BEGIN
    IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME') THEN
       CREATE DATABASE $DB_NAME OWNER $DB_USER;
    END IF;
 END
-$$;"
+\$\$;" || true
 
 # Привилегии
-docker exec -u postgres "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
-docker exec -u postgres "$POSTGRES_CONTAINER" psql -v ON_ERROR_STOP=1 -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
+docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;" || true
+docker exec "$POSTGRES_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" || true
 
 echo "=== 5) ЗАПУСК BACKEND/FRONTEND/NGINX ==="
 docker-compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d backend frontend nginx
