@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Убираем standalone режим для корректной работы статических файлов
-  // output: 'standalone',
+  // Включаем standalone режим для Docker
+  output: 'standalone',
   
   images: {
     domains: ['almazgeobur.ru'],
