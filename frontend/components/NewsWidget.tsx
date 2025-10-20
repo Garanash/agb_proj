@@ -27,7 +27,7 @@ const NewsWidget: React.FC = () => {
 
   const canManageNews = user && (user.role === 'admin' || user.role === 'manager')
 
-  console.log('NewsWidget rendered:', { user: !!user, newsCount: news.length })
+  console.log('NewsWidget rendered:', { user: !!user, newsCount: Array.isArray(news) ? news.length : 0 })
 
   // Загрузка новостей с backend
   useEffect(() => {
@@ -50,7 +50,8 @@ const NewsWidget: React.FC = () => {
       })
       if (response.status >= 200 && response.status < 300) {
         const newsData = await response.json()
-        const formattedNews = newsData.map((item: any) => ({
+        const list = Array.isArray(newsData) ? newsData : []
+        const formattedNews = list.map((item: any) => ({
           id: item.id.toString(),
           title: item.title,
           content: item.content,

@@ -57,7 +57,7 @@ const Calendar: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  console.log('Calendar rendered:', { user: !!user, eventsCount: events.length })
+  console.log('Calendar rendered:', { user: !!user, eventsCount: Array.isArray(events) ? events.length : 0 })
 
   // Загрузка событий с backend
   const fetchEvents = async () => {
@@ -80,7 +80,12 @@ const Calendar: React.FC = () => {
           'Authorization': `Bearer ${token}`
         } : {}
       })
-      setEvents(response.data)
+      const raw = Array.isArray(response.data) ? response.data : []
+      const normalized = raw.map((ev: any) => ({
+        ...ev,
+        participants: Array.isArray(ev?.participants) ? ev.participants : []
+      }))
+      setEvents(normalized)
     } catch (error) {
       console.error('Ошибка загрузки событий:', error)
       setError(error instanceof Error ? error.message : 'Произошла ошибка при загрузке событий')
@@ -96,7 +101,8 @@ const Calendar: React.FC = () => {
 
   // Получение событий для определенной даты
   const getEventsForDate = (date: moment.Moment) => {
-    return events.filter(event => {
+    const list = Array.isArray(events) ? events : []
+    return list.filter(event => {
       const eventDate = moment(event.start_date)
       return eventDate.format('YYYY-MM-DD') === date.format('YYYY-MM-DD')
     })
@@ -332,9 +338,9 @@ const Calendar: React.FC = () => {
               {/* События дня */}
               <div className="mb-6">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">События на этот день</h4>
-                {getEventsForDate(selectedDate).length > 0 ? (
+                {(getEventsForDate(selectedDate) || []).length > 0 ? (
                   <div className="space-y-3">
-                    {getEventsForDate(selectedDate).map(event => (
+                    {(getEventsForDate(selectedDate) || []).map(event => (
                       <div
                         key={event.id}
                         className={`p-4 rounded-lg border-l-4 ${
@@ -361,11 +367,11 @@ const Calendar: React.FC = () => {
                             {event.description && (
                               <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">{event.description}</p>
                             )}
-                            {event.participants.length > 0 && (
+                            {(event.participants?.length ?? 0) > 0 && (
                               <div className="mt-2">
                                 <p className="text-sm text-gray-600 dark:text-gray-400">Участники:</p>
                                 <div className="flex flex-wrap gap-2 mt-1">
-                                  {event.participants.map(participant => (
+                                  {(event.participants || []).map(participant => (
                                     <span
                                       key={participant.id}
                                       className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
