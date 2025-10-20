@@ -56,8 +56,16 @@ HEADER_ALIASES: Dict[str, str] = {
 }
 
 
-def normalize(s: Optional[str]) -> str:
-    return (s or "").strip()
+def normalize(s: Optional[object]) -> str:
+    """Безопасная нормализация значений из Excel в строку.
+    Поддерживает int/float/None, обрезает пробелы.
+    """
+    if s is None:
+        return ""
+    try:
+        return str(s).strip()
+    except Exception:
+        return ""
 
 
 def map_header(name: Any) -> Optional[str]:
