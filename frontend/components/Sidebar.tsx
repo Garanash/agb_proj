@@ -227,11 +227,11 @@ export default function Sidebar() {
     }
   }, [currentUrl])
 
-  // Мемоизируем отфильтрованную навигацию
+  // Мемоизируем отфильтрованную навигацию (нормализуем роль ved -> ved_passport)
   const filteredNavigation = useMemo(() => {
-    return navigation.filter(item => 
-      user ? item.roles.includes(user.role) : false
-    )
+    if (!user) return []
+    const role = user.role === 'ved' ? 'ved_passport' : user.role
+    return navigation.filter(item => item.roles.includes(role))
   }, [user?.role])
 
   // Проверяем, активен ли текущий путь
