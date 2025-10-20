@@ -104,7 +104,7 @@ from sqlalchemy import text
 import asyncio
 
 # Импортируем все модели чтобы они были зарегистрированы в Base.metadata
-from models import User, Department, Event, News, ChatRoom, ChatMessage, ChatParticipant, ChatBot, AIChatSession, ArticleMatchingRequest, ArticleMatchingResult, EventParticipant, SavedVariant
+from models import User, Department, Event, News, ChatRoom, ChatMessage, ChatParticipant, ChatBot, AIChatSession, ArticleMatchingRequest, ArticleMatchingResult, EventParticipant
 
 async def main():
     async with async_engine.begin() as conn:
