@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional
 from openpyxl import load_workbook
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 # Используем объекты приложения
 """Импорт номенклатуры VED из Excel в БД.
@@ -67,7 +67,7 @@ def map_header(name: Any) -> Optional[str]:
     return HEADER_ALIASES.get(key)
 
 
-async def upsert_row(db: AsyncSession, row: Dict[str, Any]) -> None:
+async def upsert_row(db: AsyncSession, row: Dict[str, Any]) -> bool:
     code = normalize(row.get("code_1c"))
     article = normalize(row.get("article"))
     name = normalize(row.get("name"))
@@ -78,9 +78,9 @@ async def upsert_row(db: AsyncSession, row: Dict[str, Any]) -> None:
     product_type = normalize(row.get("product_type") or "коронка")
 
     if not code and not article:
-        return  # пропускаем пустые строки
+        return False  # пропускаем пустые строки
     if not name or not matrix:
-        return
+        return False
 
     # Ищем по code_1c, если есть, иначе по article
     stmt = None
@@ -115,41 +115,71 @@ async def upsert_row(db: AsyncSession, row: Dict[str, Any]) -> None:
         entity.thread = thread or entity.thread
         entity.product_type = product_type or entity.product_type
 
+    return True
+
 
 async def import_file(path: str, sheet: Optional[str] = None) -> None:
     wb = load_workbook(filename=path, data_only=True)
     ws = wb[sheet] if sheet else wb.active
 
     # Читаем заголовки
-    headers = [map_header(cell.value) for cell in next(ws.iter_rows(min_row=1, max_row=1))[0:]]
+    header_row = next(ws.iter_rows(min_row=1, max_row=1))
+    headers = [map_header(cell.value) for cell in header_row]
     indices = {i: h for i, h in enumerate(headers) if h}
+
+    # Если ключевых заголовков нет, используем запасное сопоставление по индексам
+    must_have = set(["name", "matrix"])  # code/article может быть пустым, но хотя бы name/matrix нужны
+    if not indices or not must_have.issubset(set(indices.values())):
+        # Фоллбэк сопоставления: A..H
+        fallback = {
+            0: "code_1c",      # A
+            1: "article",      # B
+            2: "name",         # C
+            3: "matrix",       # D
+            4: "drilling_depth",# E
+            5: "height",       # F
+            6: "thread",       # G
+            7: "product_type", # H
+        }
+        indices = fallback
+        print("[IMPORT] Заголовки не распознаны полностью, применён фоллбэк по колонкам A..H")
+
+    print("[IMPORT] Маппинг колонок:", indices)
 
     total = 0
     created_or_updated = 0
 
-    async with async_engine.begin() as conn:
-        async with AsyncSession(async_engine, expire_on_commit=False) as db:
-            for row in ws.iter_rows(min_row=2):
-                total += 1
-                data: Dict[str, Any] = {}
-                empty = True
-                for idx, cell in enumerate(row):
-                    key = indices.get(idx)
-                    if not key:
-                        continue
-                    value = cell.value
-                    if isinstance(value, str):
-                        value = value.strip()
-                    if value not in (None, ""):
-                        empty = False
-                    data[key] = value
-                if empty:
-                    continue
-                await upsert_row(db, data)
-                created_or_updated += 1
-            await db.commit()
+    SessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
-    print(f"Импорт завершен. Обработано строк: {total}, записей создано/обновлено: {created_or_updated}")
+    skipped_empty = 0
+    skipped_required = 0
+
+    async with SessionLocal() as db:
+        for row in ws.iter_rows(min_row=2):
+            total += 1
+            data: Dict[str, Any] = {}
+            empty = True
+            for idx, cell in enumerate(row):
+                key = indices.get(idx)
+                if not key:
+                    continue
+                value = cell.value
+                if isinstance(value, str):
+                    value = value.strip()
+                if value not in (None, ""):
+                    empty = False
+                data[key] = value
+            if empty:
+                skipped_empty += 1
+                continue
+            ok = await upsert_row(db, data)
+            if ok:
+                created_or_updated += 1
+            else:
+                skipped_required += 1
+        await db.commit()
+
+    print(f"Импорт завершен. Обработано строк: {total}, записей создано/обновлено: {created_or_updated}, пропущено пустых: {skipped_empty}, пропущено без обязательных полей: {skipped_required}")
 
 
 def main():
