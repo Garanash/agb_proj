@@ -7,23 +7,31 @@ export const DEFAULT_API_VERSION = 'v1';
 
 // Простая функция для получения API URL без сложной логики
 export const getSimpleApiUrl = (): string => {
+  // Сначала пытаемся получить URL из переменной окружения
+  if (typeof window !== 'undefined' && window.ENV?.NEXT_PUBLIC_API_URL) {
+    const envApiUrl = window.ENV.NEXT_PUBLIC_API_URL;
+    console.log('🌐 Simple API URL из переменной окружения:', envApiUrl);
+    return envApiUrl;
+  }
+
+  // Если переменная окружения не доступна, используем текущий origin
   if (typeof window !== 'undefined') {
     const currentOrigin = window.location.origin;
     console.log('🌐 Simple API URL - текущий origin:', currentOrigin);
-    
+
     // Если мы на порту 80 или без порта, добавляем :8000
     if (currentOrigin.includes(':80') || !currentOrigin.includes(':')) {
       const apiUrl = currentOrigin.replace(':80', '').replace(/\/$/, '') + ':8000';
       console.log('🌐 Simple API URL (порт 80):', apiUrl);
       return apiUrl;
     }
-    
+
     // Если уже есть порт, заменяем его на 8000
     const apiUrl = currentOrigin.replace(/:\d+$/, ':8000');
     console.log('🌐 Simple API URL:', apiUrl);
     return apiUrl;
   }
-  
+
   return 'http://localhost:8000';
 };
 
