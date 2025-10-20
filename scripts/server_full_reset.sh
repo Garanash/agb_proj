@@ -95,16 +95,9 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Применение миграций Alembic (если есть) и создание таблиц
-echo "=== 6) МИГРАЦИИ И СОЗДАНИЕ ТАБЛИЦ ==="
-if docker exec "$BACKEND_CONTAINER" sh -c "ls -1 alembic/versions/*.py 2>/dev/null | wc -l" | grep -vq '^0$'; then
-  echo "Запуск alembic upgrade head..."
-  docker exec "$BACKEND_CONTAINER" sh -c "/app/venv/bin/alembic upgrade head" || true
-else
-  echo "Миграций не найдено, пропускаю alembic"
-fi
-
-# create_all из моделей
+# Создание таблиц через Base.metadata.create_all (пропускаем Alembic)
+echo "=== 6) СОЗДАНИЕ ТАБЛИЦ ==="
+echo "Создание всех таблиц через Base.metadata.create_all..."
 docker exec "$BACKEND_CONTAINER" python3 -c "
 from database import async_engine, Base
 import asyncio
@@ -130,25 +123,29 @@ print(CryptContext(schemes=['bcrypt'], deprecated='auto').hash('123456'))
 ")
 
 # Вставка/обновление пользователей
-cat > /tmp/seed_users.sql <<EOSQL
+cat > /tmp/seed_users.sql <<'EOSQL'
 DO $$
 BEGIN
    IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin') THEN
       INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
-      VALUES ('admin', '$ADMIN_EMAIL', '$ADMIN_HASH', 'Администратор', 'Системы', 'admin', true, true, NOW());
+      VALUES ('admin', 'admin@local', 'ADMIN_HASH_PLACEHOLDER', 'Администратор', 'Системы', 'admin', true, true, NOW());
    ELSE
-      UPDATE users SET email='$ADMIN_EMAIL', hashed_password='$ADMIN_HASH', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='admin';
+      UPDATE users SET email='admin@local', hashed_password='ADMIN_HASH_PLACEHOLDER', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='admin';
    END IF;
 
    IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'd.li') THEN
       INSERT INTO users (username, email, hashed_password, first_name, last_name, role, is_active, is_password_changed, created_at)
-      VALUES ('d.li', 'd.li@ved.ru', '$DLI_HASH', 'Дмитрий', 'Ли', 'ved', true, true, NOW());
+      VALUES ('d.li', 'd.li@ved.ru', 'DLI_HASH_PLACEHOLDER', 'Дмитрий', 'Ли', 'ved', true, true, NOW());
    ELSE
-      UPDATE users SET email='d.li@ved.ru', hashed_password='$DLI_HASH', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='d.li';
+      UPDATE users SET email='d.li@ved.ru', hashed_password='DLI_HASH_PLACEHOLDER', is_active=true, is_password_changed=true, updated_at=NOW() WHERE username='d.li';
    END IF;
 END
 $$;
 EOSQL
+
+# Заменяем плейсхолдеры на реальные хеши
+sed -i "s/ADMIN_HASH_PLACEHOLDER/$ADMIN_HASH/g" /tmp/seed_users.sql
+sed -i "s/DLI_HASH_PLACEHOLDER/$DLI_HASH/g" /tmp/seed_users.sql
 
 docker cp /tmp/seed_users.sql "$POSTGRES_CONTAINER":/tmp/seed_users.sql
 rm -f /tmp/seed_users.sql
