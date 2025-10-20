@@ -3,6 +3,7 @@ API endpoints для загрузки данных ВЭД паспортов
 """
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+import time
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 import pandas as pd
@@ -32,7 +33,7 @@ async def upload_ved_passports_data(
     db: Session = Depends(get_db)
 ):
     """Загрузка данных ВЭД паспортов из CSV/Excel файла"""
-    if current_user.role not in ["admin", "manager", "ved_passport"]:
+    if current_user.role not in ["admin", "manager", "ved_passport", "ved"]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
@@ -108,7 +109,7 @@ def get_ved_passports_history(
     db: Session = Depends(get_db)
 ):
     """Получение истории загрузок ВЭД паспортов"""
-    if current_user.role not in ["admin", "manager", "ved_passport"]:
+    if current_user.role not in ["admin", "manager", "ved_passport", "ved"]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
@@ -170,33 +171,43 @@ def add_single_passport(
     db: Session = Depends(get_db)
 ):
     """Добавление одного ВЭД паспорта"""
-    if current_user.role not in ["admin", "manager", "ved_passport"]:
+    if current_user.role not in ["admin", "manager", "ved_passport", "ved"]:
         raise HTTPException(status_code=403, detail="Доступ запрещен")
     
     try:
-        # Создаем ВЭД паспорт
-        passport = VedPassport(
-            passport_number=str(passport_data['passport_number']),
-            order_number=str(passport_data['order_number']),
-            title=str(passport_data.get('title', '')),
-            description=str(passport_data.get('description', '')),
-            quantity=int(passport_data.get('quantity', 1)),
-            status=str(passport_data.get('status', 'active')),
-            created_by=current_user.id,
-            nomenclature_id=int(passport_data.get('nomenclature_id', 1))
-        )
+        quantity = int(passport_data.get('quantity', 1))
+        base_number = str(passport_data.get('passport_number', '')).strip()
+        created = []
         
-        db.add(passport)
+        for i in range(max(1, quantity)):
+            if base_number:
+                number = f"{base_number}-{i+1:03d}" if quantity > 1 else base_number
+            else:
+                number = f"VED-{int(time.time()*1000)}-{i+1:03d}"
+
+            passport = VedPassport(
+                passport_number=number,
+                order_number=str(passport_data['order_number']),
+                title=str(passport_data.get('title', '')),
+                description=str(passport_data.get('description', '')),
+                quantity=1,
+                status=str(passport_data.get('status', 'active')),
+                created_by=current_user.id,
+                nomenclature_id=int(passport_data.get('nomenclature_id', 1))
+            )
+            db.add(passport)
+            db.flush()
+            created.append({
+                "passport_id": passport.id,
+                "passport_number": passport.passport_number
+            })
+
         db.commit()
-        
+
         return APIResponse(
             success=True,
-            message="ВЭД паспорт успешно добавлен",
-            data={
-                "passport_id": passport.id,
-                "passport_number": passport.passport_number,
-                "order_number": passport.order_number
-            }
+            message=f"Создано паспортов: {len(created)}",
+            data={"created": created}
         )
         
     except Exception as e:

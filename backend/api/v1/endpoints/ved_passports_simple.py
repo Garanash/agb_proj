@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
+from typing import List
+import io
 from sqlalchemy.orm import Session
 from typing import List, Dict
 from datetime import datetime
 
 from database import SessionLocal
 from models import User, UserRole, VEDNomenclature, VedPassport
+from utils.pdf_generator import generate_bulk_passports_pdf
 from ..schemas import (
     VEDNomenclature as VEDNomenclatureSchema,
     VedPassport as VedPassportSchema,
@@ -164,6 +168,45 @@ def get_ved_passports(
     except Exception as e:
         print(f"Ошибка при получении паспортов: {e}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.get("/archive/", response_model=List[VedPassportSchema])
+def get_user_archive(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Архив паспортов для текущего пользователя (VED доступен)."""
+    try:
+        passports = db.query(VedPassport).filter(
+            VedPassport.created_by == current_user.id,
+            VedPassport.status == "archived"
+        ).order_by(VedPassport.created_at.desc()).all()
+        return passports
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+
+@router.post("/export/bulk/pdf")
+def export_bulk_pdf(
+    passport_ids: List[int],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Экспорт выбранных паспортов в один PDF."""
+    if not passport_ids:
+        raise HTTPException(status_code=400, detail="Список паспортов пуст")
+    try:
+        passports = db.query(VedPassport).filter(VedPassport.id.in_(passport_ids)).all()
+        if not passports:
+            raise HTTPException(status_code=404, detail="Паспорта не найдены")
+        pdf_bytes = generate_bulk_passports_pdf(passports)
+        return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
+            "Content-Disposition": "attachment; filename=ved_passports.pdf"
+        })
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка экспорта PDF: {str(e)}")
 
 
 @router.get("/{passport_id}", response_model=VedPassportSchema)
