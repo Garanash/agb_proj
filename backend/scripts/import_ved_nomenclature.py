@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import os
 from typing import Dict, Any, Optional
 
 from openpyxl import load_workbook
@@ -8,6 +9,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # Используем объекты приложения
+"""Импорт номенклатуры VED из Excel в БД.
+
+Запуск предполагается внутри backend-контейнера, где проект смонтирован в /app.
+Чтобы гарантировать доступность модулей проекта (database, models),
+добавляем /app в sys.path даже если переменная PYTHONPATH не выставлена.
+"""
+
+# Гарантируем доступ к модулям приложения
+APP_ROOT = "/app"
+if APP_ROOT not in sys.path:
+    sys.path.insert(0, APP_ROOT)
+
 from database import async_engine
 from models import VEDNomenclature
 
