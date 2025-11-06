@@ -72,7 +72,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('AddEventModal rendered:', { isOpen, selectedDate: !!selectedDate, initialEventType })
 
 
 

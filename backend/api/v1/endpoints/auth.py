@@ -105,6 +105,11 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "position": current_user.position
     }
 
+@router.get("/profile")
+def get_profile(current_user: User = Depends(get_current_user)):
+    """Получение профиля пользователя (алиас для /me)"""
+    return read_users_me(current_user)
+
 @router.post("/logout")
 async def logout():
     """Выход из системы"""

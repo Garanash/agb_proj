@@ -29,7 +29,6 @@ const ProfileEditModal: React.FC<ProfileEditModalProps> = ({ isOpen, onClose, on
   const [previewAvatar, setPreviewAvatar] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
-  console.log('ProfileEditModal rendered:', { isOpen, user: !!user })
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target

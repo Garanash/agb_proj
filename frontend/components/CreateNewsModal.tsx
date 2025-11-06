@@ -26,7 +26,6 @@ const CreateNewsModal: React.FC<CreateNewsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('CreateNewsModal rendered:', { isOpen })
 
   const handleInputChange = (e: any) => {
     const { name, value, type } = e.target

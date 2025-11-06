@@ -36,7 +36,6 @@ const EditDepartmentModal: React.FC<EditDepartmentModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('EditDepartmentModal rendered:', { isOpen, department: !!department })
 
   // Заполняем форму данными отдела при открытии
   useEffect(() => {

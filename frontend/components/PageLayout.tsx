@@ -16,7 +16,6 @@ const PageLayout: React.FC<PageLayoutProps> = ({
   children, 
   headerActions 
 }) => {
-  console.log('PageLayout rendered with title:', title)
   
   return (
     <div className="p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">

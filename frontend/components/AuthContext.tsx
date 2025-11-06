@@ -44,26 +44,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Настройка axios для автоматического добавления токена
   useEffect(() => {
-    console.log('AuthContext useEffect started')
     // Проверяем, что мы на клиенте
     if (typeof window === 'undefined') {
-      console.log('Not on client side, setting isLoading to false')
       setIsLoading(false)
       setHasInitialized(true)
       return
     }
 
     const storedToken = localStorage.getItem('access_token')
-    console.log('Stored token found:', !!storedToken)
     if (storedToken) {
       setToken(storedToken)
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
       // Проверяем валидность токена в фоне
-      console.log('Token found, checking validity in background')
       checkTokenValidity()
     } else {
       // Если токена нет, завершаем инициализацию
-      console.log('No token found, completing initialization')
       setIsLoading(false)
       setHasInitialized(true)
     }
@@ -73,11 +68,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (!hasInitialized) {
-        console.log('Auth initialization timeout, forcing completion')
         setIsLoading(false)
         setHasInitialized(true)
       }
-    }, 1000) // 1 секунда таймаут (уменьшено)
+    }, 1000) // 1 секунда таймаут
 
     return () => clearTimeout(timeout)
   }, [hasInitialized])
@@ -85,10 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Дополнительный таймаут для принудительного завершения
   useEffect(() => {
     const forceTimeout = setTimeout(() => {
-      console.log('Force timeout reached, completing initialization')
       setIsLoading(false)
       setHasInitialized(true)
-    }, 2000) // 2 секунды принудительный таймаут (уменьшено)
+    }, 2000) // 2 секунды принудительный таймаут
 
     return () => clearTimeout(forceTimeout)
   }, [])
@@ -96,10 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkTokenValidity = async () => {
     try {
       const apiUrl = getSimpleApiUrl() + '/api/v1/auth/me'
-      console.log('API URL for token validation:', apiUrl)
-      console.log('Making request to:', apiUrl)
       
-      // Добавляем таймаут для запроса (сокращенный)
+      // Добавляем таймаут для запроса
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 секунды таймаут
       
@@ -109,28 +100,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
       
       clearTimeout(timeoutId)
-      console.log('Response received:', response.status, response.data)
       const userData = response.data
       setUser(userData)
-      console.log('User loaded:', userData)
       
       // Проверяем, нужно ли сменить пароль
       if (userData && !userData.is_password_changed) {
         setShowPasswordChangeModal(true)
       }
     } catch (error: any) {
-      console.error('Token validation error:', error)
-      console.error('Error details:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      })
       // Токен невалиден, удаляем его
       localStorage.removeItem('access_token')
       setToken(null)
       delete axios.defaults.headers.common['Authorization']
     } finally {
-      console.log('Setting isLoading to false and hasInitialized to true')
       setIsLoading(false)
       setHasInitialized(true)
     }
@@ -230,14 +212,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hasInitialized
   }
 
-  console.log('AuthContext value:', { 
-    user: !!user, 
-    token: !!token, 
-    isLoading, 
-    isAuthenticated: !!user,
-    hasInitialized,
-    timestamp: new Date().toISOString()
-  })
 
   return (
     <AuthContext.Provider value={value}>

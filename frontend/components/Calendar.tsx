@@ -57,7 +57,6 @@ const Calendar: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  console.log('Calendar rendered:', { user: !!user, eventsCount: Array.isArray(events) ? events.length : 0 })
 
   // Загрузка событий с backend
   const fetchEvents = async () => {

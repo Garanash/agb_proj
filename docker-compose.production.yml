@@ -58,11 +58,11 @@ services:
       - WEBHOOK_URL=http://localhost:5678/
       - GENERIC_TIMEZONE=${TIMEZONE:-Europe/Moscow}
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_HOST=agb_postgres_prod
       - DB_POSTGRESDB_PORT=5432
-      - DB_POSTGRESDB_DATABASE=${N8N_DB:-n8n_db}
-      - DB_POSTGRESDB_USER=${POSTGRES_USER:-agb_user}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD:-agb_password}
+      - DB_POSTGRESDB_DATABASE=n8n_db
+      - DB_POSTGRESDB_USER=n8n_user
+      - DB_POSTGRESDB_PASSWORD=33NyWzDxAOHdglQ0NusDIUjQ4
     volumes:
       - n8n_data:/home/node/.n8n
     ports:

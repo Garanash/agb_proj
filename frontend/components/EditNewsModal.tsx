@@ -40,7 +40,6 @@ const EditNewsModal: React.FC<EditNewsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('EditNewsModal rendered:', { isOpen, news: !!news })
 
   // Заполняем форму данными новости при открытии
   useEffect(() => {

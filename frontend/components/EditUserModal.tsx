@@ -52,7 +52,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   const [generatedPassword, setGeneratedPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
-  console.log('EditUserModal rendered:', { isOpen, user: !!user })
 
   // Заполняем форму данными пользователя при открытии
   useEffect(() => {

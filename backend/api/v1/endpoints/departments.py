@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
+import os
 
 from database import get_db
 from models import Department, User, UserRole
@@ -227,7 +228,25 @@ def delete_department(
         if not department:
             raise HTTPException(status_code=404, detail="Отдел не найден")
         
-        db.delete(department)
+        # Проверяем, есть ли связанные пользователи или сотрудники
+        from models import User, CompanyEmployee
+        from sqlalchemy import text
+        
+        # Используем raw SQL для проверки связей
+        users_result = db.execute(text("SELECT COUNT(*) FROM users WHERE department_id = :dept_id"), {"dept_id": department_id})
+        users_count = users_result.scalar() or 0
+        
+        employees_result = db.execute(text("SELECT COUNT(*) FROM company_employees WHERE department_id = :dept_id"), {"dept_id": department_id})
+        employees_count = employees_result.scalar() or 0
+        
+        if users_count > 0 or employees_count > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Невозможно удалить отдел: есть связанные пользователи ({users_count}) или сотрудники ({employees_count})"
+            )
+        
+        # Мягкое удаление - деактивируем отдел вместо физического удаления
+        department.is_active = False
         db.commit()
         
         return {"message": "Отдел успешно удален"}
@@ -235,4 +254,8 @@ def delete_department(
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Ошибка при удалении отдела: {str(e)}")
+        import traceback
+        error_detail = str(e)
+        if os.getenv("DEBUG") == "true":
+            error_detail += f"\n{traceback.format_exc()}"
+        raise HTTPException(status_code=500, detail=f"Ошибка при удалении отдела: {error_detail}")

@@ -91,6 +91,12 @@ try:
 except ImportError:
     pass
 
+try:
+    from .endpoints.chat_rooms import router as chat_rooms_router
+    api_router.include_router(chat_rooms_router, prefix="/chat", tags=["💬 Чат"])
+except ImportError:
+    pass
+
 # try:
 #     from .endpoints.chat_sync import router as chat_sync_router
 #     api_router.include_router(chat_sync_router, prefix="/chat", tags=["💬 Чат"])

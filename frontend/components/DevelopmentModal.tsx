@@ -14,7 +14,6 @@ const DevelopmentModal: React.FC<DevelopmentModalProps> = ({
   onClose, 
   pageName 
 }) => {
-  console.log('DevelopmentModal rendered:', { isOpen, pageName })
   
   if (!isOpen) return null
 

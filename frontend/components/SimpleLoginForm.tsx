@@ -12,7 +12,6 @@ const SimpleLoginForm: React.FC<SimpleLoginFormProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('SimpleLoginForm rendered')
 
   const handleSubmit = async (e: React.FormEvent) => {
     console.log('🔥 SimpleLoginForm submit triggered!')

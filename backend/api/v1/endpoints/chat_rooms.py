@@ -22,25 +22,34 @@ from ..schemas import (
 router = APIRouter()
 
 @router.get("/rooms/", response_model=List[ChatRoomSchema])
+@router.get("/rooms", response_model=List[ChatRoomSchema])
 def get_chat_rooms(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Получение списка чат-комнат пользователя"""
     try:
+        # Получаем все активные чаты, где пользователь является участником
         result = db.execute(
             select(ChatRoom)
-            .join(ChatParticipant)
-            .where(ChatParticipant.user_id == current_user.id)
+            .join(ChatParticipant, ChatRoom.id == ChatParticipant.room_id)
+            .where(
+                ChatParticipant.user_id == current_user.id,
+                ChatRoom.is_active == True
+            )
             .options(selectinload(ChatRoom.participants))
+            .distinct()
         )
         rooms = result.scalars().all()
         return rooms
     except Exception as e:
         print(f"Ошибка при получении чатов: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 @router.post("/rooms/", response_model=ChatRoomSchema)
+@router.post("/rooms", response_model=ChatRoomSchema)
 def create_chat_room(
     room_data: ChatRoomCreate,
     current_user: User = Depends(get_current_user),
@@ -50,7 +59,9 @@ def create_chat_room(
     try:
         new_room = ChatRoom(
             name=room_data.name,
-            description=room_data.description,
+            description=getattr(room_data, 'description', None),
+            is_private=getattr(room_data, 'is_private', False),
+            is_active=True,
             created_by=current_user.id
         )
         db.add(new_room)
@@ -65,10 +76,13 @@ def create_chat_room(
         )
         db.add(participant)
         db.commit()
+        db.refresh(new_room)
         
         return new_room
     except Exception as e:
         print(f"Ошибка при создании чата: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 

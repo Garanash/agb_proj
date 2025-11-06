@@ -201,7 +201,6 @@ export default function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [currentUrl, setCurrentUrl] = useState(window.location.href)
 
-  console.log('Sidebar rendered:', { pathname, user: !!user })
 
   // Отслеживаем изменения URL
   useEffect(() => {
@@ -277,7 +276,6 @@ export default function Sidebar() {
 
   // Обработчик клика по элементу навигации
   const handleNavigationClick = useCallback((href: string, itemName: string) => {
-    console.log('Navigation click:', { href, itemName, currentPath: pathname })
     
     // Если это элемент с подпунктами, переключаем его
     const item = navigation.find(nav => nav.name === itemName)

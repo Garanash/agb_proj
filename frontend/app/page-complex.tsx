@@ -17,7 +17,6 @@ export default function Home() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [initialUserType, setInitialUserType] = useState<'customer' | 'contractor'>('customer')
 
-  console.log('Home page rendered:', { user: !!user })
 
   return (
     <PageLayout

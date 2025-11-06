@@ -16,7 +16,6 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  console.log('Home page rendered:', { user: !!user, isLoading, mounted })
 
   // Показываем загрузку пока компонент не смонтирован или идет загрузка аутентификации
   if (!mounted || isLoading) {

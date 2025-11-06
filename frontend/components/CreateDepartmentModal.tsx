@@ -24,7 +24,6 @@ const CreateDepartmentModal: React.FC<CreateDepartmentModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('CreateDepartmentModal rendered:', { isOpen })
 
   const handleInputChange = (e: any) => {
     const { name, value } = e.target

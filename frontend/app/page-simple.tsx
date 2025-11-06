@@ -19,7 +19,6 @@ export default function SimpleHome() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  console.log('SimpleHome rendered')
 
   useEffect(() => {
     console.log('🔍 Checking localStorage...')

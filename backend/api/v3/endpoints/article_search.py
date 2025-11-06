@@ -22,7 +22,7 @@ from models import (
     User, Supplier, SupplierArticle, ArticleSearchRequest,
     ArticleSearchResult, SupplierValidationLog, ApiKey
 )
-from api.v1.endpoints.auth import get_current_user
+from api.v1.dependencies import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -581,6 +581,15 @@ def get_search_requests(
     try:
         logger.info(f"🔍 Получение запросов для пользователя {current_user.id}")
         
+        # Проверяем существование таблицы
+        from sqlalchemy import inspect
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        if 'article_search_requests' not in tables:
+            logger.warning("Таблица article_search_requests не найдена, возвращаем пустой список")
+            return []
+        
         # Используем правильную модель из models.py
         from models import ArticleSearchRequest as ArticleSearchRequestModel
         requests = db.query(ArticleSearchRequestModel).filter(
@@ -595,12 +604,12 @@ def get_search_requests(
                 "id": req.id,
                 "request_name": f"Поиск {req.search_query[:50]}..." if req.search_query else "Поиск артикулов",
                 "articles": articles_list,
-                "status": "completed" if req.results_count > 0 else "pending",
+                "status": req.status if hasattr(req, 'status') else ("completed" if req.results_count > 0 else "pending"),
                 "total_articles": len(articles_list),
-                "found_articles": req.results_count,
+                "found_articles": req.results_count or 0,
                 "total_suppliers": 0,  # Пока не реализовано
                 "created_at": req.created_at.isoformat() if req.created_at else None,
-                "completed_at": req.created_at.isoformat() if req.created_at and req.results_count > 0 else None,
+                "completed_at": req.completed_at.isoformat() if hasattr(req, 'completed_at') and req.completed_at else None,
                 "results": []  # Пока не реализовано
             })
         
@@ -611,7 +620,8 @@ def get_search_requests(
         logger.error(f"Ошибка получения запросов: {e}")
         import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail="Ошибка получения запросов")
+        # Возвращаем пустой список вместо ошибки
+        return []
 
 
 @router.get("/requests/{request_id}", response_model=SearchRequestResponse)

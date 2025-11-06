@@ -108,7 +108,8 @@ from api.v1.endpoints.chat import router as chat_router
 app.include_router(chat_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 
 from api.v1.endpoints.chat_rooms import router as chat_rooms_router
-app.include_router(chat_rooms_router, prefix="/api/v1/chat-rooms", tags=["💬 Чат-комнаты"])
+# Регистрируем с префиксом /api/v1/chat для совместимости с фронтендом
+app.include_router(chat_rooms_router, prefix="/api/v1/chat", tags=["💬 Чат"])
 
 # from api.v1.endpoints.chat_unread import router as chat_unread_router
 # app.include_router(chat_unread_router, prefix="/api/v1/chat", tags=["💬 Чат"])

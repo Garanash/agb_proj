@@ -15,21 +15,11 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const pathname = usePathname()
   const [redirecting, setRedirecting] = useState(false)
 
-  console.log('AuthGuard state:', { 
-    isAuthenticated, 
-    isLoading, 
-    user: !!user, 
-    pathname, 
-    redirecting,
-    timestamp: new Date().toISOString()
-  })
-
   useEffect(() => {
     // Если загрузка завершена и пользователь не авторизован
     if (!isLoading && !isAuthenticated && !redirecting) {
       // Если уже на странице входа или регистрации, не перенаправляем
       if (pathname !== '/login' && pathname !== '/register') {
-        console.log('Redirecting to login page')
         setRedirecting(true)
         router.push('/login')
       }
@@ -37,7 +27,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     
     // Если пользователь авторизован и находится на странице входа
     if (!isLoading && isAuthenticated && !redirecting && (pathname === '/login' || pathname === '/register')) {
-      console.log('Redirecting to home page')
       setRedirecting(true)
       router.push('/')
     }
@@ -52,7 +41,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   useEffect(() => {
     if (redirecting) {
       const timeout = setTimeout(() => {
-        console.log('Redirect timeout, resetting redirect flag')
         setRedirecting(false)
       }, 3000) // 3 секунды таймаут для редиректа
 
@@ -62,7 +50,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   // Если на странице входа или регистрации, показываем их всегда
   if (pathname === '/login' || pathname === '/register') {
-    console.log('Showing auth page without check:', pathname)
     return <>{children}</>
   }
 

@@ -70,7 +70,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
-  console.log('EditEventModal rendered:', { isOpen, event: !!event })
 
   // Загрузка пользователей и отделов
   useEffect(() => {

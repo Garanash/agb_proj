@@ -7,6 +7,7 @@ import pandas as pd
 import io
 import re
 import json
+import os
 from pydantic import BaseModel
 
 from database import get_db
@@ -29,19 +30,37 @@ class MatchingResult(BaseModel):
 def test_our_database(db: Session = Depends(get_db)):
     """Тестирование подключения к базе данных"""
     try:
-        # Простой тест подключения
-        result = db.execute(select(func.count()).select_from(ArticleMatchingRequest)).scalar()
+        # Проверяем существование таблиц
+        from models import MatchingNomenclature, ArticleMapping
+        from sqlalchemy import inspect
+        
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        matching_count = 0
+        mapping_count = 0
+        
+        if 'matching_nomenclatures' in tables:
+            matching_count = db.query(MatchingNomenclature).count()
+        
+        if 'article_mappings' in tables:
+            mapping_count = db.query(ArticleMapping).count()
+        
         return {
             "status": "success",
             "message": "База данных доступна",
-            "total_requests": result or 0,
+            "matching_nomenclatures_count": matching_count,
+            "article_mappings_count": mapping_count,
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ошибка при получении базы данных: {str(e)}"
-        )
+        import traceback
+        return {
+            "status": "error",
+            "message": f"Ошибка при проверке базы данных: {str(e)}",
+            "traceback": traceback.format_exc() if os.getenv("DEBUG") == "true" else None,
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 @router.get("/requests/")

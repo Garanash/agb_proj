@@ -12,11 +12,8 @@ interface AppLayoutProps {
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const pathname = usePathname()
   
-  console.log('AppLayout rendered:', { pathname })
-  
   // Если находимся на странице входа или регистрации, не показываем сайдбар
   if (pathname === '/login' || pathname === '/register') {
-    console.log('AppLayout: showing auth page without sidebar:', pathname)
     return <>{children}</>
   }
 
